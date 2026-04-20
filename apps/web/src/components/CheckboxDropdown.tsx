@@ -1,6 +1,6 @@
 import { Menu, Transition } from "@headlessui/react";
 import { Fragment, useState } from "react";
-import { HiEllipsisHorizontal, HiMiniPlus } from "react-icons/hi2";
+import { HiArrowUturnLeft, HiEllipsisHorizontal, HiMiniPlus } from "react-icons/hi2";
 import { twMerge } from "tailwind-merge";
 
 interface Item {
@@ -30,6 +30,7 @@ interface CheckboxDropdownProps {
   ) => void;
   handleEdit?: (key: string) => void;
   handleCreate?: () => void;
+  handleReset?: () => void;
   asChild?: boolean;
   disabled?: boolean;
 }
@@ -44,6 +45,7 @@ export default function CheckboxDropdown({
   handleSelect,
   handleEdit,
   handleCreate,
+  handleReset,
   asChild = true,
   disabled = false,
 }: CheckboxDropdownProps) {
@@ -189,6 +191,22 @@ export default function CheckboxDropdown({
                       </Menu.Item>
                     );
                   })}
+                  {handleReset && groups?.some((g) => g.items.some((i) => i.selected)) && (
+                    <Menu.Item>
+                      <div
+                        className="flex items-center rounded-[5px] p-2 text-red-700 hover:bg-red-50 dark:text-red-700 dark:hover:bg-red-900/20"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleReset();
+                        }}
+                      >
+                        <span className="mr-2"><HiArrowUturnLeft size={16} /></span>
+                        <span className="pointer-events-none text-[12px] font-medium">
+                          Reset
+                        </span>
+                      </div>
+                    </Menu.Item>
+                  )}
                 </>
               ) : (
                 <>

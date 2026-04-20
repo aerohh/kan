@@ -56,9 +56,9 @@ const Filters = ({
 }) => {
   const router = useRouter();
 
-  const clearFilters = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const clearFilters = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.preventDefault();
+    e?.stopPropagation();
 
     try {
       await router.push({
@@ -214,6 +214,7 @@ const Filters = ({
       <CheckboxDropdown
         groups={groups}
         handleSelect={handleSelect}
+        handleReset={clearFilters}
         menuSpacing="md"
         position={position}
       >
