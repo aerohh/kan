@@ -162,22 +162,33 @@ export default function CheckboxDropdown({
                 <>
                   {items && renderMenuItems(items, null)}
 
-                  {groups?.map((group) => (
-                    <Menu.Item key={group.key}>
-                      <div
-                        className="flex items-center rounded-[5px] p-2 hover:bg-light-200 dark:hover:bg-dark-300"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setSelectedGroup(group.key);
-                        }}
-                      >
-                        <span className="mr-2 text-dark-900">{group.icon}</span>
-                        <span className="pointer-events-none text-[12px] text-dark-900">
-                          {group.label}
-                        </span>
-                      </div>
-                    </Menu.Item>
-                  ))}
+                  {groups?.map((group) => {
+                    const selectedCount = group.items.filter((item) => item.selected).length;
+                    return (
+                      <Menu.Item key={group.key}>
+                        <div
+                          className={twMerge(
+                            "flex items-center rounded-[5px] p-2 hover:bg-light-200 dark:hover:bg-dark-300",
+                            selectedCount > 0 && "bg-blue-50 dark:bg-blue-900/20",
+                          )}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedGroup(group.key);
+                          }}
+                        >
+                          <span className={twMerge("mr-2 text-dark-900", selectedCount > 0 && "text-blue-500")}>{group.icon}</span>
+                          <span className={twMerge("pointer-events-none flex-1 text-[12px] text-dark-900", selectedCount > 0 && "font-semibold text-blue-600 dark:text-blue-400")}>
+                            {group.label}
+                          </span>
+                          {selectedCount > 0 && (
+                            <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-500 px-1.5 text-[10px] font-medium text-white">
+                              {selectedCount}
+                            </span>
+                          )}
+                        </div>
+                      </Menu.Item>
+                    );
+                  })}
                 </>
               ) : (
                 <>
