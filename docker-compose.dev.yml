@@ -1,0 +1,44 @@
+services:
+  migrate:
+    image: ghcr.io/kanbn/kan-migrate:latest
+    container_name: kan-dev-migrate
+    networks:
+      - kan-dev-network
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+      target: migrate
+    environment:
+      - POSTGRES_URL=${POSTGRES_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    profiles:
+      - migrate
+
+  postgres:
+    image: postgres:15
+    container_name: kan-dev-db
+    environment:
+      - POSTGRES_DB=kan_db
+      - POSTGRES_USER=kan
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - 5432:5432
+    volumes:
+      - kan-dev-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kan -d kan_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - kan-dev-network
+
+networks:
+  kan-dev-network:
+
+volumes:
+  kan-dev-postgres-data:

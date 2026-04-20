@@ -1,5 +1,9 @@
 # AGENTS.md
 
+## Purpose
+
+This file is maintained to help AI agents work effectively on this project. After each significant task, important information (file locations, patterns, architectural decisions) should be added here to help future AI sessions start their research from the best leads.
+
 ## Project Overview
 
 Kan is an open-source project management tool (Trello alternative) built with:
@@ -13,14 +17,58 @@ Kan is an open-source project management tool (Trello alternative) built with:
 
 ## Setup Commands
 
-- Install deps: `pnpm install`
-- Start dev server: `pnpm dev`
-- Create migrations: `cd packages/db && pnpm drizzle-kit generate --name "AddFieldToTable"`
-- Run database migrations: `pnpm db:migrate`
-- Run linter: `pnpm lint`
-- Run type check: `pnpm typecheck`
-- Format code: `pnpm format:fix`
-- Extract i18n strings: `pnpm lingui:extract`
+**Note**: This project uses `pnpm` via `npx` (not installed globally). All commands use `npx pnpm` instead of `pnpm`.
+
+### Docker Commands
+
+**Production (default `docker-compose.yml`)**: Runs pre-built production image. Changes require rebuilding.
+- `docker compose up` - Start all services (web, database, etc.)
+- `docker compose down` - Stop all services
+- `docker compose up --build` - Rebuild and start services
+- `docker compose logs -f web` - Follow web service logs
+
+**Development (`docker-compose.dev.yml`)**: Database and migrate services only (dev server runs locally).
+- `docker compose -f docker-compose.dev.yml up postgres -d` - Start database
+- `docker compose -f docker-compose.dev.yml --profile migrate up migrate` - Run migrations
+- `docker compose -f docker-compose.dev.yml down` - Stop dev services
+
+**Container naming**:
+- Development: `kan-dev-db`, `kan-dev-migrate`, `kan-dev-network`
+- Production: `kan-db`, `kan-migrate`, `kan-network`
+
+### Development Workflow (Recommended)
+
+For active development with hot reloading:
+
+```bash
+# Terminal 1: Start database in Docker
+docker compose -f docker-compose.dev.yml up postgres -d
+
+# Terminal 2: Run dev server locally (connects to Docker database)
+npx pnpm dev
+```
+
+The database runs in Docker and persists data in the `kan-dev-postgres-data` volume. The dev server connects via `localhost:5432` as defined in `POSTGRES_URL`.
+
+**POSTGRES_URL configuration**:
+- Local dev: Use `localhost` as hostname (e.g., `postgresql://user:pass@localhost:5432/db`)
+- Docker (production): Use `postgres` as hostname (e.g., `postgresql://user:pass@postgres:5432/db`)
+
+**Run migrations**:
+```bash
+docker compose -f docker-compose.dev.yml --profile migrate up migrate
+```
+
+### Common Commands
+
+- Install deps: `npx pnpm install`
+- Start dev server: `npx pnpm dev`
+- Create migrations: `cd packages/db && npx pnpm drizzle-kit generate --name "AddFieldToTable"`
+- Run database migrations: `npx pnpm db:migrate`
+- Run linter: `npx pnpm lint`
+- Run type check: `npx pnpm typecheck`
+- Format code: `npx pnpm format:fix`
+- Extract i18n strings: `npx pnpm lingui:extract`
 
 ## Project Structure
 
@@ -53,7 +101,7 @@ Kan is an open-source project management tool (Trello alternative) built with:
 ### Database Layer (`packages/db/`)
 
 - **Schema**: Define schemas in `src/schema/` using Drizzle ORM
-- **Migrations**: Create migrations with `cd packages/db && pnpm drizzle-kit generate --name "MigrationName"`, then run with `pnpm db:migrate`
+- **Migrations**: Create migrations with `cd packages/db && npx pnpm drizzle-kit generate --name "MigrationName"`, then run with `npx pnpm db:migrate`
 - **Repositories**: Put database queries in `src/repository/` files
 - **Soft Deletes**: Use `deletedAt` timestamp for soft deletion (not hard deletes)
 - **Index Management**: Cards have `index` fields that must be maintained sequentially per list
@@ -130,6 +178,12 @@ Kan is an open-source project management tool (Trello alternative) built with:
 - Hooks: `apps/web/src/hooks/`
 - Utils: `apps/web/src/utils/`
 - Locales: `apps/web/src/locales/`
+
+### Docker
+
+- Production compose: `docker-compose.yml`
+- Development compose: `docker-compose.dev.yml` (hot-reloading enabled)
+- Web Dockerfile: `apps/web/Dockerfile`
 
 ## Database Patterns
 
@@ -221,7 +275,7 @@ Use `assertUserInWorkspace` helper for workspace checks.
 ## Adding a New Feature
 
 1. **Database**: Update schema in `packages/db/src/schema/`
-2. **Migration**: Create migration with `cd packages/db && pnpm drizzle-kit generate --name "MigrationName"`, then run with `pnpm db:migrate`
+2. **Migration**: Create migration with `cd packages/db && npx pnpm drizzle-kit generate --name "MigrationName"`, then run with `npx pnpm db:migrate`
 3. **Repository**: Add repository functions in `packages/db/src/repository/`
 4. **API**: Add tRPC router procedures in `packages/api/src/routers/`
 5. **Frontend**: Add UI components in `apps/web/src/`
@@ -234,14 +288,15 @@ Update all of the following:
 1. `.env.example` — add the variable with an empty value and a comment explaining it
 2. `turbo.json` — add to `globalEnv` (or `globalPassThroughEnv` for CI/platform vars)
 3. `docker-compose.yml` — add to the `web` service `environment` section
-4. `cloud/docker-compose.yml` — add to the `web` service `environment` section
-5. `README.md` — add a row to the Environment Variables table
+4. `docker-compose.dev.yml` — add to the `web` service `environment` section
+5. `cloud/docker-compose.yml` — add to the `web` service `environment` section
+6. `README.md` — add a row to the Environment Variables table
 
 ## Database Changes
 
 - Always create migrations (never modify existing migrations)
-- Create migrations with: `cd packages/db && pnpm drizzle-kit generate --name "MigrationName"`
-- Run migrations with: `pnpm db:migrate`
+- Create migrations with: `cd packages/db && npx pnpm drizzle-kit generate --name "MigrationName"`
+- Run migrations with: `npx pnpm db:migrate`
 - Update schema files in `packages/db/src/schema/`
 - Test migrations on development database first
 - Update TypeScript types after schema changes
@@ -270,7 +325,7 @@ Update all of the following:
 - Test index management when moving/deleting cards
 - Test activity logging
 - Test UI interactions
-- Run `pnpm lint` and `pnpm typecheck` before committing
+- Run `npx pnpm lint` and `npx pnpm typecheck` before committing
 
 ## Performance Considerations
 
@@ -289,10 +344,7 @@ Update all of the following:
 
 ## Internationalization
 
-- All user-facing strings must use `t` template literal
-- Add translations to locale files in `apps/web/src/locales/`
-- Run `pnpm lingui:extract` to update translation files
-- Update locale files for all languages
+- **Skip all translation/i18n tasks.** Do not update locale files, extract strings with Lingui, or modify any translation catalogs. Leave i18n work for humans to handle separately.
 
 ## Dependencies
 
@@ -327,7 +379,7 @@ Update all of the following:
 ## PR Instructions
 
 - Title format: `feat: description` or `fix: description`
-- Always run `pnpm lint` and `pnpm typecheck` before committing
+- Always run `npx pnpm lint` and `npx pnpm typecheck` before committing
 - Provide clear description of changes
 - Include screenshots for UI changes
 - Keep PRs focused on a single feature/fix
