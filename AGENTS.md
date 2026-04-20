@@ -4,6 +4,22 @@
 
 This file is maintained to help AI agents work effectively on this project. After each significant task, important information (file locations, patterns, architectural decisions) should be added here to help future AI sessions start their research from the best leads.
 
+### Maintaining This File
+
+After completing any significant task, **always** review whether AGENTS.md should be updated. Consider adding:
+
+- New component locations or file structure discoveries
+- Non-obvious patterns or gotchas encountered during implementation
+- Key relationships between data models that weren't previously documented
+- Useful debugging or development workflow tips
+
+Do **not** add:
+- Information already well-documented elsewhere
+- Trivial or obvious details
+- Task-specific implementation details that won't recur
+
+This keeps the file high-signal for future sessions.
+
 ## Project Overview
 
 Kan is an open-source project management tool (Trello alternative) built with:
