@@ -423,6 +423,15 @@ Filter and grouping state is stored in URL query params (`?members=...&labels=..
 
 When implementing visual-only card reordering (e.g., grouping), use `getGroupedCards()` to sort cards by label before rendering. **Important**: card drag-and-drop must be disabled (`isDragDisabled={true}`) when the visual order differs from the DB `index` order, because the optimistic update logic relies on matching array position to DB index.
 
+### Virtual Lists (List-Replacing Group Modes)
+
+The Group button supports two types of modes:
+- **Sort modes** (`tag`, `priority`): Reorder cards within existing lists via `getGroupedCards()`
+- **List modes** (`tags-list`, `priority-list`, `role-list`): Replace real lists with virtual lists via `getVirtualLists()`. Virtual lists are generated from board labels and contain only cards matching each label. The `List` component accepts `isVirtual` prop to disable editing, adding cards, deleting, and dragging. Label categories:
+  - Priority labels: hardcoded as "High Priority", "Medium Priority", "Low Priority"
+  - Role labels: hardcoded as "Backend", "Frontend", "Client"
+  - Tag labels: all board labels excluding priority and role labels
+
 ## Git & Commits
 
 - Use conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, etc.

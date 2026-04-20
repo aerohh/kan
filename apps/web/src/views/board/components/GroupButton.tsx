@@ -48,6 +48,21 @@ const GroupButton = ({
       value: t`Priority`,
       selected: currentGroup === "priority",
     },
+    {
+      key: "tags-list",
+      value: t`Tags List`,
+      selected: currentGroup === "tags-list",
+    },
+    {
+      key: "priority-list",
+      value: t`Priority List`,
+      selected: currentGroup === "priority-list",
+    },
+    {
+      key: "role-list",
+      value: t`Role List`,
+      selected: currentGroup === "role-list",
+    },
   ];
 
   return (

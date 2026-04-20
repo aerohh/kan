@@ -58,6 +58,8 @@ import { UpdateBoardSlugForm } from "./components/UpdateBoardSlugForm";
 import VisibilityButton from "./components/VisibilityButton";
 
 const PRIORITY_LABELS = ["High Priority", "Medium Priority", "Low Priority"];
+const ROLE_LABELS = ["Backend", "backend", "Frontend", "frontend", "Client", "client"];
+const LIST_GROUP_MODES = ["tags-list", "priority-list", "role-list"];
 
 type CardData = {
   publicId: string;
@@ -89,6 +91,13 @@ type CardData = {
   comments: { publicId: string }[];
 };
 
+type VirtualList = {
+  publicId: string;
+  name: string;
+  index: number;
+  cards: CardData[];
+};
+
 function getGroupSortKey(
   card: CardData,
   mode: "tag" | "priority",
@@ -118,6 +127,54 @@ function getGroupedCards(
     const keyB = getGroupSortKey(b, groupMode);
     return keyA.localeCompare(keyB);
   });
+}
+
+function getVirtualLists(
+  allCards: CardData[],
+  allLabels: { publicId: string; name: string; colourCode: string | null }[],
+  groupMode: string,
+): VirtualList[] {
+  if (groupMode === "tags-list") {
+    const excludedNames = [...PRIORITY_LABELS, ...ROLE_LABELS];
+    const tagLabels = allLabels.filter(
+      (l) => !excludedNames.includes(l.name),
+    );
+
+    return tagLabels
+      .map((label, index) => ({
+        publicId: `virtual-${label.publicId}`,
+        name: label.name,
+        index,
+        cards: allCards.filter((card) =>
+          card.labels.some((cl) => cl.publicId === label.publicId),
+        ),
+      }))
+      .filter((list) => list.cards.length > 0);
+  }
+
+  if (groupMode === "priority-list") {
+    return PRIORITY_LABELS.map((name, index) => ({
+      publicId: `virtual-priority-${index}`,
+      name,
+      index,
+      cards: allCards.filter((card) =>
+        card.labels.some((cl) => cl.name === name),
+      ),
+    })).filter((list) => list.cards.length > 0);
+  }
+
+  if (groupMode === "role-list") {
+    return ROLE_LABELS.map((name, index) => ({
+      publicId: `virtual-role-${index}`,
+      name,
+      index,
+      cards: allCards.filter((card) =>
+        card.labels.some((cl) => cl.name === name),
+      ),
+    })).filter((list) => list.cards.length > 0);
+  }
+
+  return [];
 }
 
 type PublicListId = string;
@@ -711,152 +768,179 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
             </div>
           ) : boardData ? (
             <>
-              {boardData.lists.length === 0 ? (
-                <div className="z-10 flex h-full w-full flex-col items-center justify-center space-y-8 pb-[150px]">
-                  <div className="flex flex-col items-center">
-                    <HiOutlineSquare3Stack3D className="h-10 w-10 text-light-800 dark:text-dark-800" />
-                    <p className="mb-2 mt-4 text-[14px] font-bold text-light-1000 dark:text-dark-950">
-                      {t`No lists`}
-                    </p>
-                    <p className="text-[14px] text-light-900 dark:text-dark-900">
-                      {canCreateList
-                        ? t`Get started by creating a new list`
-                        : t`No lists have been created yet`}
-                    </p>
-                  </div>
-                  <Tooltip
-                    content={
-                      !canCreateList ? t`You don't have permission` : undefined
-                    }
-                  >
-                    <Button
-                      onClick={() => {
-                        if (boardId && canCreateList) openNewListForm(boardId);
-                      }}
-                      disabled={!canCreateList}
-                    >
-                      {t`Create new list`}
-                    </Button>
-                  </Tooltip>
-                </div>
-              ) : (
-                <DragDropContext onDragEnd={onDragEnd}>
-                  <Droppable
-                    droppableId="all-lists"
-                    direction="horizontal"
-                    type="LIST"
-                  >
-                    {(provided) => (
-                      <div
-                        className="flex"
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
+              {(() => {
+                const isListGroupMode = LIST_GROUP_MODES.includes(groupMode);
+                const virtualLists = isListGroupMode
+                  ? getVirtualLists(
+                      boardData.lists.flatMap((l) => l.cards),
+                      boardData.labels,
+                      groupMode,
+                    )
+                  : null;
+
+                const displayLists: (
+                  | { publicId: string; name: string; index: number; cards: CardData[] }
+                  | null
+                )[] = virtualLists ?? boardData.lists;
+
+                if (displayLists.length === 0) {
+                  return (
+                    <div className="z-10 flex h-full w-full flex-col items-center justify-center space-y-8 pb-[150px]">
+                      <div className="flex flex-col items-center">
+                        <HiOutlineSquare3Stack3D className="h-10 w-10 text-light-800 dark:text-dark-800" />
+                        <p className="mb-2 mt-4 text-[14px] font-bold text-light-1000 dark:text-dark-950">
+                          {t`No lists`}
+                        </p>
+                        <p className="text-[14px] text-light-900 dark:text-dark-900">
+                          {canCreateList
+                            ? t`Get started by creating a new list`
+                            : t`No lists have been created yet`}
+                        </p>
+                      </div>
+                      <Tooltip
+                        content={
+                          !canCreateList ? t`You don't have permission` : undefined
+                        }
                       >
-                        <div className="min-w-[2rem]" />
-                        {boardData.lists.map((list, listIndex) => {
-                          const groupedCards = getGroupedCards(
-                            list.cards,
-                            groupMode,
-                          );
-                          return (
-                            <List
-                              index={listIndex}
-                              key={listIndex}
-                              list={list}
-                              setSelectedPublicListId={(publicListId) =>
-                                setSelectedPublicListId(publicListId)
-                              }
-                            >
-                              <Droppable
-                                droppableId={`${list.publicId}`}
-                                type="CARD"
+                        <Button
+                          onClick={() => {
+                            if (boardId && canCreateList) openNewListForm(boardId);
+                          }}
+                          disabled={!canCreateList}
+                        >
+                          {t`Create new list`}
+                        </Button>
+                      </Tooltip>
+                    </div>
+                  );
+                }
+
+                return (
+                  <DragDropContext onDragEnd={onDragEnd}>
+                    <Droppable
+                      droppableId="all-lists"
+                      direction="horizontal"
+                      type="LIST"
+                    >
+                      {(provided) => (
+                        <div
+                          className="flex"
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          <div className="min-w-[2rem]" />
+                          {displayLists.map((list, listIndex) => {
+                            if (!list) return null;
+                            const groupedCards = isListGroupMode
+                              ? list.cards
+                              : getGroupedCards(list.cards, groupMode);
+                            return (
+                              <List
+                                index={listIndex}
+                                key={listIndex}
+                                list={list}
+                                isVirtual={!!isListGroupMode}
+                                setSelectedPublicListId={(publicListId) =>
+                                  setSelectedPublicListId(publicListId)
+                                }
                               >
-                                {(provided) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.droppableProps}
-                                    className="scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-w-[8px] z-10 h-full max-h-[calc(100vh-225px)] min-h-[2rem] overflow-y-auto pr-1 scrollbar dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-600"
-                                  >
-                                    {groupedCards.map((card, cardIndex) => (
-                                      <Draggable
-                                        key={card.publicId}
-                                        draggableId={card.publicId}
-                                        index={cardIndex}
-                                        isDragDisabled={!canEditCard || !!groupMode}
-                                      >
-                                      {(provided) => (
-                                        <Link
-                                          onClick={(e) => {
-                                            if (
+                                <Droppable
+                                  droppableId={`${list.publicId}`}
+                                  type="CARD"
+                                >
+                                  {(provided) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.droppableProps}
+                                      className="scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-w-[8px] z-10 h-full max-h-[calc(100vh-225px)] min-h-[2rem] overflow-y-auto pr-1 scrollbar dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-600"
+                                    >
+                                      {groupedCards.map((card, cardIndex) => (
+                                        <Draggable
+                                          key={card.publicId}
+                                          draggableId={card.publicId}
+                                          index={cardIndex}
+                                          isDragDisabled={!canEditCard || !!groupMode}
+                                        >
+                                        {(provided) => (
+                                          <Link
+                                            onClick={(e) => {
+                                              if (
+                                                card.publicId.startsWith(
+                                                  "PLACEHOLDER",
+                                                )
+                                              )
+                                                e.preventDefault();
+                                            }}
+                                            onContextMenu={(e) => {
+                                              if (
+                                                card.publicId.startsWith(
+                                                  "PLACEHOLDER",
+                                                ) ||
+                                                env("NEXT_PUBLIC_KAN_ENV") ===
+                                                  "cloud"
+                                              )
+                                                return;
+                                              e.preventDefault();
+                                              setContextMenu({
+                                                x: e.clientX,
+                                                y: e.clientY,
+                                                cardPublicId: card.publicId,
+                                              });
+                                            }}
+                                            key={card.publicId}
+                                            href={
+                                              isTemplate
+                                                ? `/templates/${boardId}/cards/${card.publicId}`
+                                                : `/cards/${card.publicId}`
+                                            }
+                                            className={`mb-2 flex !cursor-pointer flex-col ${
                                               card.publicId.startsWith(
                                                 "PLACEHOLDER",
                                               )
-                                            )
-                                              e.preventDefault();
-                                          }}
-                                          onContextMenu={(e) => {
-                                            if (
-                                              card.publicId.startsWith(
-                                                "PLACEHOLDER",
-                                              ) ||
-                                              env("NEXT_PUBLIC_KAN_ENV") ===
-                                                "cloud"
-                                            )
-                                              return;
-                                            e.preventDefault();
-                                            setContextMenu({
-                                              x: e.clientX,
-                                              y: e.clientY,
-                                              cardPublicId: card.publicId,
-                                            });
-                                          }}
-                                          key={card.publicId}
-                                          href={
-                                            isTemplate
-                                              ? `/templates/${boardId}/cards/${card.publicId}`
-                                              : `/cards/${card.publicId}`
-                                          }
-                                          className={`mb-2 flex !cursor-pointer flex-col ${
-                                            card.publicId.startsWith(
-                                              "PLACEHOLDER",
-                                            )
-                                              ? "pointer-events-none"
-                                              : ""
-                                          }`}
-                                          ref={provided.innerRef}
-                                          {...provided.draggableProps}
-                                          {...provided.dragHandleProps}
-                                        >
-                                          <Card
-                                            title={card.title}
-                                            labels={card.labels}
-                                            members={card.members}
-                                            checklists={card.checklists ?? []}
-                                            description={
-                                              card.description ?? null
-                                            }
-                                            comments={card.comments ?? []}
-                                            attachments={card.attachments}
-                                            dueDate={card.dueDate ?? null}
-                                          />
-                                        </Link>
-                                      )}
-                                    </Draggable>
-                                  ))}
-                                  {provided.placeholder}
-                                </div>
-                              )}
-                            </Droppable>
-                           </List>
-                          );
-                        })}
-                        <div className="min-w-[0.75rem]" />
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </DragDropContext>
-              )}
+                                                ? "pointer-events-none"
+                                                : ""
+                                            }`}
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                            {...provided.dragHandleProps}
+                                          >
+                                            <Card
+                                              title={card.title}
+                                              labels={
+                                                isListGroupMode
+                                                  ? card.labels.filter(
+                                                      (l) => l.name !== list.name,
+                                                    )
+                                                  : card.labels
+                                              }
+                                              members={card.members}
+                                              checklists={card.checklists ?? []}
+                                              description={
+                                                card.description ?? null
+                                              }
+                                              comments={card.comments ?? []}
+                                              attachments={card.attachments}
+                                              dueDate={card.dueDate ?? null}
+                                            />
+                                          </Link>
+                                        )}
+                                      </Draggable>
+                                    ))}
+                                    {provided.placeholder}
+                                  </div>
+                                )}
+                              </Droppable>
+                             </List>
+                            );
+                          })}
+                          <div className="min-w-[0.75rem]" />
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
+                );
+              })()}
             </>
           ) : null}
         </div>

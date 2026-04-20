@@ -22,6 +22,7 @@ interface ListProps {
   index: number;
   list: List;
   setSelectedPublicListId: (publicListId: PublicListId) => void;
+  isVirtual?: boolean;
 }
 
 interface List {
@@ -42,13 +43,14 @@ export default function List({
   index,
   list,
   setSelectedPublicListId,
+  isVirtual = false,
 }: ListProps) {
   const { openModal } = useModal();
   const { canCreateCard, canEditList, canDeleteList } = usePermissions();
   const { data: session } = authClient.useSession();
   const isCreator = list.createdBy && session?.user.id === list.createdBy;
-  const canEdit = canEditList || isCreator;
-  const canDrag = canEditList || isCreator;
+  const canEdit = !isVirtual && (canEditList || isCreator);
+  const canDrag = !isVirtual && (canEditList || isCreator);
 
   const openNewCardForm = (publicListId: PublicListId) => {
     if (!canCreateCard) return;
@@ -112,23 +114,25 @@ export default function List({
               />
             </form>
             <div className="flex items-center">
-              <Tooltip
-                content={
-                  !canCreateCard ? t`You don't have permission` : undefined
-                }
-              >
-                <button
-                  className="mx-1 inline-flex h-fit items-center rounded-md p-1 px-1 text-sm font-semibold text-dark-50 hover:bg-light-400 disabled:opacity-60 disabled:cursor-not-allowed dark:hover:bg-dark-200"
-                  onClick={() => openNewCardForm(list.publicId)}
-                  disabled={!canCreateCard}
+              {!isVirtual && (
+                <Tooltip
+                  content={
+                    !canCreateCard ? t`You don't have permission` : undefined
+                  }
                 >
-                  <HiOutlinePlusSmall
-                    className="h-5 w-5 text-dark-900"
-                    aria-hidden="true"
-                  />
-                </button>
-              </Tooltip>
-              {(() => {
+                  <button
+                    className="mx-1 inline-flex h-fit items-center rounded-md p-1 px-1 text-sm font-semibold text-dark-50 hover:bg-light-400 disabled:opacity-60 disabled:cursor-not-allowed dark:hover:bg-dark-200"
+                    onClick={() => openNewCardForm(list.publicId)}
+                    disabled={!canCreateCard}
+                  >
+                    <HiOutlinePlusSmall
+                      className="h-5 w-5 text-dark-900"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </Tooltip>
+              )}
+              {!isVirtual && (() => {
                 const dropdownItems = [
                   ...(canCreateCard
                     ? [
