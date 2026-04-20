@@ -4,6 +4,7 @@ import { HiMiniXMark, HiOutlineSquares2X2 } from "react-icons/hi2";
 
 import Button from "~/components/Button";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
+import { toolbarGlow } from "./toolbarGlow";
 
 const GroupButton = ({
   isLoading,
@@ -65,6 +66,8 @@ const GroupButton = ({
     },
   ];
 
+  const glow = toolbarGlow(!!currentGroup, "text-amber-500", "245,158,11");
+
   return (
     <div className="relative">
       <CheckboxDropdown
@@ -74,12 +77,12 @@ const GroupButton = ({
         position="left"
       >
         <Button
-          variant="secondary"
+          variant="ghost"
+          iconOnly
           disabled={isLoading}
-          iconLeft={<HiOutlineSquares2X2 />}
-        >
-          {t`Group`}
-        </Button>
+          iconLeft={<HiOutlineSquares2X2 size={22} className={glow.iconClass} />}
+          className={glow.buttonClass}
+        />
         {currentGroup && (
           <button
             type="button"

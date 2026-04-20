@@ -39,6 +39,8 @@ interface List {
   name: string;
 }
 
+import { toolbarGlow } from "./toolbarGlow";
+
 const Filters = ({
   position = "right",
   labels,
@@ -205,6 +207,8 @@ const Filters = ({
     ...formatToArray(router.query.dueDate),
   ].length;
 
+  const glow = toolbarGlow(numOfFilters > 0, "text-blue-500", "59,130,246");
+
   return (
     <div className="relative">
       <CheckboxDropdown
@@ -214,12 +218,12 @@ const Filters = ({
         position={position}
       >
         <Button
-          variant="secondary"
+          variant="ghost"
+          iconOnly
           disabled={isLoading}
-          iconLeft={<IoFilterOutline />}
-        >
-          {t`Filter`}
-        </Button>
+          iconLeft={<IoFilterOutline size={22} className={glow.iconClass} />}
+          className={glow.buttonClass}
+        />
         {numOfFilters > 0 && (
           <button
             type="button"

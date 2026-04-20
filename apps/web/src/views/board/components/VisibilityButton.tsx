@@ -16,6 +16,8 @@ interface QueryParams {
   lists: string[];
 }
 
+import { toolbarGlow } from "./toolbarGlow";
+
 const VisibilityButton = ({
   visibility,
   boardPublicId,
@@ -64,6 +66,7 @@ const VisibilityButton = ({
   });
 
   const canEdit = canEditBoard || isAdmin;
+  const glow = toolbarGlow(isPublic, "text-green-500", "34,197,94");
 
   return (
     <div className="relative">
@@ -96,12 +99,12 @@ const VisibilityButton = ({
           menuSpacing="md"
         >
           <Button
-            variant="secondary"
-            iconLeft={isPublic ? <HiOutlineEye /> : <HiOutlineEyeSlash />}
+            variant="ghost"
+            iconOnly
+            iconLeft={isPublic ? <HiOutlineEye size={22} className={glow.iconClass} /> : <HiOutlineEyeSlash size={22} />}
             disabled={isLoading || !canEdit}
-          >
-            {t`Visibility`}
-          </Button>
+            className={glow.buttonClass}
+          />
         </CheckboxDropdown>
       </Tooltip>
     </div>
