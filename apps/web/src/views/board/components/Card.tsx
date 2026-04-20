@@ -10,7 +10,7 @@ import { twMerge } from "tailwind-merge";
 import Avatar from "~/components/Avatar";
 import Badge from "~/components/Badge";
 import CircularProgress from "~/components/CircularProgress";
-import LabelIcon from "~/components/LabelIcon";
+
 import { useLocalisation } from "~/hooks/useLocalisation";
 import { getAvatarUrl } from "~/utils/helpers";
 
@@ -76,11 +76,13 @@ const Card = ({
       hasDueDate ||
       hasAttachments ? (
         <div className="mt-2 flex flex-col justify-end">
-          <div className="space-x-0.5">
-            {labels.map((label) => (
+          <div className="space-x-[-14px]">
+            {labels.map((label, index) => (
               <Badge
+                key={`${label.name}-${index}`}
                 value={label.name}
-                iconLeft={<LabelIcon colourCode={label.colourCode} />}
+                colourCode={label.colourCode}
+                variant="compact"
               />
             ))}
           </div>

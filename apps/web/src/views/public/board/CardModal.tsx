@@ -152,7 +152,7 @@ export function CardModal({
                   <Badge
                     key={label.publicId}
                     value={label.name}
-                    iconLeft={<LabelIcon colourCode={label.colourCode} />}
+                    colourCode={label.colourCode}
                   />
                 ))}
               </div>

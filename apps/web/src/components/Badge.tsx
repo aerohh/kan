@@ -1,10 +1,50 @@
 import type { ReactNode } from "react";
 
-const Badge = ({ value, iconLeft }: { value: string; iconLeft: ReactNode }) => (
-  <span className="mt-1 inline-flex w-fit items-center gap-x-1.5 rounded-full px-2 py-1 text-[10px] font-medium text-neutral-600 ring-1 ring-inset ring-light-600 dark:text-dark-1000 dark:ring-dark-800">
-    {iconLeft}
-    <div>{value}</div>
-  </span>
-);
+const base =
+  "mt-0.5 inline-flex w-fit items-center rounded-full border-2 px-3 py-2 text-[10px] font-medium leading-none text-neutral-600 dark:text-dark-1000";
+
+const Badge = ({
+  value,
+  iconLeft,
+  colourCode,
+  variant = "default",
+}: {
+  value: string;
+  iconLeft?: ReactNode;
+  colourCode?: string | null;
+  variant?: "default" | "compact";
+}) => {
+  const compact = variant === "compact" ? "scale-[0.78] origin-left" : "";
+
+  if (colourCode) {
+    return (
+      <span
+        className={`${base} ${compact}`}
+        style={{
+          backgroundColor: `${colourCode}25`,
+          borderColor: `${colourCode}30`,
+        }}
+      >
+        {value}
+      </span>
+    );
+  }
+
+  if (variant === "compact") {
+    return (
+      <span className={`${base} gap-x-1 ring-1 ring-inset ring-light-400 dark:ring-dark-700 ${compact} border-0`}>
+        {iconLeft}
+        <span>{value}</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className={`${base} gap-x-1 border-light-400 bg-light-400/15 dark:border-dark-700 dark:bg-dark-700/15`}>
+      {iconLeft}
+      <span>{value}</span>
+    </span>
+  );
+};
 
 export default Badge;

@@ -1,7 +1,7 @@
 const LabelIcon = ({ colourCode }: { colourCode: string | null }) => (
   <svg
     fill={colourCode ?? "#3730a3"}
-    className="h-2 w-2"
+    className="h-1.5 w-1.5"
     viewBox="0 0 6 6"
     aria-hidden="true"
   >

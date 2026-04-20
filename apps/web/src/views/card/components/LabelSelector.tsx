@@ -15,6 +15,7 @@ interface LabelSelectorProps {
     value: string;
     selected: boolean;
     leftIcon: React.ReactNode;
+    colourCode?: string | null;
   }[];
   isLoading: boolean;
   disabled?: boolean;
@@ -103,12 +104,12 @@ export default function LabelSelector({
           asChild
         >
           {selectedLabels.length ? (
-            <div className="flex flex-wrap gap-x-0.5">
+            <div className="flex flex-wrap gap-1">
               {selectedLabels.map((label) => (
                 <Badge
                   key={label.key}
                   value={label.value}
-                  iconLeft={label.leftIcon}
+                  colourCode={label.colourCode}
                 />
               ))}
               <Badge value={t`Add label`} iconLeft={<HiMiniPlus size={14} />} />

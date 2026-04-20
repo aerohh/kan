@@ -21,6 +21,7 @@ export function CardContextLabelsModal() {
     value: label.name,
     selected: selectedLabels.some((l) => l.publicId === label.publicId),
     leftIcon: <LabelIcon colourCode={label.colourCode} />,
+    colourCode: label.colourCode,
   }));
 
   if (!cardPublicId) return null;

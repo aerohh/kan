@@ -79,6 +79,7 @@ export function CardRightPanel({ isTemplate }: { isTemplate?: boolean }) {
         value: label.name,
         selected: isSelected ?? false,
         leftIcon: <LabelIcon colourCode={label.colourCode} />,
+        colourCode: label.colourCode,
       };
     }) ?? [];
 
