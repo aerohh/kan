@@ -1,4 +1,6 @@
 import { format, isBefore, isSameYear, startOfDay } from "date-fns";
+import { useTheme } from "next-themes";
+import { useState } from "react";
 import { HiOutlinePaperClip } from "react-icons/hi";
 import {
   HiBars3BottomLeft,
@@ -23,6 +25,7 @@ const Card = ({
   comments,
   attachments,
   dueDate,
+  listColourCode,
 }: {
   title: string;
   labels: { name: string; colourCode: string | null }[];
@@ -45,7 +48,10 @@ const Card = ({
   comments: { publicId: string }[];
   attachments?: { publicId: string }[];
   dueDate?: Date | null;
+  listColourCode?: string | null;
 }) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const { dateLocale } = useLocalisation();
   const showYear = dueDate ? !isSameYear(dueDate, new Date()) : false;
   const isOverdue = dueDate ? isBefore(dueDate, startOfDay(new Date())) : false;
@@ -65,8 +71,28 @@ const Card = ({
   const hasAttachments = attachments && attachments.length > 0;
   const hasDueDate = !!dueDate;
 
+  const cardDarkStyle =
+    isDark && listColourCode
+      ? {
+          backgroundColor: `color-mix(in srgb, color-mix(in srgb, ${listColourCode} 35%, white) 10%, transparent)`,
+          border: 'none',
+        }
+      : undefined;
+
+  const cardDarkHoverStyle =
+    isDark && listColourCode
+      ? { backgroundColor: `color-mix(in srgb, color-mix(in srgb, ${listColourCode} 40%, white) 15%, transparent)` }
+      : undefined;
+
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className="flex flex-col overflow-hidden rounded-md border border-light-200 bg-light-50 px-3 py-2 text-sm text-neutral-900 dark:border-dark-200 dark:bg-dark-200 dark:text-dark-1000 dark:hover:bg-dark-300">
+    <div
+      style={isHovered ? { ...cardDarkStyle, ...cardDarkHoverStyle } : cardDarkStyle}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="flex flex-col overflow-hidden rounded-md border border-light-200 bg-light-50 px-3 py-2 text-sm text-neutral-900 dark:border-dark-200 dark:bg-dark-200 dark:text-dark-1000 dark:hover:bg-dark-300"
+    >
       <span className="break-words text-[14px] mb-2">{title}</span>
       {labels.length ||
       members.length ||

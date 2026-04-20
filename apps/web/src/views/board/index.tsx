@@ -96,6 +96,7 @@ type VirtualList = {
   name: string;
   index: number;
   cards: CardData[];
+  colourCode: string | null;
 };
 
 function getGroupSortKey(
@@ -145,6 +146,7 @@ function getVirtualLists(
         publicId: `virtual-${label.publicId}`,
         name: label.name,
         index,
+        colourCode: label.colourCode,
         cards: allCards.filter((card) =>
           card.labels.some((cl) => cl.publicId === label.publicId),
         ),
@@ -153,25 +155,33 @@ function getVirtualLists(
   }
 
   if (groupMode === "priority-list") {
-    return PRIORITY_LABELS.map((name, index) => ({
-      publicId: `virtual-priority-${index}`,
-      name,
-      index,
-      cards: allCards.filter((card) =>
-        card.labels.some((cl) => cl.name === name),
-      ),
-    })).filter((list) => list.cards.length > 0);
+    return PRIORITY_LABELS.map((name, index) => {
+      const matchingLabel = allLabels.find((l) => l.name === name);
+      return {
+        publicId: `virtual-priority-${index}`,
+        name,
+        index,
+        colourCode: matchingLabel?.colourCode ?? null,
+        cards: allCards.filter((card) =>
+          card.labels.some((cl) => cl.name === name),
+        ),
+      };
+    }).filter((list) => list.cards.length > 0);
   }
 
   if (groupMode === "role-list") {
-    return ROLE_LABELS.map((name, index) => ({
-      publicId: `virtual-role-${index}`,
-      name,
-      index,
-      cards: allCards.filter((card) =>
-        card.labels.some((cl) => cl.name === name),
-      ),
-    })).filter((list) => list.cards.length > 0);
+    return ROLE_LABELS.map((name, index) => {
+      const matchingLabel = allLabels.find((l) => l.name === name);
+      return {
+        publicId: `virtual-role-${index}`,
+        name,
+        index,
+        colourCode: matchingLabel?.colourCode ?? null,
+        cards: allCards.filter((card) =>
+          card.labels.some((cl) => cl.name === name),
+        ),
+      };
+    }).filter((list) => list.cards.length > 0);
   }
 
   return [];
@@ -779,7 +789,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                   : null;
 
                 const displayLists: (
-                  | { publicId: string; name: string; index: number; cards: CardData[] }
+                  | { publicId: string; name: string; index: number; cards: CardData[]; colourCode?: string | null }
                   | null
                 )[] = virtualLists ?? boardData.lists;
 
@@ -921,6 +931,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                               comments={card.comments ?? []}
                                               attachments={card.attachments}
                                               dueDate={card.dueDate ?? null}
+                                              listColourCode={isListGroupMode ? list.colourCode : undefined}
                                             />
                                           </Link>
                                         )}

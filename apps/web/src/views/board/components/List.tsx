@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { t } from "@lingui/core/macro";
+import { useTheme } from "next-themes";
 import { Draggable } from "react-beautiful-dnd";
 import { useForm } from "react-hook-form";
 import {
@@ -29,6 +30,7 @@ interface List {
   publicId: string;
   name: string;
   createdBy?: string | null;
+  colourCode?: string | null;
 }
 
 interface FormValues {
@@ -46,11 +48,13 @@ export default function List({
   isVirtual = false,
 }: ListProps) {
   const { openModal } = useModal();
+  const { resolvedTheme } = useTheme();
   const { canCreateCard, canEditList, canDeleteList } = usePermissions();
   const { data: session } = authClient.useSession();
   const isCreator = list.createdBy && session?.user.id === list.createdBy;
   const canEdit = !isVirtual && (canEditList || isCreator);
   const canDrag = !isVirtual && (canEditList || isCreator);
+  const isDark = resolvedTheme === "dark";
 
   const openNewCardForm = (publicListId: PublicListId) => {
     if (!canCreateCard) return;
@@ -84,6 +88,15 @@ export default function List({
     openModal("DELETE_LIST");
   };
 
+  const bgStyle = isVirtual && list.colourCode
+    ? {
+        backgroundColor: isDark
+          ? `color-mix(in srgb, color-mix(in srgb, ${list.colourCode} 40%, white) 12%, transparent)`
+          : `${list.colourCode}20`,
+        ...(isDark && { border: 'none' }),
+      }
+    : undefined;
+
   return (
     <Draggable
       key={list.publicId}
@@ -97,6 +110,7 @@ export default function List({
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
+          style={bgStyle}
           className="dark-text-dark-1000 mr-5 h-fit min-w-[19rem] max-w-[19rem] rounded-md border border-light-400 bg-light-300 py-2 pl-2 pr-1 text-neutral-900 dark:border-dark-300 dark:bg-dark-100"
         >
           <div className="mb-2 flex justify-between">
