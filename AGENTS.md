@@ -126,6 +126,10 @@ docker compose -f docker-compose.dev.yml --profile migrate up migrate
 - **State Management**: Use tRPC React Query hooks for server state
 - **Modals**: Use `useModal` hook for modal management
 - **Popups**: Use `usePopup` hook for toast notifications
+- **Drag & Drop**: Uses `react-beautiful-dnd` (`DragDropContext`, `Droppable`, `Draggable`). Wrapped in `StrictModeDroppable` (`~/components/StrictModeDroppable`) to fix React 18 strict mode issues
+- **Permissions**: `usePermissions()` hook returns `canCreateList`, `canEditList`, `canEditCard`, `canEditBoard`
+- **Dropdowns**: `CheckboxDropdown` (`~/components/CheckboxDropdown`) accepts either flat `items` array or nested `groups` array with sub-items. Used for toolbar buttons, visibility toggles, filter menus, etc.
+- **Buttons**: `Button` component (`~/components/Button`) supports variants: `primary`, `secondary`, `danger`, `ghost`. Use `secondary` for toolbar buttons
 
 ## Key Concepts
 
@@ -137,6 +141,13 @@ docker compose -f docker-compose.dev.yml --profile migrate up migrate
 - Cards use soft deletion (`deletedAt` field)
 - Cards have an `index` field that must be maintained sequentially per list
 - All card changes are tracked in `card_activity` table
+
+### Labels (Tags)
+
+- Labels are defined per board in the `labels` table (schema: `packages/db/src/schema/labels.ts`)
+- Cards-to-labels is a many-to-many relationship via `cardsToLabels` junction table (`_card_labels` in DB)
+- In the API response, labels are **flattened** — each card has `labels: { publicId, name, colourCode }[]` (the join is resolved server-side in `board.repo.ts`)
+- Labels are rendered on cards as `<Badge>` components with `<LabelIcon>` showing the colour
 
 ### Activity Tracking
 
@@ -327,6 +338,10 @@ Update all of the following:
 - Test UI interactions
 - Run `npx pnpm lint` and `npx pnpm typecheck` before committing
 
+### Pre-existing Build Errors
+
+Many packages have pre-existing lint and typecheck errors (e.g., `@kan/api`, `@kan/auth`, `@kan/db`, `@kan/email`, `@kan/web`). When running `npx pnpm lint` or `npx pnpm typecheck`, failures in packages you didn't modify are expected and not caused by your changes. Focus on verifying your specific files compile correctly.
+
 ## Performance Considerations
 
 - Use database indexes appropriately
@@ -369,6 +384,28 @@ Update all of the following:
 2. Create migration to update enum
 3. Use in activity creation code
 4. Update activity display components if needed
+
+## Board Toolbar
+
+The board toolbar is in `apps/web/src/views/board/index.tsx` (~line 628). Toolbar buttons from left to right:
+
+| Component | File |
+|-----------|------|
+| Template badge | inline |
+| UpdateBoardSlugButton | `views/board/components/UpdateBoardSlugButton.tsx` |
+| VisibilityButton | `views/board/components/VisibilityButton.tsx` |
+| Filters | `views/board/components/Filters.tsx` |
+| GroupButton | `views/board/components/GroupButton.tsx` |
+| "New list" Button | inline |
+| BoardDropdown | `views/board/components/BoardDropdown.tsx` |
+
+### URL Query Param Pattern for UI State
+
+Filter and grouping state is stored in URL query params (`?members=...&labels=...&group=tag`). This uses `next/router`'s `router.query` and `router.push()` to read/write state. Benefits: state survives page refreshes and is shareable via URL.
+
+### Client-Side Card Reordering
+
+When implementing visual-only card reordering (e.g., grouping), use `getGroupedCards()` to sort cards by label before rendering. **Important**: card drag-and-drop must be disabled (`isDragDisabled={true}`) when the visual order differs from the DB `index` order, because the optimistic update logic relies on matching array position to DB index.
 
 ## Git & Commits
 

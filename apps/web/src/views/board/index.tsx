@@ -48,6 +48,7 @@ import { CardContextMoveListModal } from "./components/CardContextMoveListModal"
 import { DeleteBoardConfirmation } from "./components/DeleteBoardConfirmation";
 import { DeleteListConfirmation } from "./components/DeleteListConfirmation";
 import Filters from "./components/Filters";
+import GroupButton from "./components/GroupButton";
 import List from "./components/List";
 import { NewCardForm } from "./components/NewCardForm";
 import { NewListForm } from "./components/NewListForm";
@@ -55,6 +56,69 @@ import { NewTemplateForm } from "./components/NewTemplateForm";
 import UpdateBoardSlugButton from "./components/UpdateBoardSlugButton";
 import { UpdateBoardSlugForm } from "./components/UpdateBoardSlugForm";
 import VisibilityButton from "./components/VisibilityButton";
+
+const PRIORITY_LABELS = ["High Priority", "Medium Priority", "Low Priority"];
+
+type CardData = {
+  publicId: string;
+  title: string;
+  description: string | null;
+  index: number;
+  dueDate: Date | null;
+  labels: { publicId: string; name: string; colourCode: string | null }[];
+  members: {
+    publicId: string;
+    email: string;
+    user: {
+      name: string | null;
+      email: string;
+      image: string | null;
+    } | null;
+  }[];
+  attachments: { publicId: string }[];
+  checklists: {
+    publicId: string;
+    name: string;
+    items: {
+      publicId: string;
+      title: string;
+      completed: boolean;
+      index: number;
+    }[];
+  }[];
+  comments: { publicId: string }[];
+};
+
+function getGroupSortKey(
+  card: CardData,
+  mode: "tag" | "priority",
+): string {
+  if (mode === "tag") {
+    if (card.labels.length === 0) return "\uFFFF";
+    const sortedNames = [...card.labels].map((l) => l.name).sort();
+    return sortedNames[0];
+  }
+
+  const priorityLabel = card.labels.find((l) =>
+    PRIORITY_LABELS.includes(l.name),
+  );
+  if (!priorityLabel) return "\uFFFF";
+  const priorityIndex = PRIORITY_LABELS.indexOf(priorityLabel.name);
+  return `${priorityIndex}_${priorityLabel.name}`;
+}
+
+function getGroupedCards(
+  cards: CardData[],
+  groupMode: string,
+): CardData[] {
+  if (!groupMode || (groupMode !== "tag" && groupMode !== "priority"))
+    return cards;
+  return [...cards].sort((a, b) => {
+    const keyA = getGroupSortKey(a, groupMode);
+    const keyB = getGroupSortKey(b, groupMode);
+    return keyA.localeCompare(keyB);
+  });
+}
 
 type PublicListId = string;
 
@@ -125,6 +189,8 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
   )[];
 
   const boardType: "regular" | "template" = isTemplate ? "template" : "regular";
+
+  const groupMode = (router.query.group as string) || "";
 
   const queryParams = {
     boardPublicId: boardId ?? "",
@@ -596,6 +662,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                     isLoading={!boardData}
                   />
                 )}
+                <GroupButton isLoading={!boardData} />
               </>
             )}
             <Tooltip
@@ -686,32 +753,37 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                         {...provided.droppableProps}
                       >
                         <div className="min-w-[2rem]" />
-                        {boardData.lists.map((list, index) => (
-                          <List
-                            index={index}
-                            key={index}
-                            list={list}
-                            setSelectedPublicListId={(publicListId) =>
-                              setSelectedPublicListId(publicListId)
-                            }
-                          >
-                            <Droppable
-                              droppableId={`${list.publicId}`}
-                              type="CARD"
+                        {boardData.lists.map((list, listIndex) => {
+                          const groupedCards = getGroupedCards(
+                            list.cards,
+                            groupMode,
+                          );
+                          return (
+                            <List
+                              index={listIndex}
+                              key={listIndex}
+                              list={list}
+                              setSelectedPublicListId={(publicListId) =>
+                                setSelectedPublicListId(publicListId)
+                              }
                             >
-                              {(provided) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.droppableProps}
-                                  className="scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-w-[8px] z-10 h-full max-h-[calc(100vh-225px)] min-h-[2rem] overflow-y-auto pr-1 scrollbar dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-600"
-                                >
-                                  {list.cards.map((card, index) => (
-                                    <Draggable
-                                      key={card.publicId}
-                                      draggableId={card.publicId}
-                                      index={index}
-                                      isDragDisabled={!canEditCard}
-                                    >
+                              <Droppable
+                                droppableId={`${list.publicId}`}
+                                type="CARD"
+                              >
+                                {(provided) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.droppableProps}
+                                    className="scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-w-[8px] z-10 h-full max-h-[calc(100vh-225px)] min-h-[2rem] overflow-y-auto pr-1 scrollbar dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-600"
+                                  >
+                                    {groupedCards.map((card, cardIndex) => (
+                                      <Draggable
+                                        key={card.publicId}
+                                        draggableId={card.publicId}
+                                        index={cardIndex}
+                                        isDragDisabled={!canEditCard || !!groupMode}
+                                      >
                                       {(provided) => (
                                         <Link
                                           onClick={(e) => {
@@ -775,8 +847,9 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                 </div>
                               )}
                             </Droppable>
-                          </List>
-                        ))}
+                           </List>
+                          );
+                        })}
                         <div className="min-w-[0.75rem]" />
                         {provided.placeholder}
                       </div>
