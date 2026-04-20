@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 const base =
-  "mt-0.5 inline-flex w-fit items-center rounded-full border-2 px-3 py-2 text-[10px] font-medium leading-none text-neutral-600 dark:text-dark-1000";
+  "inline-flex w-fit items-center justify-center rounded-full border-2 px-3 pb-2.5 pt-2 text-[10px] font-medium leading-none text-neutral-600 dark:text-dark-1000";
 
 const Badge = ({
   value,
