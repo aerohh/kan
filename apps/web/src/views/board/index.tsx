@@ -57,6 +57,8 @@ import { NewListForm } from "./components/NewListForm";
 import { NewTemplateForm } from "./components/NewTemplateForm";
 import UpdateBoardSlugButton from "./components/UpdateBoardSlugButton";
 import { UpdateBoardSlugForm } from "./components/UpdateBoardSlugForm";
+import ViewSwitchButton from "./components/ViewSwitchButton";
+import SheetView from "./components/SheetView";
 import VisibilityButton from "./components/VisibilityButton";
 
 const PRIORITY_LABELS = ["High Priority", "Medium Priority", "Low Priority"];
@@ -304,8 +306,10 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     cardPublicId: string;
   } | null>(null);
 
+  const viewMode = (router.query.view as string) || "kanban";
+
   const { ref: scrollRef, onMouseDown } = useDragToScroll({
-    enabled: true,
+    enabled: viewMode === "kanban",
     direction: "horizontal",
   });
 
@@ -407,7 +411,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     boardId,
     scrollRef,
     router,
-    !isLoading && (boardData?.lists.length ?? 0) > 0,
+    viewMode === "kanban" && !isLoading && (boardData?.lists.length ?? 0) > 0,
   );
 
   const updateListMutation = api.list.update.useMutation({
@@ -876,6 +880,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                   </>
                 )}
                 <GroupButton isLoading={!boardData} />
+                <ViewSwitchButton isLoading={!boardData} />
               </>
             )}
             <Tooltip
@@ -913,8 +918,8 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
 
         <div
           ref={scrollRef}
-          onMouseDown={onMouseDown}
-          className={`scrollbar-w-none scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-h-[8px] z-0 flex-1 overflow-y-hidden overflow-x-scroll overscroll-contain scrollbar scrollbar-track-light-200 scrollbar-thumb-light-400 dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-300`}
+          onMouseDown={viewMode === "kanban" ? onMouseDown : undefined}
+          className={`scrollbar-w-none scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-h-[8px] z-0 flex-1 overscroll-contain scrollbar scrollbar-track-light-200 scrollbar-thumb-light-400 dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-300 ${viewMode === "kanban" ? "overflow-y-hidden overflow-x-scroll" : "overflow-y-auto overflow-x-hidden"}`}
         >
           {isLoading ? (
             <div className="ml-[2rem] flex">
@@ -949,6 +954,38 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                   | { publicId: string; name: string; index: number; cards: CardData[]; colourCode?: string | null }
                   | null
                 )[] = virtualLists ?? boardData.lists;
+
+                if (viewMode === "sheet") {
+                  let flatCards = boardData.lists.flatMap((list) =>
+                    list.cards.map((card) => ({
+                      ...card,
+                      listName: list.name,
+                    }))
+                  );
+
+                  flatCards = sortMode
+                    ? (getSortedCards(flatCards, sortMode, sortDir) as typeof flatCards)
+                    : groupMode
+                      ? (getGroupedCards(flatCards, groupMode) as typeof flatCards)
+                      : flatCards;
+
+                  return (
+                    <SheetView
+                      cards={flatCards}
+                      boardPublicId={boardId ?? ""}
+                      isTemplate={!!isTemplate}
+                      onContextMenu={(e, cardPublicId) => {
+                        if (
+                          cardPublicId.startsWith("PLACEHOLDER") ||
+                          env("NEXT_PUBLIC_KAN_ENV") === "cloud"
+                        )
+                          return;
+                        e.preventDefault();
+                        setContextMenu({ x: e.clientX, y: e.clientY, cardPublicId });
+                      }}
+                    />
+                  );
+                }
 
                 if (displayLists.length === 0) {
                   return (
