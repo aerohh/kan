@@ -253,6 +253,12 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     useState<PublicListId>("");
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+  const [virtualListPreSelection, setVirtualListPreSelection] = useState<{
+    labelPublicId?: string;
+    memberPublicId?: string;
+    dueDate?: Date;
+  } | null>(null);
+
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -476,6 +482,47 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     setSelectedPublicListId(publicBoardId);
   };
 
+  const handleVirtualAddCard = (
+    virtualListPublicId: string,
+    virtualListName: string,
+  ) => {
+    if (!boardData) return;
+
+    const firstRealListId = boardData.lists[0]?.publicId ?? "";
+    setSelectedPublicListId(firstRealListId);
+
+    const preSelection: {
+      labelPublicId?: string;
+      memberPublicId?: string;
+      dueDate?: Date;
+    } = {};
+
+    if (groupMode === "members-list") {
+      const memberPublicId = virtualListPublicId.replace(
+        "virtual-member-",
+        "",
+      );
+      preSelection.memberPublicId = memberPublicId;
+    } else if (groupMode === "due-list") {
+      const today = startOfDay(new Date());
+      if (virtualListName === "Due today") {
+        preSelection.dueDate = today;
+      } else if (virtualListName === "Due tomorrow") {
+        preSelection.dueDate = addDays(today, 1);
+      }
+    } else {
+      const labelPublicId = virtualListPublicId.replace("virtual-", "");
+      if (!labelPublicId.startsWith("virtual-")) {
+        preSelection.labelPublicId = labelPublicId;
+      }
+    }
+
+    setVirtualListPreSelection(
+      Object.keys(preSelection).length > 0 ? preSelection : null,
+    );
+    openModal("NEW_CARD");
+  };
+
   const handleCardContextMenuAction = (action: CardContextMenuAction) => {
     const cardPublicId = contextMenu?.cardPublicId;
     if (!cardPublicId) return;
@@ -585,6 +632,9 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
             boardPublicId={boardId ?? ""}
             listPublicId={selectedPublicListId}
             queryParams={queryParams}
+            preSelectedLabelId={virtualListPreSelection?.labelPublicId}
+            preSelectedMemberId={virtualListPreSelection?.memberPublicId}
+            preSelectedDueDate={virtualListPreSelection?.dueDate}
           />
         </Modal>
 
@@ -907,6 +957,12 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                 isVirtual={!!isListGroupMode}
                                 setSelectedPublicListId={(publicListId) =>
                                   setSelectedPublicListId(publicListId)
+                                }
+                                onVirtualAddCard={() =>
+                                  handleVirtualAddCard(
+                                    list.publicId,
+                                    list.name,
+                                  )
                                 }
                               >
                                 <Droppable

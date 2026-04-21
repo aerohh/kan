@@ -24,6 +24,7 @@ interface ListProps {
   list: List;
   setSelectedPublicListId: (publicListId: PublicListId) => void;
   isVirtual?: boolean;
+  onVirtualAddCard?: () => void;
 }
 
 interface List {
@@ -46,6 +47,7 @@ export default function List({
   list,
   setSelectedPublicListId,
   isVirtual = false,
+  onVirtualAddCard,
 }: ListProps) {
   const { openModal } = useModal();
   const { resolvedTheme } = useTheme();
@@ -128,24 +130,28 @@ export default function List({
               />
             </form>
             <div className="flex items-center">
-              {!isVirtual && (
-                <Tooltip
-                  content={
-                    !canCreateCard ? t`You don't have permission` : undefined
-                  }
+              <Tooltip
+                content={
+                  !canCreateCard ? t`You don't have permission` : undefined
+                }
+              >
+                <button
+                  className="mx-1 inline-flex h-fit items-center rounded-md p-1 px-1 text-sm font-semibold text-dark-50 hover:bg-light-400 disabled:opacity-60 disabled:cursor-not-allowed dark:hover:bg-dark-200"
+                  onClick={() => {
+                    if (isVirtual && onVirtualAddCard) {
+                      onVirtualAddCard();
+                    } else {
+                      openNewCardForm(list.publicId);
+                    }
+                  }}
+                  disabled={!canCreateCard}
                 >
-                  <button
-                    className="mx-1 inline-flex h-fit items-center rounded-md p-1 px-1 text-sm font-semibold text-dark-50 hover:bg-light-400 disabled:opacity-60 disabled:cursor-not-allowed dark:hover:bg-dark-200"
-                    onClick={() => openNewCardForm(list.publicId)}
-                    disabled={!canCreateCard}
-                  >
-                    <HiOutlinePlusSmall
-                      className="h-5 w-5 text-dark-900"
-                      aria-hidden="true"
-                    />
-                  </button>
-                </Tooltip>
-              )}
+                  <HiOutlinePlusSmall
+                    className="h-5 w-5 text-dark-900"
+                    aria-hidden="true"
+                  />
+                </button>
+              </Tooltip>
               {!isVirtual && (() => {
                 const dropdownItems = [
                   ...(canCreateCard

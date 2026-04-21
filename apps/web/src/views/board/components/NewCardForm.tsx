@@ -45,6 +45,9 @@ interface NewCardFormProps {
   boardPublicId: string;
   listPublicId: string;
   queryParams: QueryParams;
+  preSelectedLabelId?: string;
+  preSelectedMemberId?: string;
+  preSelectedDueDate?: Date;
 }
 
 export function NewCardForm({
@@ -52,6 +55,9 @@ export function NewCardForm({
   boardPublicId,
   listPublicId,
   queryParams,
+  preSelectedLabelId,
+  preSelectedMemberId,
+  preSelectedDueDate,
 }: NewCardFormProps) {
   const { showPopup } = usePopup();
   const { workspace } = useWorkspace();
@@ -66,11 +72,11 @@ export function NewCardForm({
       title: "",
       description: "",
       listPublicId,
-      labelPublicIds: [],
-      memberPublicIds: [],
+      labelPublicIds: preSelectedLabelId ? [preSelectedLabelId] : [],
+      memberPublicIds: preSelectedMemberId ? [preSelectedMemberId] : [],
       isCreateAnotherEnabled: false,
       position: "start",
-      dueDate: null,
+      dueDate: preSelectedDueDate ?? null,
     },
     resetOnClose: true,
   });
