@@ -1,0 +1,61 @@
+# AGENTS.infra.md
+
+Instructions for infrastructure, Docker, deployment, and environment configuration.
+
+## File Locations
+
+- Production compose: `docker-compose.yml`
+- Development compose: `docker-compose.dev.yml` (hot-reloading enabled)
+- Web Dockerfile: `apps/web/Dockerfile`
+- Cloud compose: `cloud/docker-compose.yml`
+
+## Docker Commands
+
+**Production (default `docker-compose.yml`)**: Runs pre-built production image. Changes require rebuilding.
+- `docker compose up` - Start all services (web, database, etc.)
+- `docker compose down` - Stop all services
+- `docker compose up --build` - Rebuild and start services
+- `docker compose logs -f web` - Follow web service logs
+
+**Development (`docker-compose.dev.yml`)**: Database and migrate services only (dev server runs locally).
+- `docker compose -f docker-compose.dev.yml up postgres -d` - Start database
+- `docker compose -f docker-compose.dev.yml --profile migrate up migrate` - Run migrations
+- `docker compose -f docker-compose.dev.yml down` - Stop dev services
+
+**Container naming**:
+- Development: `kan-dev-db`, `kan-dev-migrate`, `kan-dev-network`
+- Production: `kan-db`, `kan-migrate`, `kan-network`
+
+## Development Workflow (Recommended)
+
+For active development with hot reloading:
+
+```bash
+# Terminal 1: Start database in Docker
+docker compose -f docker-compose.dev.yml up postgres -d
+
+# Terminal 2: Run dev server locally (connects to Docker database)
+npx pnpm dev
+```
+
+The database runs in Docker and persists data in the `kan-dev-postgres-data` volume. The dev server connects via `localhost:5432` as defined in `POSTGRES_URL`.
+
+**POSTGRES_URL configuration**:
+- Local dev: Use `localhost` as hostname (e.g., `postgresql://user:pass@localhost:5432/db`)
+- Docker (production): Use `postgres` as hostname (e.g., `postgresql://user:pass@postgres:5432/db`)
+
+**Run migrations**:
+```bash
+docker compose -f docker-compose.dev.yml --profile migrate up migrate
+```
+
+## Adding a New Environment Variable
+
+Update all of the following:
+
+1. `.env.example` — add the variable with an empty value and a comment explaining it
+2. `turbo.json` — add to `globalEnv` (or `globalPassThroughEnv` for CI/platform vars)
+3. `docker-compose.yml` — add to the `web` service `environment` section
+4. `docker-compose.dev.yml` — add to the `web` service `environment` section
+5. `cloud/docker-compose.yml` — add to the `web` service `environment` section
+6. `README.md` — add a row to the Environment Variables table
