@@ -14,7 +14,7 @@ const Badge = ({
   colourCode?: string | null;
   variant?: "default" | "compact";
 }) => {
-  const compact = variant === "compact" ? "scale-[0.78] origin-left" : "";
+  const compact = variant === "compact" ? "scale-[0.85] origin-left" : "";
 
   if (colourCode) {
     return (

@@ -26,6 +26,7 @@ const Card = ({
   attachments,
   dueDate,
   listColourCode,
+  listName,
 }: {
   title: string;
   labels: { name: string; colourCode: string | null }[];
@@ -49,6 +50,7 @@ const Card = ({
   attachments?: { publicId: string }[];
   dueDate?: Date | null;
   listColourCode?: string | null;
+  listName?: string;
 }) => {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -112,6 +114,9 @@ const Card = ({
               />
             ))}
           </div>
+          {listName && (
+            <span className="mt-2.5 inline-block text-[11px] font-bold text-neutral-500 dark:text-neutral-400 bg-neutral-200 dark:bg-neutral-600 rounded px-1.5 py-0.5 max-w-fit truncate">{listName}</span>
+          )}
           <div className="mt-2 flex items-center justify-between gap-1">
             <div className="flex items-center gap-2">
               {hasDescription && (

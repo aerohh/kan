@@ -926,6 +926,14 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
             <>
               {(() => {
                 const isListGroupMode = LIST_GROUP_MODES.includes(groupMode);
+                const cardListNameMap = new Map<string, string>();
+                if (isListGroupMode) {
+                  boardData.lists.forEach((list) => {
+                    list.cards.forEach((card) => {
+                      cardListNameMap.set(card.publicId, list.name);
+                    });
+                  });
+                }
                 const virtualLists = isListGroupMode
                   ? getVirtualLists(
                       boardData.lists.flatMap((l) => l.cards),
@@ -1095,6 +1103,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                               attachments={card.attachments}
                                               dueDate={card.dueDate ?? null}
                                               listColourCode={isListGroupMode ? list.colourCode : undefined}
+                                              listName={isListGroupMode ? cardListNameMap.get(card.publicId) : undefined}
                                             />
                                           </Link>
                                         )}
