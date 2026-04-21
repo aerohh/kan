@@ -960,6 +960,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                     list.cards.map((card) => ({
                       ...card,
                       listName: list.name,
+                      listPublicId: list.publicId,
                     }))
                   );
 
@@ -974,6 +975,13 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                       cards={flatCards}
                       boardPublicId={boardId ?? ""}
                       isTemplate={!!isTemplate}
+                      boardLabels={boardData.labels}
+                      workspaceMembers={boardData.workspace.members.filter(
+                        (member) => member.user !== null,
+                      )}
+                      allLists={boardData.allLists}
+                      canEditCard={!!canEditCard}
+                      weekStartDay={workspace.weekStartDay ?? 1}
                       onContextMenu={(e, cardPublicId) => {
                         if (
                           cardPublicId.startsWith("PLACEHOLDER") ||
