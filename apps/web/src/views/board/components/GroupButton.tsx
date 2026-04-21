@@ -64,6 +64,16 @@ const GroupButton = ({
       value: t`Role List`,
       selected: currentGroup === "role-list",
     },
+    {
+      key: "members-list",
+      value: t`Members List`,
+      selected: currentGroup === "members-list",
+    },
+    {
+      key: "due-list",
+      value: t`Due List`,
+      selected: currentGroup === "due-list",
+    },
   ];
 
   const glow = toolbarGlow(!!currentGroup, "text-amber-500", "245,158,11");

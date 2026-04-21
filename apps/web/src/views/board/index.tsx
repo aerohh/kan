@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { env } from "next-runtime-env";
 import { t } from "@lingui/core/macro";
 import { keepPreviousData } from "@tanstack/react-query";
+import { addDays, endOfDay, startOfDay } from "date-fns";
 import { useEffect, useState } from "react";
 import { DragDropContext, Draggable } from "react-beautiful-dnd";
 import { useForm } from "react-hook-form";
@@ -59,7 +60,8 @@ import VisibilityButton from "./components/VisibilityButton";
 
 const PRIORITY_LABELS = ["High Priority", "Medium Priority", "Low Priority"];
 const ROLE_LABELS = ["Backend", "backend", "Frontend", "frontend", "Client", "client"];
-const LIST_GROUP_MODES = ["tags-list", "priority-list", "role-list"];
+const LIST_GROUP_MODES = ["tags-list", "priority-list", "role-list", "members-list", "due-list"];
+const DUE_CATEGORIES = ["Overdue", "Due today", "Due tomorrow", "Due next week", "Due next month", "No dates"] as const;
 
 type CardData = {
   publicId: string;
@@ -130,10 +132,29 @@ function getGroupedCards(
   });
 }
 
+function getDueCategory(card: CardData): string {
+  if (!card.dueDate) return "No dates";
+  const today = startOfDay(new Date());
+  const dueDate = startOfDay(card.dueDate);
+  if (dueDate < today) return "Overdue";
+  if (dueDate.getTime() === today.getTime()) return "Due today";
+  const tomorrow = addDays(today, 1);
+  if (dueDate.getTime() === tomorrow.getTime()) return "Due tomorrow";
+  const nextWeekEnd = addDays(today, 8);
+  if (dueDate >= today && dueDate < nextWeekEnd) return "Due next week";
+  const nextMonthEnd = addDays(today, 31);
+  if (dueDate >= nextWeekEnd && dueDate < nextMonthEnd) return "Due next month";
+  return "No dates";
+}
+
 function getVirtualLists(
   allCards: CardData[],
   allLabels: { publicId: string; name: string; colourCode: string | null }[],
   groupMode: string,
+  workspaceMembers?: {
+    publicId: string;
+    user: { name: string | null; email: string; image: string | null } | null;
+  }[],
 ): VirtualList[] {
   if (groupMode === "tags-list") {
     const excludedNames = [...PRIORITY_LABELS, ...ROLE_LABELS];
@@ -182,6 +203,37 @@ function getVirtualLists(
         ),
       };
     }).filter((list) => list.cards.length > 0);
+  }
+
+  if (groupMode === "members-list" && workspaceMembers) {
+    return workspaceMembers
+      .map((member, index) => ({
+        publicId: `virtual-member-${member.publicId}`,
+        name:
+          member.user?.name || member.user?.email || `Member ${index}`,
+        index,
+        colourCode: null,
+        cards: allCards.filter((card) =>
+          card.members.some((cm) => cm.publicId === member.publicId),
+        ),
+      }))
+      .filter((list) => list.cards.length > 0);
+  }
+
+  if (groupMode === "due-list") {
+    const dueColours: Record<string, string> = {
+      "Overdue": "#ef4444",
+      "Due today": "#eab308",
+      "Due tomorrow": "#22c55e",
+      "Due next week": "#22c55e",
+    };
+    return DUE_CATEGORIES.map((name, index) => ({
+      publicId: `virtual-due-${index}`,
+      name,
+      index,
+      colourCode: dueColours[name] ?? null,
+      cards: allCards.filter((card) => getDueCategory(card) === name),
+    })).filter((list) => list.cards.length > 0);
   }
 
   return [];
@@ -785,6 +837,9 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                       boardData.lists.flatMap((l) => l.cards),
                       boardData.labels,
                       groupMode,
+                      boardData.workspace.members.filter(
+                        (member) => member.user !== null,
+                      ),
                     )
                   : null;
 
