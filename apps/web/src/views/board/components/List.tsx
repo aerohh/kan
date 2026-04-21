@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
+import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
 import { useTheme } from "next-themes";
 import { Draggable } from "react-beautiful-dnd";
 import { useForm } from "react-hook-form";
 import {
+  HiArrowDown,
+  HiArrowUp,
   HiEllipsisHorizontal,
   HiOutlinePlusSmall,
   HiOutlineSquaresPlus,
@@ -26,6 +29,8 @@ interface ListProps {
   isVirtual?: boolean;
   onVirtualAddCard?: () => void;
   cardCount?: number;
+  sortMode?: string;
+  sortDir?: "asc" | "desc";
 }
 
 interface List {
@@ -50,7 +55,10 @@ export default function List({
   isVirtual = false,
   onVirtualAddCard,
   cardCount,
+  sortMode,
+  sortDir = "asc",
 }: ListProps) {
+  const router = useRouter();
   const { openModal } = useModal();
   const { resolvedTheme } = useTheme();
   const { canCreateCard, canEditList, canDeleteList } = usePermissions();
@@ -90,6 +98,18 @@ export default function List({
   const handleOpenDeleteListConfirmation = () => {
     setSelectedPublicListId(list.publicId);
     openModal("DELETE_LIST");
+  };
+
+  const toggleSortDirection = async () => {
+    const newDir = sortDir === "asc" ? "desc" : "asc";
+    try {
+      await router.push({
+        pathname: router.pathname,
+        query: { ...router.query, sortDir: newDir },
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const bgStyle = isVirtual && list.colourCode
@@ -132,6 +152,23 @@ export default function List({
               />
             </form>
             <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
+              {sortMode && (
+                <button
+                  className="mx-1 inline-flex h-fit items-center rounded-md p-1 px-1 text-sm font-semibold text-dark-50 hover:bg-light-400 dark:hover:bg-dark-200"
+                  onClick={toggleSortDirection}
+                >
+                  <span className="flex items-center">
+                    <HiArrowUp
+                      className={`${sortDir === "asc" ? "h-4 w-4" : "h-3 w-3"} ${sortDir === "asc" ? "text-light-1000 dark:text-white" : "text-dark-900"}`}
+                      aria-hidden="true"
+                    />
+                    <HiArrowDown
+                      className={`${sortDir === "desc" ? "h-4 w-4" : "h-3 w-3"} ${sortDir === "desc" ? "text-light-1000 dark:text-white" : "text-dark-900"}`}
+                      aria-hidden="true"
+                    />
+                  </span>
+                </button>
+              )}
               {!isVirtual && (() => {
                 const dropdownItems = [
                   ...(canCreateCard

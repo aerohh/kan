@@ -3,11 +3,11 @@ import { t } from "@lingui/core/macro";
 import {
   HiMiniXMark,
   HiOutlineClock,
+  HiOutlineFunnel,
   HiOutlineSquare3Stack3D,
   HiOutlineTag,
   HiOutlineUserCircle,
 } from "react-icons/hi2";
-import { IoFilterOutline } from "react-icons/io5";
 
 import Avatar from "~/components/Avatar";
 import Button from "~/components/Button";
@@ -39,7 +39,7 @@ interface List {
   name: string;
 }
 
-import { toolbarGlow } from "./toolbarGlow";
+import { toolbarGlow, TOOLBAR_GLOW_PRESETS } from "./toolbarGlow";
 
 const Filters = ({
   position = "right",
@@ -207,10 +207,10 @@ const Filters = ({
     ...formatToArray(router.query.dueDate),
   ].length;
 
-  const glow = toolbarGlow(numOfFilters > 0, "text-blue-500", "59,130,246");
+  const glow = toolbarGlow(numOfFilters > 0, TOOLBAR_GLOW_PRESETS.filter);
 
   return (
-    <div className="relative">
+    <div className="group/toolbar relative">
       <CheckboxDropdown
         groups={groups}
         handleSelect={handleSelect}
@@ -222,7 +222,7 @@ const Filters = ({
           variant="ghost"
           iconOnly
           disabled={isLoading}
-          iconLeft={<IoFilterOutline size={22} className={glow.iconClass} />}
+          iconLeft={<HiOutlineFunnel size={22} className={glow.iconClass} />}
           className={glow.buttonClass}
         />
         {numOfFilters > 0 && (

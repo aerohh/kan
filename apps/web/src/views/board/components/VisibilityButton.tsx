@@ -16,7 +16,7 @@ interface QueryParams {
   lists: string[];
 }
 
-import { toolbarGlow } from "./toolbarGlow";
+import { toolbarGlow, TOOLBAR_GLOW_PRESETS } from "./toolbarGlow";
 
 const VisibilityButton = ({
   visibility,
@@ -66,10 +66,10 @@ const VisibilityButton = ({
   });
 
   const canEdit = canEditBoard || isAdmin;
-  const glow = toolbarGlow(isPublic, "text-green-500", "34,197,94");
+  const glow = toolbarGlow(isPublic, TOOLBAR_GLOW_PRESETS.visibility);
 
   return (
-    <div className="relative">
+    <div className="group/toolbar relative">
       <Tooltip
         content={
           !canEdit && !isLoading ? t`You don't have permission` : undefined
@@ -101,7 +101,11 @@ const VisibilityButton = ({
           <Button
             variant="ghost"
             iconOnly
-            iconLeft={isPublic ? <HiOutlineEye size={22} className={glow.iconClass} /> : <HiOutlineEyeSlash size={22} />}
+            iconLeft={
+              isPublic
+                ? <HiOutlineEye size={22} className={glow.iconClass} />
+                : <HiOutlineEyeSlash size={22} className={glow.iconClass} />
+            }
             disabled={isLoading || !canEdit}
             className={glow.buttonClass}
           />

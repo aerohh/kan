@@ -51,6 +51,7 @@ import { DeleteListConfirmation } from "./components/DeleteListConfirmation";
 import Filters from "./components/Filters";
 import GroupButton from "./components/GroupButton";
 import List from "./components/List";
+import SortButton from "./components/SortButton";
 import { NewCardForm } from "./components/NewCardForm";
 import { NewListForm } from "./components/NewListForm";
 import { NewTemplateForm } from "./components/NewTemplateForm";
@@ -129,6 +130,44 @@ function getGroupedCards(
     const keyA = getGroupSortKey(a, groupMode);
     const keyB = getGroupSortKey(b, groupMode);
     return keyA.localeCompare(keyB);
+  });
+}
+
+function getSortKey(
+  card: CardData,
+  mode: "alphabet" | "priority" | "due",
+): string | number {
+  if (mode === "alphabet") {
+    return card.title.toLowerCase();
+  }
+  if (mode === "priority") {
+    const priorityLabel = card.labels.find((l) =>
+      PRIORITY_LABELS.includes(l.name),
+    );
+    if (!priorityLabel) return "\uFFFF";
+    return PRIORITY_LABELS.indexOf(priorityLabel.name);
+  }
+  if (mode === "due") {
+    if (!card.dueDate) return "\uFFFF";
+    return new Date(card.dueDate).getTime();
+  }
+  return 0;
+}
+
+function getSortedCards(
+  cards: CardData[],
+  sortMode: string,
+  sortDir: "asc" | "desc",
+): CardData[] {
+  if (!sortMode || (sortMode !== "alphabet" && sortMode !== "priority" && sortMode !== "due"))
+    return cards;
+  return [...cards].sort((a, b) => {
+    const keyA = getSortKey(a, sortMode as "alphabet" | "priority" | "due");
+    const keyB = getSortKey(b, sortMode as "alphabet" | "priority" | "due");
+    const cmp = typeof keyA === "number" && typeof keyB === "number"
+      ? keyA - keyB
+      : String(keyA).localeCompare(String(keyB));
+    return sortDir === "desc" ? -cmp : cmp;
   });
 }
 
@@ -316,6 +355,8 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
   const boardType: "regular" | "template" = isTemplate ? "template" : "regular";
 
   const groupMode = (router.query.group as string) || "";
+  const sortMode = (router.query.sort as string) || "";
+  const sortDir = ((router.query.sortDir as string) || "asc") as "asc" | "desc";
 
   const queryParams = {
     boardPublicId: boardId ?? "",
@@ -821,15 +862,18 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                   isAdmin={workspace.role === "admin"}
                 />
                 {boardData && (
-                  <Filters
-                    labels={boardData.labels}
-                    members={boardData.workspace.members.filter(
-                      (member) => member.user !== null,
-                    )}
-                    lists={boardData.allLists}
-                    position="left"
-                    isLoading={!boardData}
-                  />
+                  <>
+                    <SortButton isLoading={!boardData} />
+                    <Filters
+                      labels={boardData.labels}
+                      members={boardData.workspace.members.filter(
+                        (member) => member.user !== null,
+                      )}
+                      lists={boardData.allLists}
+                      position="left"
+                      isLoading={!boardData}
+                    />
+                  </>
                 )}
                 <GroupButton isLoading={!boardData} />
               </>
@@ -947,8 +991,13 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                           {displayLists.map((list, listIndex) => {
                             if (!list) return null;
                             const groupedCards = isListGroupMode
-                              ? list.cards
+                              ? getSortedCards(list.cards, sortMode, sortDir)
                               : getGroupedCards(list.cards, groupMode);
+                            const sortedCards = isListGroupMode
+                              ? groupedCards
+                              : sortMode
+                                ? getSortedCards(groupedCards, sortMode, sortDir)
+                                : groupedCards;
                             return (
                               <List
                                 index={listIndex}
@@ -964,7 +1013,9 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                     list.name,
                                   )
                                 }
-                                cardCount={groupedCards.length}
+                                cardCount={sortedCards.length}
+                                sortMode={sortMode}
+                                sortDir={sortDir}
                               >
                                 <Droppable
                                   droppableId={`${list.publicId}`}
@@ -976,12 +1027,12 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                       {...provided.droppableProps}
                                       className="scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-w-[8px] z-10 h-full max-h-[calc(100vh-225px)] min-h-[2rem] overflow-y-auto pr-1 scrollbar dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-600"
                                     >
-                                      {groupedCards.map((card, cardIndex) => (
+                                      {sortedCards.map((card, cardIndex) => (
                                         <Draggable
                                           key={card.publicId}
                                           draggableId={card.publicId}
                                           index={cardIndex}
-                                          isDragDisabled={!canEditCard || !!groupMode}
+                                          isDragDisabled={!canEditCard || !!groupMode || !!sortMode}
                                         >
                                         {(provided) => (
                                           <Link
