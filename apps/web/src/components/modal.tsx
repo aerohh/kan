@@ -58,7 +58,7 @@ const Modal: React.FC<Props> = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-light-50 bg-opacity-40 transition-opacity dark:bg-dark-50 dark:bg-opacity-40" />
+          <div className="fixed inset-0 bg-light-50 bg-opacity-40 backdrop-blur-sm transition-opacity dark:bg-dark-50 dark:bg-opacity-40" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-50 w-screen overflow-y-auto">
