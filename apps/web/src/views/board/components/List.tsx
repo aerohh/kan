@@ -115,7 +115,7 @@ export default function List({
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           style={bgStyle}
-          className="group dark-text-dark-1000 mr-5 h-fit min-w-[19rem] max-w-[19rem] rounded-md border border-light-400 bg-light-300 py-2 pl-2 pr-1 text-neutral-900 dark:border-dark-300 dark:bg-dark-100"
+          className="group dark-text-dark-1000 mr-5 h-fit min-w-[22rem] max-w-[22rem] rounded-md border border-light-400 bg-light-300 py-2 pl-2 pr-1 text-neutral-900 dark:border-dark-300 dark:bg-dark-100"
         >
           <div className="mb-2 flex items-center justify-between">
             <form
