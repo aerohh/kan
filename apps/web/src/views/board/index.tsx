@@ -964,6 +964,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                     list.name,
                                   )
                                 }
+                                cardCount={groupedCards.length}
                               >
                                 <Droppable
                                   droppableId={`${list.publicId}`}

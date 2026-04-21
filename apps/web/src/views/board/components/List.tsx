@@ -25,6 +25,7 @@ interface ListProps {
   setSelectedPublicListId: (publicListId: PublicListId) => void;
   isVirtual?: boolean;
   onVirtualAddCard?: () => void;
+  cardCount?: number;
 }
 
 interface List {
@@ -48,6 +49,7 @@ export default function List({
   setSelectedPublicListId,
   isVirtual = false,
   onVirtualAddCard,
+  cardCount,
 }: ListProps) {
   const { openModal } = useModal();
   const { resolvedTheme } = useTheme();
@@ -113,9 +115,9 @@ export default function List({
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           style={bgStyle}
-          className="dark-text-dark-1000 mr-5 h-fit min-w-[19rem] max-w-[19rem] rounded-md border border-light-400 bg-light-300 py-2 pl-2 pr-1 text-neutral-900 dark:border-dark-300 dark:bg-dark-100"
+          className="group dark-text-dark-1000 mr-5 h-fit min-w-[19rem] max-w-[19rem] rounded-md border border-light-400 bg-light-300 py-2 pl-2 pr-1 text-neutral-900 dark:border-dark-300 dark:bg-dark-100"
         >
-          <div className="mb-2 flex justify-between">
+          <div className="mb-2 flex items-center justify-between">
             <form
               onSubmit={handleSubmit(onSubmit)}
               className="w-full focus-visible:outline-none"
@@ -129,29 +131,7 @@ export default function List({
                 className="w-full border-0 bg-transparent px-4 pt-1 text-sm font-medium text-neutral-900 focus:ring-0 focus-visible:outline-none dark:text-dark-1000"
               />
             </form>
-            <div className="flex items-center">
-              <Tooltip
-                content={
-                  !canCreateCard ? t`You don't have permission` : undefined
-                }
-              >
-                <button
-                  className="mx-1 inline-flex h-fit items-center rounded-md p-1 px-1 text-sm font-semibold text-dark-50 hover:bg-light-400 disabled:opacity-60 disabled:cursor-not-allowed dark:hover:bg-dark-200"
-                  onClick={() => {
-                    if (isVirtual && onVirtualAddCard) {
-                      onVirtualAddCard();
-                    } else {
-                      openNewCardForm(list.publicId);
-                    }
-                  }}
-                  disabled={!canCreateCard}
-                >
-                  <HiOutlinePlusSmall
-                    className="h-5 w-5 text-dark-900"
-                    aria-hidden="true"
-                  />
-                </button>
-              </Tooltip>
+            <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
               {!isVirtual && (() => {
                 const dropdownItems = [
                   ...(canCreateCard
@@ -190,7 +170,34 @@ export default function List({
                   </div>
                 );
               })()}
+              <Tooltip
+                content={
+                  !canCreateCard ? t`You don't have permission` : undefined
+                }
+              >
+                <button
+                  className="mx-1 inline-flex h-fit items-center rounded-md p-1 px-1 text-sm font-semibold text-dark-50 hover:bg-light-400 disabled:opacity-60 disabled:cursor-not-allowed dark:hover:bg-dark-200"
+                  onClick={() => {
+                    if (isVirtual && onVirtualAddCard) {
+                      onVirtualAddCard();
+                    } else {
+                      openNewCardForm(list.publicId);
+                    }
+                  }}
+                  disabled={!canCreateCard}
+                >
+                  <HiOutlinePlusSmall
+                    className="h-5 w-5 text-dark-900"
+                    aria-hidden="true"
+                  />
+                </button>
+              </Tooltip>
             </div>
+            {cardCount !== undefined && (
+              <span className="mr-2 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-light-400 px-1.5 text-xs font-medium text-neutral-500 dark:bg-dark-200 dark:text-dark-800">
+                {cardCount}
+              </span>
+            )}
           </div>
           {children}
         </div>
