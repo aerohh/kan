@@ -69,15 +69,15 @@ export default function SheetView({
 
   return (
     <div className="px-8 pb-8">
-      <div className="overflow-hidden rounded-lg border border-light-300 dark:border-dark-300">
+      <div className="overflow-hidden rounded-lg border border-light-500 dark:border-dark-400">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-light-300 bg-light-200 text-left text-[11px] font-semibold uppercase tracking-wider text-light-800 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-800">
-              <th className="px-4 py-2.5">Title</th>
-              <th className="px-4 py-2.5">List</th>
-              <th className="px-4 py-2.5">Labels</th>
-              <th className="px-4 py-2.5">Members</th>
-              <th className="px-4 py-2.5">Due Date</th>
+            <tr className="border-b border-light-500 bg-light-200 text-left text-[11px] font-semibold uppercase tracking-wider text-light-800 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-800">
+              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">Title</th>
+              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">List</th>
+              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">Labels</th>
+              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">Members</th>
+              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">Due Date</th>
               <th className="px-4 py-2.5">Progress</th>
             </tr>
           </thead>
@@ -108,17 +108,17 @@ export default function SheetView({
                   key={card.publicId}
                   onClick={() => handleRowClick(card.publicId)}
                   onContextMenu={(e) => onContextMenu(e, card.publicId)}
-                  className="cursor-pointer border-b border-light-200 bg-light-50 transition-colors last:border-b-0 hover:bg-light-200/70 dark:border-dark-200 dark:bg-dark-50 dark:hover:bg-dark-200/70"
+                  className="cursor-pointer border-b border-light-400 bg-light-50 transition-colors last:border-b-0 hover:bg-light-200/70 dark:border-dark-300 dark:bg-dark-50 dark:hover:bg-dark-200/70"
                 >
-                  <td className="max-w-[300px] truncate px-4 py-2.5 font-medium text-neutral-900 dark:text-dark-1000">
+                  <td className="max-w-[300px] truncate border-r border-light-400 px-4 py-2.5 font-medium text-neutral-900 dark:border-dark-300 dark:text-dark-1000">
                     {card.title}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="border-r border-light-400 px-4 py-2.5 dark:border-dark-300">
                     <span className="inline-block rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 dark:bg-dark-300 dark:text-dark-800">
                       {card.listName}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="border-r border-light-400 px-4 py-2.5 dark:border-dark-300">
                     {card.labels.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {card.labels.map((label, i) => (
@@ -134,7 +134,7 @@ export default function SheetView({
                       <span className="text-light-700 dark:text-dark-700">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="border-r border-light-400 px-4 py-2.5 dark:border-dark-300">
                     {card.members.length > 0 ? (
                       <div className="flex -space-x-1">
                         {card.members.map(({ user, email }) => {
@@ -156,7 +156,7 @@ export default function SheetView({
                       <span className="text-light-700 dark:text-dark-700">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="border-r border-light-400 px-4 py-2.5 dark:border-dark-300">
                     {card.dueDate ? (
                       <div
                         className={`flex items-center gap-1 ${
