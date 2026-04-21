@@ -1,4 +1,5 @@
 import { useTheme } from "next-themes";
+import { useCallback } from "react";
 import { HiSun, HiMoon } from "react-icons/hi2";
 import { twMerge } from "tailwind-merge";
 
@@ -14,9 +15,32 @@ export default function ThemeSwitcher({ isCollapsed = false }: ThemeSwitcherProp
 
   const nextTheme = isDark ? "light" : "dark";
 
+  const handleClick = useCallback(() => {
+    const el = document.documentElement;
+    el.style.transition = "transform 0.15s ease-in, opacity 0.15s ease-in";
+    el.style.transform = "scale(0.97)";
+    el.style.opacity = "0.5";
+    el.style.transformOrigin = "bottom left";
+
+    setTimeout(() => {
+      setTheme(nextTheme);
+      el.style.transition = "transform 0.25s ease-out, opacity 0.25s ease-out";
+      el.style.transform = "scale(1)";
+      el.style.opacity = "1";
+
+      const cleanup = () => {
+        el.style.removeProperty("transform");
+        el.style.removeProperty("opacity");
+        el.style.removeProperty("transition");
+        el.style.removeProperty("transform-origin");
+      };
+      el.addEventListener("transitionend", cleanup, { once: true });
+    }, 150);
+  }, [nextTheme, setTheme]);
+
   return (
     <button
-      onClick={() => setTheme(nextTheme)}
+      onClick={handleClick}
       className={twMerge(
         "flex items-center justify-center rounded-md p-1 transition-all duration-300 hover:bg-light-200 dark:hover:bg-dark-200",
         isDark
