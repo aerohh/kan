@@ -108,6 +108,10 @@ Kan is an open-source project management tool (Trello alternative) built with:
 - Keep dependencies up to date
 - Use catalog for shared dependency versions
 
+### Dark Mode / Light Mode
+
+- **All visual changes must address both dark and light mode.** When modifying styles, colors, backgrounds, borders, or any visual property, always provide values for both themes. Never update only one mode.
+
 ### Pre-existing Build Errors
 
 Many packages have pre-existing lint and typecheck errors (e.g., `@kan/api`, `@kan/auth`, `@kan/db`, `@kan/email`, `@kan/web`). When running `npx pnpm lint` or `npx pnpm typecheck`, failures in packages you didn't modify are expected and not caused by your changes. Focus on verifying your specific files compile correctly.
