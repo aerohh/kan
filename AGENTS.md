@@ -19,7 +19,7 @@ For domain-specific instructions, read the relevant file:
 
 ## Maintaining Agent Files
 
-After completing any significant task, **auto-update** the relevant agent file(s) with new learnings. Follow these steps:
+After completing any significant task, always create a task to **auto-update** the relevant agent file(s) with new learnings. Follow these steps:
 
 1. **Pick the right file** — only update the agent file(s) relevant to what you just worked on
 2. **Check before adding** — read the target agent file first and verify the information isn't already there. If it's already documented, skip it
