@@ -4,7 +4,6 @@ import { HiOutlineClock } from "react-icons/hi2";
 
 import Avatar from "~/components/Avatar";
 import Badge from "~/components/Badge";
-import CircularProgress from "~/components/CircularProgress";
 import { useLocalisation } from "~/hooks/useLocalisation";
 import { getAvatarUrl } from "~/utils/helpers";
 
@@ -180,12 +179,17 @@ export default function SheetView({
                   </td>
                   <td className="px-4 py-2.5">
                     {card.checklists.length > 0 ? (
-                      <div className="flex items-center gap-1.5">
-                        <CircularProgress
-                          progress={progress || 2}
-                          size="sm"
-                          className="flex-shrink-0"
-                        />
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-light-300 dark:bg-dark-400">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              progress === 100
+                                ? "bg-green-500"
+                                : "bg-blue-500"
+                            }`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
                         <span className="text-[10px] text-light-900 dark:text-dark-950">
                           {completedItems}/{totalItems}
                         </span>
