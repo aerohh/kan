@@ -73,11 +73,11 @@ export default function SheetView({
           <thead>
             <tr className="border-b border-light-500 bg-light-200 text-left text-[11px] font-semibold uppercase tracking-wider text-light-800 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-800">
               <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">Title</th>
-              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">List</th>
-              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">Labels</th>
-              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">Members</th>
-              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">Due Date</th>
-              <th className="px-4 py-2.5">Progress</th>
+              <th className="border-r border-light-500 px-4 py-2.5 text-center dark:border-dark-400">List</th>
+              <th className="border-r border-light-500 px-4 py-2.5 text-center dark:border-dark-400">Labels</th>
+              <th className="border-r border-light-500 px-4 py-2.5 text-center dark:border-dark-400">Members</th>
+              <th className="border-r border-light-500 px-4 py-2.5 text-center dark:border-dark-400">Due Date</th>
+              <th className="px-4 py-2.5 text-center">Progress</th>
             </tr>
           </thead>
           <tbody>
@@ -112,14 +112,14 @@ export default function SheetView({
                   <td className="max-w-[300px] truncate border-r border-light-400 px-4 py-2.5 font-medium text-neutral-900 dark:border-dark-300 dark:text-dark-1000">
                     {card.title}
                   </td>
-                  <td className="border-r border-light-400 px-4 py-2.5 dark:border-dark-300">
+                  <td className="border-r border-light-400 px-4 py-2.5 text-center dark:border-dark-300">
                     <span className="inline-block rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 dark:bg-dark-300 dark:text-dark-800">
                       {card.listName}
                     </span>
                   </td>
-                  <td className="border-r border-light-400 px-4 py-2.5 dark:border-dark-300">
+                  <td className="border-r border-light-400 px-4 py-2.5 text-center dark:border-dark-300">
                     {card.labels.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap justify-center gap-1">
                         {card.labels.map((label, i) => (
                           <Badge
                             key={`${label.publicId}-${i}`}
@@ -133,9 +133,9 @@ export default function SheetView({
                       <span className="text-light-700 dark:text-dark-700">—</span>
                     )}
                   </td>
-                  <td className="border-r border-light-400 px-4 py-2.5 dark:border-dark-300">
+                  <td className="border-r border-light-400 px-4 py-2.5 text-center dark:border-dark-300">
                     {card.members.length > 0 ? (
-                      <div className="flex -space-x-1">
+                      <div className="flex justify-center -space-x-1">
                         {card.members.map(({ user, email }) => {
                           const avatarUrl = user?.image
                             ? getAvatarUrl(user.image)
@@ -155,10 +155,10 @@ export default function SheetView({
                       <span className="text-light-700 dark:text-dark-700">—</span>
                     )}
                   </td>
-                  <td className="border-r border-light-400 px-4 py-2.5 dark:border-dark-300">
+                  <td className="border-r border-light-400 px-4 py-2.5 text-center dark:border-dark-300">
                     {card.dueDate ? (
                       <div
-                        className={`flex items-center gap-1 ${
+                        className={`inline-flex items-center gap-1 ${
                           isOverdue
                             ? "text-red-600 dark:text-red-400"
                             : "text-light-800 dark:text-dark-800"
@@ -177,10 +177,10 @@ export default function SheetView({
                       <span className="text-light-700 dark:text-dark-700">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 text-center">
                     {card.checklists.length > 0 ? (
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-light-300 dark:bg-dark-400">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-light-300 dark:bg-dark-400">
                           <div
                             className={`h-full rounded-full transition-all ${
                               progress === 100
