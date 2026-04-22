@@ -11,6 +11,7 @@ interface SheetTitleCellProps {
   canEditCard: boolean;
   onNavigate: (cardPublicId: string) => void;
   onUpdated?: () => void;
+  groupBorderStyle?: React.CSSProperties;
 }
 
 export default function SheetTitleCell({
@@ -19,6 +20,7 @@ export default function SheetTitleCell({
   canEditCard,
   onNavigate,
   onUpdated,
+  groupBorderStyle,
 }: SheetTitleCellProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(title);
@@ -82,7 +84,8 @@ export default function SheetTitleCell({
   if (editing) {
     return (
       <td
-        className="max-w-[300px] border-r border-light-400 px-4 py-2.5 dark:border-dark-300"
+        className={`max-w-[300px] border-r px-4 py-2.5${groupBorderStyle ? "" : " border-light-400 dark:border-dark-300"}`}
+        style={groupBorderStyle}
         onClick={(e) => e.stopPropagation()}
       >
         <input
@@ -99,7 +102,8 @@ export default function SheetTitleCell({
 
   return (
     <td
-      className="group/title relative w-[300px] max-w-[300px] cursor-pointer border-r border-light-400 px-4 py-2.5 font-medium text-neutral-900 dark:border-dark-300 dark:text-dark-1000"
+      className={`group/title relative w-[300px] max-w-[300px] cursor-pointer border-r px-4 py-2.5 font-medium text-neutral-900${groupBorderStyle ? "" : " border-light-400 dark:border-dark-300"} dark:text-dark-1000`}
+      style={groupBorderStyle}
       onClick={handleClick}
     >
       <div className="overflow-hidden whitespace-nowrap text-ellipsis pr-0 group-hover/title:pr-16">{title}</div>

@@ -4,14 +4,15 @@ interface SheetProgressCellProps {
   checklists: {
     items: { completed: boolean }[];
   }[];
+  groupBorderStyle?: React.CSSProperties;
 }
 
-export default function SheetProgressCell({ checklists }: SheetProgressCellProps) {
+export default function SheetProgressCell({ checklists, groupBorderStyle }: SheetProgressCellProps) {
   const progress = getCardProgress({ checklists });
 
   if (progress < 0) {
     return (
-      <td className="px-4 py-2.5 text-center">
+      <td className="px-4 py-2.5 text-center" style={groupBorderStyle}>
         <span className="text-light-700 dark:text-dark-700">&mdash;</span>
       </td>
     );
@@ -27,7 +28,7 @@ export default function SheetProgressCell({ checklists }: SheetProgressCellProps
   );
 
   return (
-    <td className="px-4 py-2.5 text-center">
+    <td className="px-4 py-2.5 text-center" style={groupBorderStyle}>
       <div className="flex items-center gap-2">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-light-300 dark:bg-dark-400">
           <div

@@ -11,6 +11,7 @@ interface SheetDueDateCellProps {
   canEditCard: boolean;
   weekStartDay: number;
   onUpdateDueDate: (cardPublicId: string, date: Date | null) => void;
+  groupBorderStyle?: React.CSSProperties;
 }
 
 export default function SheetDueDateCell({
@@ -19,6 +20,7 @@ export default function SheetDueDateCell({
   canEditCard,
   weekStartDay,
   onUpdateDueDate,
+  groupBorderStyle,
 }: SheetDueDateCellProps) {
   const { dateLocale } = useLocalisation();
   const [editing, setEditing] = useState(false);
@@ -28,7 +30,8 @@ export default function SheetDueDateCell({
 
   return (
     <td
-      className="relative border-r border-light-400 px-4 py-2.5 text-center dark:border-dark-300"
+      className={`relative border-r px-4 py-2.5 text-center${groupBorderStyle ? "" : " border-light-400 dark:border-dark-300"}`}
+      style={groupBorderStyle}
       onClick={(e) => e.stopPropagation()}
     >
       <button

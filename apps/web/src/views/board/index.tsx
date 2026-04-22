@@ -59,6 +59,7 @@ import UpdateBoardSlugButton from "./components/UpdateBoardSlugButton";
 import { UpdateBoardSlugForm } from "./components/UpdateBoardSlugForm";
 import ViewSwitchButton from "./components/ViewSwitchButton";
 import SheetView from "./components/SheetView";
+import type { SheetGroup } from "./components/SheetView";
 import VisibilityButton from "./components/VisibilityButton";
 
 const PRIORITY_LABELS = ["High Priority", "Medium Priority", "Low Priority"];
@@ -964,15 +965,35 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                     }))
                   );
 
-                  flatCards = sortMode
-                    ? (getSortedCards(flatCards, sortMode, sortDir) as typeof flatCards)
-                    : groupMode
-                      ? (getGroupedCards(flatCards, groupMode) as typeof flatCards)
-                      : flatCards;
+                  let sheetGroups: SheetGroup[] | undefined;
+
+                  if (isListGroupMode && virtualLists) {
+                    sheetGroups = virtualLists.map((vl) => ({
+                      name: vl.name,
+                      colourCode: vl.colourCode,
+                      cards: vl.cards.map((card) => {
+                        const existing = flatCards.find(
+                          (fc) => fc.publicId === card.publicId,
+                        );
+                        return existing ?? {
+                          ...card,
+                          listName: cardListNameMap.get(card.publicId) ?? "",
+                          listPublicId: "",
+                        };
+                      }),
+                    }));
+                  } else {
+                    flatCards = sortMode
+                      ? (getSortedCards(flatCards, sortMode, sortDir) as typeof flatCards)
+                      : groupMode
+                        ? (getGroupedCards(flatCards, groupMode) as typeof flatCards)
+                        : flatCards;
+                  }
 
                   return (
                     <SheetView
                       cards={flatCards}
+                      groups={sheetGroups}
                       boardPublicId={boardId ?? ""}
                       isTemplate={!!isTemplate}
                       boardLabels={boardData.labels}

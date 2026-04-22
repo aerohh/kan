@@ -25,8 +25,15 @@ export interface SheetCard {
   listPublicId: string;
 }
 
+export interface SheetGroup {
+  name: string;
+  colourCode: string | null;
+  cards: SheetCard[];
+}
+
 export interface SheetViewProps {
   cards: SheetCard[];
+  groups?: SheetGroup[];
   boardPublicId: string;
   isTemplate: boolean;
   onContextMenu: (e: React.MouseEvent, cardPublicId: string) => void;
