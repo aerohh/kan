@@ -1,7 +1,4 @@
 import { t } from "@lingui/core/macro";
-import { HiMiniPlus } from "react-icons/hi2";
-
-import Badge from "~/components/Badge";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
 import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
@@ -102,23 +99,27 @@ export default function LabelSelector({
           createNewItemLabel={t`Create new label`}
           disabled={disabled}
           asChild
+          className="relative inline-flex items-center text-left"
         >
           {selectedLabels.length ? (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex h-6 items-center gap-1">
               {selectedLabels.map((label) => (
-                <Badge
+                <span
                   key={label.key}
-                  value={label.value}
-                  colourCode={label.colourCode}
-                />
+                  className="inline-flex h-6 max-w-[120px] items-center truncate rounded-full border-2 px-2 text-[10px] font-medium leading-none text-neutral-600 dark:text-dark-1000"
+                  style={{
+                    backgroundColor: `${label.colourCode}25`,
+                    borderColor: `${label.colourCode}30`,
+                  }}
+                >
+                  {label.value}
+                </span>
               ))}
-              <Badge value={t`Add label`} iconLeft={<HiMiniPlus size={14} />} />
             </div>
           ) : (
-            <div className={`flex h-full w-full items-center rounded-[5px] border-[1px] border-light-50 pl-2 text-left text-sm text-neutral-900 dark:border-dark-50 dark:text-dark-1000 ${disabled ? "cursor-not-allowed opacity-60" : "hover:border-light-300 hover:bg-light-200 dark:hover:border-dark-200 dark:hover:bg-dark-100"}`}>
-              <HiMiniPlus size={22} className="pr-2" />
-              {t`Add label`}
-            </div>
+            <span className={`inline-flex h-6 items-center cursor-pointer rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 hover:bg-light-400 dark:bg-dark-300 dark:text-dark-800 dark:hover:bg-dark-400 ${disabled ? "cursor-not-allowed opacity-60" : ""}`}>
+              {t`Labels`}
+            </span>
           )}
         </CheckboxDropdown>
       )}

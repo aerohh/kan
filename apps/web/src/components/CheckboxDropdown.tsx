@@ -33,6 +33,7 @@ interface CheckboxDropdownProps {
   handleReset?: () => void;
   asChild?: boolean;
   disabled?: boolean;
+  className?: string;
 }
 
 export default function CheckboxDropdown({
@@ -48,6 +49,7 @@ export default function CheckboxDropdown({
   handleReset,
   asChild = true,
   disabled = false,
+  className,
 }: CheckboxDropdownProps) {
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
@@ -131,13 +133,13 @@ export default function CheckboxDropdown({
   return (
     <Menu
       as="div"
-      className="relative flex w-full flex-wrap items-center text-left"
+      className={className ?? "relative flex w-full flex-wrap items-center text-left"}
     >
       <>
         <Menu.Button
           as={asChild ? "div" : undefined}
           disabled={disabled}
-          className="h-full w-full cursor-pointer focus-visible:outline-none disabled:cursor-not-allowed"
+          className={className ? "cursor-pointer focus-visible:outline-none disabled:cursor-not-allowed" : "h-full w-full cursor-pointer focus-visible:outline-none disabled:cursor-not-allowed"}
         >
           {children}
         </Menu.Button>

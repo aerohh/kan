@@ -37,6 +37,7 @@ export interface SheetViewProps {
   boardPublicId: string;
   isTemplate: boolean;
   onContextMenu: (e: React.MouseEvent, cardPublicId: string) => void;
+  onOpenCard?: (cardPublicId: string) => void;
   boardLabels: { publicId: string; name: string; colourCode: string | null }[];
   workspaceMembers: {
     publicId: string;

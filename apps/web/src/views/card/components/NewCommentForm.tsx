@@ -60,14 +60,16 @@ const NewCommentForm = ({
       onSubmit={handleSubmit(onSubmit)}
       className="flex w-full max-w-[800px] flex-col rounded-xl border border-light-600 bg-light-100 p-4 text-light-900 focus-visible:outline-none dark:border-dark-400 dark:bg-dark-100 dark:text-dark-1000 sm:text-sm sm:leading-6"
     >
-      <Editor
-        content={watch("comment")}
-        onChange={(value) => setValue("comment", value)}
-        workspaceMembers={workspaceMembers}
-        enableYouTubeEmbed={false}
-        placeholder={t`Add comment... (type '/' to open commands or '@' to mention)`}
-        disableHeadings={true}
-      />
+      <div className="min-h-[80px] [&_.tiptap]:min-h-[60px]">
+        <Editor
+          content={watch("comment")}
+          onChange={(value) => setValue("comment", value)}
+          workspaceMembers={workspaceMembers}
+          enableYouTubeEmbed={false}
+          placeholder={t`Add comment... (type '/' to open commands or '@' to mention)`}
+          disableHeadings={true}
+        />
+      </div>
       <div className="flex justify-end">
         <button
           type="submit"

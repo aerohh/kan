@@ -94,6 +94,21 @@ Mutations are defined directly in `SheetView` using tRPC hooks. After mutations 
 
 `CheckboxDropdown` renders its root `div` with `w-full`, which prevents centering via parent `flex justify-center` alone. To center it within a table cell, wrap it in a `div` with `w-auto` to override the full-width behavior, then use `flex justify-center` on an outer wrapper.
 
+#### CheckboxDropdown Inline Usage
+
+`CheckboxDropdown` accepts an optional `className` prop to override the default `relative flex w-full flex-wrap items-center text-left`. For inline/horizontal layouts (e.g., selectors in a row), pass `className="relative inline-flex items-center text-left"` to prevent full-width expansion. When `className` is provided, the `Menu.Button` also drops `h-full w-full` so the trigger sizes to its content.
+
+### Card Detail Page Layout
+
+The card detail page (`apps/web/src/views/card/index.tsx`) composes two main areas via the `Dashboard` component's `rightPanel` prop:
+
+- **Main content** (`CardPage` default export): Title → inline selectors (List, Labels, Members, Due date) → Editor → Checklists → Attachments
+- **Right sidebar** (`CardActivityPanel` named export): Activity log → Comments
+
+Layout is wired in two places:
+- Full page: `pages/cards/[cardId]/index.tsx` passes `<CardActivityPanel />` to `getDashboardLayout(page, rightPanel, true)`
+- Slide-over: `components/CardSlideOver.tsx` renders `<CardPage>` and `<CardActivityPanel>` side-by-side in a flex row
+
 ### Client-Side Card Reordering
 
 When implementing visual-only card reordering (e.g., grouping), use `getGroupedCards()` to sort cards by label before rendering. **Important**: card drag-and-drop must be disabled (`isDragDisabled={true}`) when the visual order differs from the DB `index` order, because the optimistic update logic relies on matching array position to DB index.

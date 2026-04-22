@@ -1,7 +1,5 @@
 import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
-import { HiMiniPlus } from "react-icons/hi2";
-
 import Avatar from "~/components/Avatar";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
 import { useModal } from "~/providers/modal";
@@ -115,27 +113,27 @@ export default function MemberSelector({
           createNewItemLabel={t`Invite member`}
           disabled={disabled}
           asChild
+          className="relative inline-flex items-center text-left"
         >
-          <div className={`flex h-full w-full items-center rounded-[5px] border-[1px] border-light-50 py-1 pl-2 text-left text-xs text-neutral-900 dark:border-dark-50 dark:text-dark-1000 ${disabled ? "cursor-not-allowed opacity-60" : "hover:border-light-300 hover:bg-light-200 dark:hover:border-dark-200 dark:hover:bg-dark-100"}`}>
-            {selectedMembers.length ? (
-              <div className="isolate flex justify-end -space-x-1 overflow-hidden">
+          {selectedMembers.length ? (
+            <div className="flex h-6 items-center">
+              <div className="isolate flex -space-x-1.5 overflow-hidden">
                 {selectedMembers.map(({ value, imageUrl }) => (
                   <Avatar
                     key={value}
-                    size="sm"
+                    size="xs"
                     name={value}
                     imageUrl={imageUrl}
                     email={value}
                   />
                 ))}
               </div>
-            ) : (
-              <>
-                <HiMiniPlus size={22} className="pr-2" />
-                {t`Add member`}
-              </>
-            )}
-          </div>
+            </div>
+          ) : (
+            <span className={`inline-flex h-6 items-center cursor-pointer rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 hover:bg-light-400 dark:bg-dark-300 dark:text-dark-800 dark:hover:bg-dark-400 ${disabled ? "cursor-not-allowed opacity-60" : ""}`}>
+              {t`Members`}
+            </span>
+          )}
         </CheckboxDropdown>
       )}
     </>

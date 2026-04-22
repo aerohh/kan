@@ -1,4 +1,4 @@
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
 
 import Button from "~/components/Button";
@@ -54,7 +54,13 @@ export function DeleteCardConfirmation({
       });
     },
     onSuccess: () => {
-      router.push(`/boards/${boardPublicId}`);
+      const query = router.query;
+      if (query.card) {
+        const { card: _, ...rest } = query;
+        void router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+      } else {
+        void router.push(`/boards/${boardPublicId}`);
+      }
     },
     onSettled: async () => {
       closeModal();

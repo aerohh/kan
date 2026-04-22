@@ -307,9 +307,10 @@ function GroupSectionHeader({
 export default function SheetView({
   cards,
   groups,
-  boardPublicId,
-  isTemplate,
+  _boardPublicId,
+  _isTemplate,
   onContextMenu,
+  onOpenCard,
   boardLabels,
   workspaceMembers,
   allLists,
@@ -348,10 +349,15 @@ export default function SheetView({
   };
 
   const handleTitleClick = (cardPublicId: string) => {
-    const path = isTemplate
-      ? `/templates/${boardPublicId}/cards/${cardPublicId}`
-      : `/cards/${cardPublicId}`;
-    void router.push(path);
+    if (onOpenCard) {
+      onOpenCard(cardPublicId);
+    } else {
+      void router.push(
+        { pathname: router.pathname, query: { ...router.query, card: cardPublicId } },
+        undefined,
+        { shallow: true },
+      );
+    }
   };
 
   const invalidateBoard = async () => {

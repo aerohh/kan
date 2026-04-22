@@ -554,19 +554,20 @@ const ActivityList = ({
                 <div className="absolute bottom-[-14px] left-1/2 top-[30px] w-0.5 -translate-x-1/2 bg-light-600 dark:bg-dark-600" />
               )}
             </div>
-            <p className="text-sm">
-              <span className="font-medium dark:text-dark-1000">{`${getUserDisplayName(activity.user)} `}</span>
-              <span className="space-x-1 text-light-900 dark:text-dark-800">
-                {activityText}
-              </span>
-              <span className="mx-1 text-light-900 dark:text-dark-800">·</span>
-              <span className="space-x-1 text-light-900 dark:text-dark-800">
+            <div className="text-sm">
+              <div>
+                <span className="font-medium dark:text-dark-1000">{`${getUserDisplayName(activity.user)} `}</span>
+                <span className="space-x-1 text-light-900 dark:text-dark-800">
+                  {activityText}
+                </span>
+              </div>
+              <div className="mt-0.5 text-[11px] text-light-900 dark:text-dark-800">
                 {formatDistanceToNow(new Date(activity.createdAt), {
                   addSuffix: true,
                   locale: dateLocale,
                 })}
-              </span>
-            </p>
+              </div>
+            </div>
           </div>
         );
       })}

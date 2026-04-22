@@ -1,5 +1,4 @@
 import type { DropResult } from "react-beautiful-dnd";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { env } from "next-runtime-env";
@@ -40,6 +39,7 @@ import { formatToArray } from "~/utils/helpers";
 import { DeleteCardConfirmation } from "~/views/card/components/DeleteCardConfirmation";
 import BoardDropdown from "./components/BoardDropdown";
 import Card from "./components/Card";
+import CardSlideOver from "~/components/CardSlideOver";
 import { CardContextDueDateModal } from "./components/CardContextDueDateModal";
 import { CardContextDuplicateModal } from "./components/CardContextDuplicateModal";
 import { CardContextLabelsModal } from "./components/CardContextLabelsModal";
@@ -308,6 +308,30 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
   } | null>(null);
 
   const viewMode = (router.query.view as string) || "kanban";
+
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(
+    (router.query.card as string) || null,
+  );
+
+  useEffect(() => {
+    const urlCardId = (router.query.card as string) || null;
+    setSelectedCardId(urlCardId);
+  }, [router.query.card]);
+
+  const handleOpenCard = (cardPublicId: string) => {
+    setSelectedCardId(cardPublicId);
+    void router.push(
+      { pathname: router.pathname, query: { ...router.query, card: cardPublicId } },
+      undefined,
+      { shallow: true },
+    );
+  };
+
+  const handleCloseCard = () => {
+    setSelectedCardId(null);
+    const { card: _, ...rest } = router.query;
+    void router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+  };
 
   const { ref: scrollRef, onMouseDown } = useDragToScroll({
     enabled: viewMode === "kanban",
@@ -996,6 +1020,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                       groups={sheetGroups}
                       boardPublicId={boardId ?? ""}
                       isTemplate={!!isTemplate}
+                      onOpenCard={handleOpenCard}
                       boardLabels={boardData.labels}
                       workspaceMembers={boardData.workspace.members.filter(
                         (member) => member.user !== null,
@@ -1109,14 +1134,15 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                           isDragDisabled={!canEditCard || !!groupMode || !!sortMode}
                                         >
                                         {(provided) => (
-                                          <Link
-                                            onClick={(e) => {
+                                          <div
+                                            onClick={() => {
                                               if (
-                                                card.publicId.startsWith(
+                                                !card.publicId.startsWith(
                                                   "PLACEHOLDER",
                                                 )
-                                              )
-                                                e.preventDefault();
+                                              ) {
+                                                handleOpenCard(card.publicId);
+                                              }
                                             }}
                                             onContextMenu={(e) => {
                                               if (
@@ -1135,11 +1161,6 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                               });
                                             }}
                                             key={card.publicId}
-                                            href={
-                                              isTemplate
-                                                ? `/templates/${boardId}/cards/${card.publicId}`
-                                                : `/cards/${card.publicId}`
-                                            }
                                             className={`mb-2 flex !cursor-pointer flex-col ${
                                               card.publicId.startsWith(
                                                 "PLACEHOLDER",
@@ -1171,7 +1192,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                               listColourCode={isListGroupMode ? list.colourCode : undefined}
                                               listName={isListGroupMode ? cardListNameMap.get(card.publicId) : undefined}
                                             />
-                                          </Link>
+                                          </div>
                                         )}
                                       </Draggable>
                                     ))}
@@ -1203,6 +1224,12 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
           />
         )}
         {renderModalContent()}
+        <CardSlideOver
+          cardPublicId={selectedCardId ?? ""}
+          isTemplate={isTemplate}
+          isOpen={!!selectedCardId}
+          onClose={handleCloseCard}
+        />
       </div>
     </>
   );
