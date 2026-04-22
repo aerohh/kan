@@ -181,29 +181,33 @@ export default function SheetView({
                     className="border-r border-light-400 px-4 py-2.5 text-center dark:border-dark-300"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <CheckboxDropdown
-                      items={allLists.map((list) => ({
-                        key: list.publicId,
-                        value: list.name,
-                        selected: list.publicId === card.listPublicId,
-                      }))}
-                      handleSelect={(_, item) => {
-                        updateCard.mutate({
-                          cardPublicId: card.publicId,
-                          listPublicId: item.key,
-                          index: 0,
-                        });
-                      }}
-                      disabled={!canEditCard}
-                    >
-                      <span className="inline-block cursor-pointer rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 hover:bg-light-400 dark:bg-dark-300 dark:text-dark-800 dark:hover:bg-dark-400">
-                        {card.listName}
-                      </span>
-                    </CheckboxDropdown>
+                    <div className="flex w-full justify-center">
+                      <div className="w-auto">
+                        <CheckboxDropdown
+                          items={allLists.map((list) => ({
+                            key: list.publicId,
+                            value: list.name,
+                            selected: list.publicId === card.listPublicId,
+                          }))}
+                          handleSelect={(_, item) => {
+                            updateCard.mutate({
+                              cardPublicId: card.publicId,
+                              listPublicId: item.key,
+                              index: 0,
+                            });
+                          }}
+                          disabled={!canEditCard}
+                        >
+                          <span className="inline-block cursor-pointer rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 hover:bg-light-400 dark:bg-dark-300 dark:text-dark-800 dark:hover:bg-dark-400">
+                            {card.listName}
+                          </span>
+                        </CheckboxDropdown>
+                      </div>
+                    </div>
                   </td>
 
                   <td
-                    className="border-r border-light-400 px-4 py-2.5 text-center dark:border-dark-300"
+                    className="border-r border-light-400 px-4 py-2.5 dark:border-dark-300"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <CheckboxDropdown
@@ -225,7 +229,7 @@ export default function SheetView({
                       }}
                       disabled={!canEditCard}
                     >
-                      <div className="flex cursor-pointer flex-wrap justify-center gap-1">
+                      <div className="flex cursor-pointer flex-wrap gap-1">
                         {card.labels.length > 0 ? (
                           card.labels.map((label, i) => (
                             <Badge
