@@ -5,7 +5,7 @@ import { t } from "@lingui/core/macro";
 import { env } from "next-runtime-env";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { HiBolt } from "react-icons/hi2";
+import { HiBolt, HiDocumentText } from "react-icons/hi2";
 import {
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarLeftExpand,
@@ -92,7 +92,8 @@ export default function SideNavigation({
   const navigation: {
     name: string;
     href: string;
-    icon: object;
+    icon?: object;
+    iconComponent?: React.ReactNode;
     keyboardShortcut: KeyboardShortcut;
   }[] = [
     {
@@ -105,6 +106,20 @@ export default function SideNavigation({
         action: () => router.push("/boards"),
         group: "NAVIGATION",
         description: t`Go to boards`,
+      },
+    },
+    {
+      name: t`Docs`,
+      href: "/docs",
+      iconComponent: (
+        <HiDocumentText className="h-[18px] w-[18px] text-light-900 dark:text-dark-900" />
+      ),
+      keyboardShortcut: {
+        type: "SEQUENCE",
+        strokes: [{ key: "G" }, { key: "D" }],
+        action: () => router.push("/docs"),
+        group: "NAVIGATION",
+        description: t`Go to docs`,
       },
     },
     {
@@ -197,6 +212,7 @@ export default function SideNavigation({
                   current={pathname.includes(item.href)}
                   name={item.name}
                   json={item.icon}
+                  iconComponent={item.iconComponent}
                   isCollapsed={isCollapsed}
                   onCloseSideNav={onCloseSideNav}
                   keyboardShortcut={item.keyboardShortcut}
