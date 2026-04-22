@@ -51,6 +51,7 @@ function CardRow({
   addOrRemoveMember,
   handleUpdateDueDate,
   groupColourCode,
+  rowIndex,
 }: {
   card: SheetCard;
   canEditCard: boolean;
@@ -65,6 +66,7 @@ function CardRow({
   addOrRemoveMember: ReturnType<typeof api.card.addOrRemoveMember>["mutate"];
   handleUpdateDueDate: (id: string, date: Date | null) => void;
   groupColourCode?: string | null;
+  rowIndex: number;
 }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -79,7 +81,9 @@ function CardRow({
 
   const rowClassName = groupColourCode
     ? "border-b transition-colors last:border-b-0"
-    : "border-b border-light-400 bg-light-50 transition-colors last:border-b-0 hover:bg-light-200/70 dark:border-dark-300 dark:bg-dark-50 dark:hover:bg-dark-200/70";
+    : rowIndex % 2 === 0
+      ? "border-b border-light-600 bg-light-50 transition-colors last:border-b-0 hover:bg-light-200/70 dark:border-dark-400 dark:bg-dark-50 dark:hover:bg-dark-200/70"
+      : "border-b border-light-600 bg-light-100 transition-colors last:border-b-0 hover:bg-light-200/70 dark:border-dark-400 dark:bg-dark-100 dark:hover:bg-dark-200/70";
 
   const cellBorderStyle = groupColourCode
     ? getGroupBorderStyle(groupColourCode, isDark)
@@ -87,7 +91,7 @@ function CardRow({
 
   const tdBorderClass = groupColourCode
     ? "border-r"
-    : "border-r border-light-400 dark:border-dark-300";
+    : "border-r border-light-600 dark:border-dark-400";
 
   return (
     <tr
@@ -106,7 +110,8 @@ function CardRow({
         title={card.title}
         canEditCard={canEditCard}
         onNavigate={onNavigate}
-        groupBorderStyle={cellBorderStyle}
+        borderClassName={tdBorderClass}
+        borderStyle={cellBorderStyle}
       />
 
       <td
@@ -249,12 +254,14 @@ function CardRow({
         canEditCard={canEditCard}
         weekStartDay={weekStartDay}
         onUpdateDueDate={handleUpdateDueDate}
-        groupBorderStyle={cellBorderStyle}
+        borderClassName={tdBorderClass}
+        borderStyle={cellBorderStyle}
       />
 
       <SheetProgressCell
         checklists={card.checklists}
-        groupBorderStyle={cellBorderStyle}
+        borderClassName={undefined}
+        borderStyle={cellBorderStyle}
       />
     </tr>
   );
@@ -430,18 +437,19 @@ export default function SheetView({
               ? sortedGroups.map((group) => (
                   <Fragment key={group.name}>
                     <GroupSectionHeader group={group} isDark={isDark} />
-                    {group.cards.map((card) => (
+                    {group.cards.map((card, index) => (
                       <CardRow
                         key={card.publicId}
                         card={card}
                         groupColourCode={group.colourCode}
+                        rowIndex={index}
                         {...rowProps}
                       />
                     ))}
                   </Fragment>
                 ))
-              : sorted.map((card) => (
-                  <CardRow key={card.publicId} card={card} {...rowProps} />
+              : sorted.map((card, index) => (
+                  <CardRow key={card.publicId} card={card} rowIndex={index} {...rowProps} />
                 ))}
           </tbody>
           <tfoot>
