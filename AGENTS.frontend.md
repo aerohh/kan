@@ -109,6 +109,19 @@ Layout is wired in two places:
 - Full page: `pages/cards/[cardId]/index.tsx` passes `<CardActivityPanel />` to `getDashboardLayout(page, rightPanel, true)`
 - Slide-over: `components/CardSlideOver.tsx` renders `<CardPage>` and `<CardActivityPanel>` side-by-side in a flex row
 
+### CardSlideOver Modes
+
+`components/CardSlideOver.tsx` supports two modes:
+
+- **View mode** (default): Shows `<CardPage>` + `<CardActivityPanel>` side-by-side
+- **Add mode** (`mode="add"`): Shows only `<NewCardPage>` (no activity panel). Used for creating new cards from the board view
+
+When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/components/NewCardPage.tsx`) — a self-contained component with its own form state, board data fetching, card creation mutation, and label modals.
+
+### New Card Flow
+
+Creating cards from the board uses the add-mode `CardSlideOver` instead of a modal. The board view (`views/board/index.tsx`) manages `newCardSlideOver` state (isOpen, listPublicId, pre-selections) and renders `<CardSlideOver mode="add" ... />`. The `List` component triggers this via its `onOpenNewCard` callback prop.
+
 ### Client-Side Card Reordering
 
 When implementing visual-only card reordering (e.g., grouping), use `getGroupedCards()` to sort cards by label before rendering. **Important**: card drag-and-drop must be disabled (`isDragDisabled={true}`) when the visual order differs from the DB `index` order, because the optimistic update logic relies on matching array position to DB index.
