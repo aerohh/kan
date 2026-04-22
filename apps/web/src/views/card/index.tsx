@@ -391,7 +391,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
           ? "w-full"
           : "scrollbar-thumb-rounded-[4px] scrollbar-track-rounded-[4px] w-full flex-1 overflow-y-auto scrollbar scrollbar-track-light-200 scrollbar-thumb-light-400 hover:scrollbar-thumb-light-400 dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-300 dark:hover:scrollbar-thumb-dark-300"
         }>
-          <div className="p-auto mx-auto flex h-full w-full max-w-[800px] flex-col">
+          <div className={`p-auto mx-auto flex h-full ${isSlideOver ? "w-[540px]" : "w-[800px]"} flex-col`}>
             <div className="p-6 md:p-8">
               <div className="mb-8 md:mt-4">
                 {!card && isLoading && (
@@ -429,7 +429,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
               </div>
               {card && (
                 <>
-                  <div className="mb-0 flex items-center gap-2">
+                  <div className="mb-0 flex flex-wrap items-center gap-2">
                     <ListSelector
                       cardPublicId={cardId ?? ""}
                       lists={formattedLists}
@@ -458,7 +458,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                     />
                   </div>
                   <div className="my-6 h-[1px] bg-light-500 dark:bg-dark-500" />
-                  <div className="mb-10 flex w-full max-w-2xl flex-col justify-between">
+                  <div className="mb-10 flex w-full flex-col justify-between">
                     <form
                       onSubmit={handleSubmit(onSubmit)}
                       className="w-full space-y-6"

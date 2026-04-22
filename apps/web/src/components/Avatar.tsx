@@ -50,7 +50,7 @@ const Avatar = ({
           )}
         >
           {icon ? (
-            <span className="text-[12px] text-white">{icon}</span>
+            <span className="text-[16px] text-white">{icon}</span>
           ) : (
             <span
               className={twMerge(

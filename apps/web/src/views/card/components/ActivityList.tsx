@@ -539,7 +539,7 @@ const ActivityList = ({
           >
             <div className="relative">
               <Avatar
-                size="sm"
+                size="md"
                 name={activity.user?.name ?? ""}
                 email={activity.user?.email ?? ""}
                 imageUrl={getAvatarUrl(activity.user?.image ?? null) || undefined}
@@ -551,7 +551,7 @@ const ActivityList = ({
                 isLoading={isLoading}
               />
               {index !== allActivities.length - 1 && (
-                <div className="absolute bottom-[-14px] left-1/2 top-[30px] w-0.5 -translate-x-1/2 bg-light-600 dark:bg-dark-600" />
+                <div className="absolute bottom-[-22px] left-1/2 top-[36px] w-0.5 -translate-x-1/2 bg-light-600 dark:bg-dark-600" />
               )}
             </div>
             <div className="text-sm">
@@ -561,7 +561,7 @@ const ActivityList = ({
                   {activityText}
                 </span>
               </div>
-              <div className="mt-0.5 text-[11px] text-light-900 dark:text-dark-800">
+              <div className="mt-0.5 scale-75 origin-left text-light-900 dark:text-dark-800">
                 {formatDistanceToNow(new Date(activity.createdAt), {
                   addSuffix: true,
                   locale: dateLocale,

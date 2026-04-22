@@ -102,7 +102,7 @@ export default function LabelSelector({
           className="relative inline-flex items-center text-left"
         >
           {selectedLabels.length ? (
-            <div className="flex h-6 items-center gap-1">
+            <div className="flex h-auto flex-wrap items-center gap-1">
               {selectedLabels.map((label) => (
                 <span
                   key={label.key}

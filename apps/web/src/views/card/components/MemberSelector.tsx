@@ -116,8 +116,8 @@ export default function MemberSelector({
           className="relative inline-flex items-center text-left"
         >
           {selectedMembers.length ? (
-            <div className="flex h-6 items-center">
-              <div className="isolate flex -space-x-1.5 overflow-hidden">
+            <div className="flex h-auto flex-wrap items-center gap-0.5 overflow-hidden">
+              <div className="isolate flex flex-wrap -space-x-1.5 overflow-hidden">
                 {selectedMembers.map(({ value, imageUrl }) => (
                   <Avatar
                     key={value}
