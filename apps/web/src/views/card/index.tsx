@@ -85,6 +85,14 @@ export function CardActivityPanel({ isTemplate, cardPublicId: cardPublicIdOverri
         <h2 className="text-md pb-4 font-medium text-light-1000 dark:text-dark-1000">
           {t`Activity`}
         </h2>
+        {!isTemplate && (
+          <div className="mb-6">
+            <NewCommentForm
+              cardPublicId={cardId ?? ""}
+              workspaceMembers={editorWorkspaceMembers}
+            />
+          </div>
+        )}
         <div>
           <ActivityList
             cardPublicId={cardId ?? ""}
@@ -92,14 +100,6 @@ export function CardActivityPanel({ isTemplate, cardPublicId: cardPublicIdOverri
             isAdmin={workspace.role === "admin"}
           />
         </div>
-        {!isTemplate && (
-          <div className="mt-6">
-            <NewCommentForm
-              cardPublicId={cardId ?? ""}
-              workspaceMembers={editorWorkspaceMembers}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

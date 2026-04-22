@@ -491,7 +491,7 @@ const ActivityList = ({
 
   return (
     <div className="flex flex-col space-y-4 pt-4">
-      {allActivities.map((activity, index) => {
+      {[...allActivities].reverse().map((activity, index, reversedArr) => {
         const activityText = getActivityText({
           type: activity.type,
           toTitle: activity.toTitle,
@@ -550,7 +550,7 @@ const ActivityList = ({
                 )}
                 isLoading={isLoading}
               />
-              {index !== allActivities.length - 1 && (
+              {index !== reversedArr.length - 1 && (
                 <div className="absolute bottom-[-22px] left-1/2 top-[36px] w-0.5 -translate-x-1/2 bg-light-600 dark:bg-dark-600" />
               )}
             </div>
