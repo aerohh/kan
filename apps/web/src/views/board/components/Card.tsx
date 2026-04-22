@@ -104,7 +104,7 @@ const Card = ({
       hasDueDate ||
       hasAttachments ? (
         <div className="mt-2 flex flex-col justify-end">
-          <div className="space-x-[-14px]">
+          <div className="space-x-[-4px]">
             {labels.map((label, index) => (
               <Badge
                 key={`${label.name}-${index}`}
