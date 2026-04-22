@@ -7,6 +7,7 @@ import { HiXMark } from "react-icons/hi2";
 import { IoChevronForwardSharp } from "react-icons/io5";
 
 import { authClient } from "@kan/auth/client";
+import type { RouterInputs } from "@kan/api";
 
 import Avatar from "~/components/Avatar";
 import Editor from "~/components/Editor";
@@ -37,6 +38,7 @@ import { DueDateSelector } from "./components/DueDateSelector";
 import LabelSelector from "./components/LabelSelector";
 import ListSelector from "./components/ListSelector";
 import MemberSelector from "./components/MemberSelector";
+import NewCardPage from "./components/NewCardPage";
 import { NewChecklistForm } from "./components/NewChecklistForm";
 import NewCommentForm from "./components/NewCommentForm";
 
@@ -45,6 +47,8 @@ interface FormValues {
   title: string;
   description: string;
 }
+
+type BoardQueryParams = RouterInputs["board"]["byId"];
 
 export function CardActivityPanel({ isTemplate, cardPublicId: cardPublicIdOverride }: { 
   isTemplate?: boolean; 
@@ -105,11 +109,18 @@ export function CardActivityPanel({ isTemplate, cardPublicId: cardPublicIdOverri
   );
 }
 
-export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverride, isSlideOver, onClose }: {
+export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverride, isSlideOver, onClose, mode, boardPublicId, listPublicId, queryParams, preSelectedLabelId, preSelectedMemberId, preSelectedDueDate }: {
   isTemplate?: boolean;
   cardPublicId?: string;
   isSlideOver?: boolean;
   onClose?: () => void;
+  mode?: "view" | "add";
+  boardPublicId?: string;
+  listPublicId?: string;
+  queryParams?: BoardQueryParams;
+  preSelectedLabelId?: string;
+  preSelectedMemberId?: string;
+  preSelectedDueDate?: Date;
 }) {
   const router = useRouter();
   const utils = api.useUtils();
@@ -138,7 +149,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     { enabled: !!cardId && cardId.length >= 12 },
   );
 
-  // Redirect to 404 if card doesn't exist
   useEffect(() => {
     if (isSlideOver) return;
     if (router.isReady && cardId && !isLoading) {
@@ -272,7 +282,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     });
   };
 
-  // this adds the new created label to selected labels
   useEffect(() => {
     const newLabelId = modalStates.NEW_LABEL_CREATED;
     if (newLabelId && cardId) {
@@ -290,7 +299,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     }
   }, [modalStates.NEW_LABEL_CREATED, card, cardId]);
 
-  // Open the new item form after creating a new checklist
   useEffect(() => {
     if (!card) return;
     const state = getModalState("ADD_CHECKLIST");
@@ -301,7 +309,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     }
   }, [card, getModalState, clearModalState]);
 
-  // Auto-resize title textarea
   useEffect(() => {
     const titleTextarea = document.getElementById(
       "title",
@@ -311,6 +318,21 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
       titleTextarea.style.height = `${titleTextarea.scrollHeight}px`;
     }
   }, [card]);
+
+  if (mode === "add") {
+    return (
+      <NewCardPage
+        isTemplate={isTemplate}
+        onClose={onClose}
+        boardPublicId={boardPublicId}
+        listPublicId={listPublicId}
+        queryParams={queryParams}
+        preSelectedLabelId={preSelectedLabelId}
+        preSelectedMemberId={preSelectedMemberId}
+        preSelectedDueDate={preSelectedDueDate}
+      />
+    );
+  }
 
   if (!cardId) return <></>;
 

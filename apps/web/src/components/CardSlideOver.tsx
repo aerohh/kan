@@ -1,14 +1,24 @@
 import { Dialog, Transition } from "@headlessui/react";
+import type { RouterInputs } from "@kan/api";
 import { Fragment } from "react";
 
 import { ModalProvider } from "~/providers/modal";
 import CardPage, { CardActivityPanel } from "~/views/card";
 
+type BoardQueryParams = RouterInputs["board"]["byId"];
+
 interface CardSlideOverProps {
-  cardPublicId: string;
+  cardPublicId?: string;
   isTemplate?: boolean;
   isOpen: boolean;
   onClose: () => void;
+  mode?: "view" | "add";
+  boardPublicId?: string;
+  listPublicId?: string;
+  queryParams?: BoardQueryParams;
+  preSelectedLabelId?: string;
+  preSelectedMemberId?: string;
+  preSelectedDueDate?: Date;
 }
 
 export default function CardSlideOver({
@@ -16,7 +26,16 @@ export default function CardSlideOver({
   isTemplate,
   isOpen,
   onClose,
+  mode = "view",
+  boardPublicId,
+  listPublicId,
+  queryParams,
+  preSelectedLabelId,
+  preSelectedMemberId,
+  preSelectedDueDate,
 }: CardSlideOverProps) {
+  const isAddMode = mode === "add";
+
   return (
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog
@@ -49,7 +68,7 @@ export default function CardSlideOver({
                 leaveTo="translate-x-full"
               >
                 <Dialog.Panel className="pointer-events-auto flex h-full w-full max-w-[1160px] flex-col border-l border-light-300 bg-light-50 shadow-2xl dark:border-dark-300 dark:bg-dark-50">
-                  {isOpen && cardPublicId ? (
+                  {isOpen && (isAddMode || cardPublicId) ? (
                     <ModalProvider>
                       <div className="flex min-h-0 flex-1 overflow-hidden">
                         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -58,12 +77,21 @@ export default function CardSlideOver({
                             isTemplate={isTemplate}
                             isSlideOver
                             onClose={onClose}
+                            mode={mode}
+                            boardPublicId={boardPublicId}
+                            listPublicId={listPublicId}
+                            queryParams={queryParams}
+                            preSelectedLabelId={preSelectedLabelId}
+                            preSelectedMemberId={preSelectedMemberId}
+                            preSelectedDueDate={preSelectedDueDate}
                           />
                         </div>
-                        <CardActivityPanel
-                          cardPublicId={cardPublicId}
-                          isTemplate={isTemplate}
-                        />
+                        {!isAddMode && cardPublicId && (
+                          <CardActivityPanel
+                            cardPublicId={cardPublicId}
+                            isTemplate={isTemplate}
+                          />
+                        )}
                       </div>
                     </ModalProvider>
                   ) : null}

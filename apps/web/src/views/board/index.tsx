@@ -52,7 +52,6 @@ import Filters from "./components/Filters";
 import GroupButton from "./components/GroupButton";
 import List from "./components/List";
 import SortButton from "./components/SortButton";
-import { NewCardForm } from "./components/NewCardForm";
 import { NewListForm } from "./components/NewListForm";
 import { NewTemplateForm } from "./components/NewTemplateForm";
 import UpdateBoardSlugButton from "./components/UpdateBoardSlugButton";
@@ -295,11 +294,13 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     useState<PublicListId>("");
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  const [virtualListPreSelection, setVirtualListPreSelection] = useState<{
-    labelPublicId?: string;
-    memberPublicId?: string;
-    dueDate?: Date;
-  } | null>(null);
+  const [newCardSlideOver, setNewCardSlideOver] = useState<{
+    isOpen: boolean;
+    listPublicId: string;
+    preSelectedLabelId?: string;
+    preSelectedMemberId?: string;
+    preSelectedDueDate?: Date;
+  }>({ isOpen: false, listPublicId: "" });
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -559,7 +560,6 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     if (!boardData) return;
 
     const firstRealListId = boardData.lists[0]?.publicId ?? "";
-    setSelectedPublicListId(firstRealListId);
 
     const preSelection: {
       labelPublicId?: string;
@@ -587,10 +587,13 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
       }
     }
 
-    setVirtualListPreSelection(
-      Object.keys(preSelection).length > 0 ? preSelection : null,
-    );
-    openModal("NEW_CARD");
+    setNewCardSlideOver({
+      isOpen: true,
+      listPublicId: firstRealListId,
+      preSelectedLabelId: preSelection.labelPublicId,
+      preSelectedMemberId: preSelection.memberPublicId,
+      preSelectedDueDate: preSelection.dueDate,
+    });
   };
 
   const handleCardContextMenuAction = (action: CardContextMenuAction) => {
@@ -690,21 +693,6 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
           <DeleteListConfirmation
             listPublicId={selectedPublicListId}
             queryParams={queryParams}
-          />
-        </Modal>
-
-        <Modal
-          modalSize="md"
-          isVisible={isOpen && modalContentType === "NEW_CARD"}
-        >
-          <NewCardForm
-            isTemplate={!!isTemplate}
-            boardPublicId={boardId ?? ""}
-            listPublicId={selectedPublicListId}
-            queryParams={queryParams}
-            preSelectedLabelId={virtualListPreSelection?.labelPublicId}
-            preSelectedMemberId={virtualListPreSelection?.memberPublicId}
-            preSelectedDueDate={virtualListPreSelection?.dueDate}
           />
         </Modal>
 
@@ -1103,9 +1091,16 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                 key={listIndex}
                                 list={list}
                                 isVirtual={!!isListGroupMode}
-                                setSelectedPublicListId={(publicListId) =>
-                                  setSelectedPublicListId(publicListId)
+                                onOpenNewCard={(publicListId) =>
+                                  setNewCardSlideOver({
+                                    isOpen: true,
+                                    listPublicId: publicListId,
+                                  })
                                 }
+                                onDeleteList={(publicListId) => {
+                                  setSelectedPublicListId(publicListId);
+                                  openModal("DELETE_LIST");
+                                }}
                                 onVirtualAddCard={() =>
                                   handleVirtualAddCard(
                                     list.publicId,
@@ -1229,6 +1224,18 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
           isTemplate={isTemplate}
           isOpen={!!selectedCardId}
           onClose={handleCloseCard}
+        />
+        <CardSlideOver
+          mode="add"
+          isOpen={newCardSlideOver.isOpen}
+          onClose={() => setNewCardSlideOver({ isOpen: false, listPublicId: "" })}
+          isTemplate={isTemplate}
+          boardPublicId={boardId ?? ""}
+          listPublicId={newCardSlideOver.listPublicId}
+          queryParams={queryParams}
+          preSelectedLabelId={newCardSlideOver.preSelectedLabelId}
+          preSelectedMemberId={newCardSlideOver.preSelectedMemberId}
+          preSelectedDueDate={newCardSlideOver.preSelectedDueDate}
         />
       </div>
     </>

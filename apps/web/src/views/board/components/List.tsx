@@ -18,14 +18,14 @@ import { authClient } from "@kan/auth/client";
 import Dropdown from "~/components/Dropdown";
 import { Tooltip } from "~/components/Tooltip";
 import { usePermissions } from "~/hooks/usePermissions";
-import { useModal } from "~/providers/modal";
 import { api } from "~/utils/api";
 
 interface ListProps {
   children: ReactNode;
   index: number;
   list: List;
-  setSelectedPublicListId: (publicListId: PublicListId) => void;
+  onOpenNewCard: (publicListId: PublicListId) => void;
+  onDeleteList: (publicListId: PublicListId) => void;
   isVirtual?: boolean;
   onVirtualAddCard?: () => void;
   cardCount?: number;
@@ -51,7 +51,8 @@ export default function List({
   children,
   index,
   list,
-  setSelectedPublicListId,
+  onOpenNewCard,
+  onDeleteList,
   isVirtual = false,
   onVirtualAddCard,
   cardCount,
@@ -59,7 +60,6 @@ export default function List({
   sortDir = "asc",
 }: ListProps) {
   const router = useRouter();
-  const { openModal } = useModal();
   const { resolvedTheme } = useTheme();
   const { canCreateCard, canEditList, canDeleteList } = usePermissions();
   const { data: session } = authClient.useSession();
@@ -70,8 +70,7 @@ export default function List({
 
   const openNewCardForm = (publicListId: PublicListId) => {
     if (!canCreateCard) return;
-    openModal("NEW_CARD");
-    setSelectedPublicListId(publicListId);
+    onOpenNewCard(publicListId);
   };
 
   const updateList = api.list.update.useMutation();
@@ -96,8 +95,7 @@ export default function List({
   };
 
   const handleOpenDeleteListConfirmation = () => {
-    setSelectedPublicListId(list.publicId);
-    openModal("DELETE_LIST");
+    onDeleteList(list.publicId);
   };
 
   const toggleSortDirection = async () => {
