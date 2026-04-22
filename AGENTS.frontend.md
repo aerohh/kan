@@ -50,21 +50,49 @@ Instructions for working with the frontend (`apps/web/`).
 
 ## Board Toolbar
 
-The board toolbar is in `apps/web/src/views/board/index.tsx` (~line 628). Toolbar buttons from left to right:
+The board toolbar is in `apps/web/src/views/board/index.tsx` (~line 840). Toolbar buttons from left to right:
 
 | Component | File |
 |-----------|------|
 | Template badge | inline |
 | UpdateBoardSlugButton | `views/board/components/UpdateBoardSlugButton.tsx` |
 | VisibilityButton | `views/board/components/VisibilityButton.tsx` |
+| SortButton | `views/board/components/SortButton.tsx` |
 | Filters | `views/board/components/Filters.tsx` |
 | GroupButton | `views/board/components/GroupButton.tsx` |
+| ViewSwitchButton | `views/board/components/ViewSwitchButton.tsx` |
 | "New list" Button | inline |
 | BoardDropdown | `views/board/components/BoardDropdown.tsx` |
 
 ### URL Query Param Pattern for UI State
 
-Filter and grouping state is stored in URL query params (`?members=...&labels=...&group=tag`). This uses `next/router`'s `router.query` and `router.push()` to read/write state. Benefits: state survives page refreshes and is shareable via URL.
+Filter, grouping, and view state is stored in URL query params (`?members=...&labels=...&group=tag&sort=alphabet&view=sheet`). This uses `next/router`'s `router.query` and `router.push()` to read/write state. Benefits: state survives page refreshes and is shareable via URL.
+
+### Board View Modes
+
+The board supports two view modes, toggled via `ViewSwitchButton` in the toolbar:
+
+- **Kanban** (default, no URL param): Horizontal scroll with `DragDropContext`, `List`, and `Card` components
+- **Sheet** (`?view=sheet`): Table view via `SheetView` component (`views/board/components/SheetView.tsx`)
+
+The `viewMode` variable (`(router.query.view as string) || "kanban"`) controls which renders. Key differences:
+- Kanban uses `useDragToScroll` (horizontal) and `useScrollRestore`; sheet disables both
+- Sheet flattens all cards from all lists into a single array with `listName`/`listPublicId` added to each card
+- Sheet reuses `getSortedCards()` and `getGroupedCards()` for sorting/grouping on the flat array (requires type assertion since functions expect `CardData[]`)
+
+#### Sheet View Inline Editing
+
+Sheet cells use inline editors instead of navigating to card detail:
+- **Labels, Members, List**: `CheckboxDropdown` wraps cell content as trigger. Calls `api.card.addOrRemoveLabel`, `api.card.addOrRemoveMember`, `api.card.update` respectively
+- **Due Date**: `DateSelector` in an absolute-positioned popover with a `fixed` overlay for click-outside dismissal
+- **Title**: Click navigates to card detail (only cell that navigates)
+- **Progress**: Read-only (derived from checklists)
+
+Mutations are defined directly in `SheetView` using tRPC hooks. After mutations settle, `utils.board.byId.invalidate()` refetches board data.
+
+#### CheckboxDropdown Centering Gotcha
+
+`CheckboxDropdown` renders its root `div` with `w-full`, which prevents centering via parent `flex justify-center` alone. To center it within a table cell, wrap it in a `div` with `w-auto` to override the full-width behavior, then use `flex justify-center` on an outer wrapper.
 
 ### Client-Side Card Reordering
 
