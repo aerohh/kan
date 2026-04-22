@@ -12,9 +12,10 @@ import { api } from "~/utils/api";
 
 import SheetDueDateCell from "./sheet-view/SheetDueDateCell";
 import SheetProgressCell from "./sheet-view/SheetProgressCell";
+import SheetTitleCell from "./sheet-view/SheetTitleCell";
 import SheetViewHeader from "./sheet-view/SheetViewHeader";
 import { sortCards } from "./sheet-view/utils";
-import type { SheetCard, SheetViewProps, SortColumn, SortDir } from "./sheet-view/types";
+import type { SheetViewProps, SortColumn, SortDir } from "./sheet-view/types";
 
 export type { SheetCard } from "./sheet-view/types";
 
@@ -123,12 +124,12 @@ export default function SheetView({
                 onContextMenu={(e) => onContextMenu(e, card.publicId)}
                 className="border-b border-light-400 bg-light-50 transition-colors last:border-b-0 hover:bg-light-200/70 dark:border-dark-300 dark:bg-dark-50 dark:hover:bg-dark-200/70"
               >
-                <td
-                  className="max-w-[300px] cursor-pointer truncate border-r border-light-400 px-4 py-2.5 font-medium text-neutral-900 dark:border-dark-300 dark:text-dark-1000"
-                  onClick={() => handleTitleClick(card.publicId)}
-                >
-                  {card.title}
-                </td>
+                <SheetTitleCell
+                  cardPublicId={card.publicId}
+                  title={card.title}
+                  canEditCard={canEditCard}
+                  onNavigate={handleTitleClick}
+                />
 
                 <td
                   className="border-r border-light-400 px-4 py-2.5 text-center dark:border-dark-300"
