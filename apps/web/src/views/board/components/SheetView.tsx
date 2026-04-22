@@ -1,8 +1,9 @@
 import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
 import { format, isBefore, isSameYear, startOfDay } from "date-fns";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { HiOutlineClock } from "react-icons/hi2";
+import { HiArrowUp, HiArrowDown } from "react-icons/hi2";
 
 import Avatar from "~/components/Avatar";
 import Badge from "~/components/Badge";
@@ -57,6 +58,37 @@ interface SheetViewProps {
   weekStartDay: number;
 }
 
+type SortColumn = "title" | "dueDate" | "progress";
+type SortDir = "asc" | "desc";
+
+function getCardProgress(card: SheetCard): number {
+  const total = card.checklists.reduce((a, cl) => a + cl.items.length, 0);
+  if (total === 0) return -1;
+  const done = card.checklists.reduce(
+    (a, cl) => a + cl.items.filter((i) => i.completed).length,
+    0,
+  );
+  return Math.round((done / total) * 100);
+}
+
+function sortCards(cards: SheetCard[], col: SortColumn | null, dir: SortDir): SheetCard[] {
+  if (!col) return cards;
+  return [...cards].sort((a, b) => {
+    let cmp = 0;
+    if (col === "title") {
+      cmp = a.title.localeCompare(b.title);
+    } else if (col === "dueDate") {
+      if (!a.dueDate && !b.dueDate) cmp = 0;
+      else if (!a.dueDate) cmp = 1;
+      else if (!b.dueDate) cmp = -1;
+      else cmp = a.dueDate.getTime() - b.dueDate.getTime();
+    } else {
+      cmp = getCardProgress(a) - getCardProgress(b);
+    }
+    return dir === "desc" ? -cmp : cmp;
+  });
+}
+
 export default function SheetView({
   cards,
   boardPublicId,
@@ -73,6 +105,31 @@ export default function SheetView({
   const { showPopup } = usePopup();
   const utils = api.useUtils();
   const [editingDueDate, setEditingDueDate] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const sorted = useMemo(
+    () => sortCards(cards, sortColumn, sortDir),
+    [cards, sortColumn, sortDir],
+  );
+
+  const handleSort = (col: SortColumn) => {
+    if (sortColumn === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(col);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortColumn }) => {
+    if (sortColumn !== col) return null;
+    return sortDir === "asc" ? (
+      <HiArrowUp className="ml-1 inline h-3 w-3" />
+    ) : (
+      <HiArrowDown className="ml-1 inline h-3 w-3" />
+    );
+  };
 
   const handleTitleClick = (cardPublicId: string) => {
     const path = isTemplate
@@ -130,20 +187,35 @@ export default function SheetView({
 
   return (
     <div className="px-8 pb-8">
-      <div className="overflow-hidden rounded-lg border border-light-500 dark:border-dark-400">
+      <div className="overflow-auto rounded-lg border border-light-500 dark:border-dark-400">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-light-500 bg-light-200 text-left text-[11px] font-semibold uppercase tracking-wider text-light-800 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-800">
-              <th className="border-r border-light-500 px-4 py-2.5 dark:border-dark-400">Title</th>
+            <tr className="sticky top-0 z-10 border-b border-light-500 bg-light-200 text-left text-[11px] font-semibold uppercase tracking-wider text-light-800 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-800">
+              <th
+                className="cursor-pointer select-none border-r border-light-500 px-4 py-2.5 dark:border-dark-400"
+                onClick={() => handleSort("title")}
+              >
+                <span className="inline-flex items-center">Title<SortIcon col="title" /></span>
+              </th>
               <th className="border-r border-light-500 px-4 py-2.5 text-center dark:border-dark-400">List</th>
               <th className="border-r border-light-500 px-4 py-2.5 text-center dark:border-dark-400">Labels</th>
               <th className="border-r border-light-500 px-4 py-2.5 text-center dark:border-dark-400">Members</th>
-              <th className="border-r border-light-500 px-4 py-2.5 text-center dark:border-dark-400">Due Date</th>
-              <th className="px-4 py-2.5 text-center">Progress</th>
+              <th
+                className="cursor-pointer select-none border-r border-light-500 px-4 py-2.5 text-center dark:border-dark-400"
+                onClick={() => handleSort("dueDate")}
+              >
+                <span className="inline-flex items-center">Due Date<SortIcon col="dueDate" /></span>
+              </th>
+              <th
+                className="cursor-pointer select-none px-4 py-2.5 text-center"
+                onClick={() => handleSort("progress")}
+              >
+                <span className="inline-flex items-center">Progress<SortIcon col="progress" /></span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {cards.map((card) => {
+            {sorted.map((card) => {
               const isOverdue = card.dueDate
                 ? isBefore(card.dueDate, startOfDay(new Date()))
                 : false;
@@ -159,10 +231,7 @@ export default function SheetView({
                 (acc, cl) => acc + cl.items.length,
                 0,
               );
-              const progress =
-                totalItems > 0
-                  ? Math.round((completedItems / totalItems) * 100)
-                  : 0;
+              const progress = getCardProgress(card);
 
               return (
                 <tr
@@ -367,7 +436,7 @@ export default function SheetView({
                   </td>
 
                   <td className="px-4 py-2.5 text-center">
-                    {card.checklists.length > 0 ? (
+                    {progress >= 0 ? (
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-light-300 dark:bg-dark-400">
                           <div
