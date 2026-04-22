@@ -4,20 +4,72 @@ import { HiOutlinePaperClip } from "react-icons/hi";
 import { HiCheckBadge } from "react-icons/hi2";
 import { twMerge } from "tailwind-merge";
 
+import { generateUID } from "@kan/shared/utils";
+
 import Button from "~/components/Button";
-import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { env } from "next-runtime-env";
 import { api } from "~/utils/api";
 import { invalidateCard } from "~/utils/cardInvalidation";
 
-export function AttachmentUpload({ cardPublicId }: { cardPublicId: string }) {
-  const { openModal } = useModal();
+interface AttachmentUploadProps {
+  cardPublicId: string;
+  checklistCount: number;
+  onChecklistCreated: (id: string) => void;
+}
+
+export function AttachmentUpload({ cardPublicId, checklistCount, onChecklistCreated }: AttachmentUploadProps) {
   const { showPopup } = usePopup();
   const utils = api.useUtils();
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const createChecklist = api.checklist.create.useMutation({
+    onMutate: async (args) => {
+      await utils.card.byId.cancel({ cardPublicId: args.cardPublicId });
+      const previous = utils.card.byId.getData({
+        cardPublicId: args.cardPublicId,
+      });
+      utils.card.byId.setData({ cardPublicId: args.cardPublicId }, (old) => {
+        if (!old) return old as any;
+        const placeholderChecklist = {
+          publicId: `PLACEHOLDER_${generateUID()}`,
+          name: args.name,
+          index: old.checklists.length,
+          items: [] as {
+            publicId: string;
+            title: string;
+            completed: boolean;
+            index: number;
+          }[],
+        };
+        return {
+          ...old,
+          checklists: [...old.checklists, placeholderChecklist],
+        } as typeof old;
+      });
+      return { previous };
+    },
+    onSuccess: (data) => {
+      onChecklistCreated(data.publicId);
+    },
+    onError: (_error, vars, ctx) => {
+      if (ctx?.previous)
+        utils.card.byId.setData(
+          { cardPublicId: vars.cardPublicId },
+          ctx.previous,
+        );
+      showPopup({
+        header: t`Unable to create checklist`,
+        message: t`Please try again later, or contact customer support.`,
+        icon: "error",
+      });
+    },
+    onSettled: async (_data, _error, vars) => {
+      await invalidateCard(utils, vars.cardPublicId);
+    },
+  });
 
   const uploadFile = async (file: File) => {
     setUploading(true);
@@ -117,28 +169,29 @@ export function AttachmentUpload({ cardPublicId }: { cardPublicId: string }) {
             : "border-transparent",
         )}
       >
-        <div className="flex items-center justify-between p-2">
+        <div className="flex items-center justify-end gap-2 p-2">
           <Button
             type="button"
             variant="ghost"
             iconLeft={
-              <HiCheckBadge className="h-4 w-4 text-light-950 dark:text-dark-950" />
+              <HiOutlinePaperClip className="h-5 w-5 text-light-950 dark:text-dark-950" />
             }
+            isLoading={uploading}
+            disabled={uploading}
             iconOnly
-            size="sm"
-            onClick={() => openModal("ADD_CHECKLIST")}
+            onClick={() => inputRef.current?.click()}
           />
           <Button
             type="button"
             variant="ghost"
             iconLeft={
-              <HiOutlinePaperClip className="h-4 w-4 text-light-950 dark:text-dark-950" />
+              <HiCheckBadge className="h-5 w-5 text-light-950 dark:text-dark-950" />
             }
-            isLoading={uploading}
-            disabled={uploading}
             iconOnly
-            size="sm"
-            onClick={() => inputRef.current?.click()}
+            onClick={() => createChecklist.mutate({
+              name: `Checklist ${checklistCount + 1}`,
+              cardPublicId,
+            })}
           />
         </div>
       </div>

@@ -458,7 +458,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                     />
                   </div>
                   <div className="my-6 h-[1px] bg-light-500 dark:bg-dark-500" />
-                  <div className="mb-10 flex w-full flex-col justify-between">
+                  <div className="mb-0 flex w-full flex-col justify-between">
                     <form
                       onSubmit={handleSubmit(onSubmit)}
                       className="w-full space-y-6"
@@ -481,13 +481,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                     </form>
                     <div className="my-6 h-[1px] bg-light-500 dark:bg-dark-500" />
                   </div>
-                  <Checklists
-                    checklists={card.checklists}
-                    cardPublicId={cardId}
-                    activeChecklistForm={activeChecklistForm}
-                    setActiveChecklistForm={setActiveChecklistForm}
-                    viewOnly={!canEdit}
-                  />
                   {!isTemplate && (
                     <>
                       {card?.attachments.length > 0 && (
@@ -501,11 +494,22 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                       )}
                       {canEdit && (
                         <div className="mt-6">
-                          <AttachmentUpload cardPublicId={cardId} />
+                          <AttachmentUpload
+                            cardPublicId={cardId}
+                            checklistCount={card.checklists.length}
+                            onChecklistCreated={setActiveChecklistForm}
+                          />
                         </div>
                       )}
                     </>
                   )}
+                  <Checklists
+                    checklists={card.checklists}
+                    cardPublicId={cardId}
+                    activeChecklistForm={activeChecklistForm}
+                    setActiveChecklistForm={setActiveChecklistForm}
+                    viewOnly={!canEdit}
+                  />
                 </>
               )}
             </div>
