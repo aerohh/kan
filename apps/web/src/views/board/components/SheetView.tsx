@@ -273,8 +273,15 @@ export default function SheetView({
                 <SheetProgressCell checklists={card.checklists} />
               </tr>
             ))}
-          </tbody>
-        </table>
+           </tbody>
+           <tfoot>
+             <tr className="border-t border-light-500 bg-light-200 text-[12px] text-light-800 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-800">
+               <td colSpan={6} className="px-4 py-2">
+                 {sorted.length} {sorted.length === 1 ? "card" : "cards"}
+               </td>
+             </tr>
+           </tfoot>
+         </table>
       </div>
     </div>
   );
