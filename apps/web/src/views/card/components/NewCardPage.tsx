@@ -552,14 +552,14 @@ export default function NewCardPage({
             <button
               type="button"
               onClick={toggleChecklistPanel}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
                 checklistPanelOpen
-                  ? "text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
-                  : "text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
+                  ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                  : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
               }`}
             >
-              <HiCheckBadge className={`h-4 w-4 ${checklistPanelOpen ? "text-blue-600 dark:text-blue-400" : ""}`} />
-              {checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
+              <HiCheckBadge className="h-5 w-5" />
+              {t`Checklists`}
             </button>
             <div className="flex items-center space-x-4">
               <Toggle

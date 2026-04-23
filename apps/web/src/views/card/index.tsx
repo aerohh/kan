@@ -501,18 +501,18 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                         </div>
                       )}
                       {canEdit && !isSlideOver && (
-                        <div className="mt-6 flex items-center justify-end gap-1">
+                        <div className="mt-6 flex items-center justify-between gap-1">
                           <button
                             type="button"
                             onClick={toggleChecklistPanel}
-                            title={checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
-                            className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
                               checklistPanelOpen
                                 ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
                                 : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
                             }`}
                           >
                             <HiCheckBadge className="h-5 w-5" />
+                            {t`Checklists`}
                           </button>
                           <AttachmentUpload cardPublicId={cardId} />
                         </div>
@@ -526,20 +526,20 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
         </div>
 
         {isSlideOver && !isTemplate && canEdit && (
-          <div className="flex items-center justify-end gap-1 border-t border-light-300 bg-light-50 px-8 py-2 dark:border-dark-300 dark:bg-dark-50">
+          <div className="flex items-center justify-between border-t border-light-300 bg-light-50 px-8 py-2 dark:border-dark-300 dark:bg-dark-50">
+            <AttachmentUpload cardPublicId={cardId} />
             <button
               type="button"
               onClick={toggleChecklistPanel}
-              title={checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
-              className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
                 checklistPanelOpen
                   ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
                   : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
               }`}
             >
               <HiCheckBadge className="h-5 w-5" />
+              {t`Checklists`}
             </button>
-            <AttachmentUpload cardPublicId={cardId} />
           </div>
         )}
 
