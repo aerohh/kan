@@ -2,9 +2,10 @@ import { Dialog, Transition } from "@headlessui/react";
 import type { RouterInputs } from "@kan/api";
 import { Fragment } from "react";
 
+import SlideInPanel from "~/components/SlideInPanel";
+import { usePermissions } from "~/hooks/usePermissions";
 import { ModalProvider } from "~/providers/modal";
 import { ChecklistPanelProvider, useChecklistPanel } from "~/providers/checklist-panel";
-import SlideInPanel from "~/components/SlideInPanel";
 import CardPage, { CardActivityPanel } from "~/views/card";
 import CardChecklistPanel from "~/views/card/components/CardChecklistPanel";
 
@@ -39,6 +40,7 @@ function CardSlideOverContent({
 }: CardSlideOverProps) {
   const isAddMode = mode === "add";
   const { isOpen: checklistPanelOpen } = useChecklistPanel();
+  const { canEditCard } = usePermissions();
 
   return (
     <>
@@ -64,7 +66,7 @@ function CardSlideOverContent({
               <SlideInPanel isVisible={checklistPanelOpen}>
                 <CardChecklistPanel
                   cardPublicId={cardPublicId}
-                  canEdit={true}
+                  canEdit={canEditCard}
                 />
               </SlideInPanel>
             )}

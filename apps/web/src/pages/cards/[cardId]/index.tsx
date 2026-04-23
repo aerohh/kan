@@ -18,12 +18,14 @@ function CardRightPanels({ isTemplate }: { isTemplate?: boolean }) {
 
   return (
     <div className="flex min-h-0">
-      <SlideInPanel isVisible={checklistPanelOpen && !!cardId}>
-        <CardChecklistPanel
-          cardPublicId={cardId ?? ""}
-          canEdit={canEditCard}
-        />
-      </SlideInPanel>
+      {cardId && cardId.length >= 12 && (
+        <SlideInPanel isVisible={checklistPanelOpen}>
+          <CardChecklistPanel
+            cardPublicId={cardId}
+            canEdit={canEditCard}
+          />
+        </SlideInPanel>
+      )}
       <CardActivityPanel isTemplate={isTemplate} />
     </div>
   );

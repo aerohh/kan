@@ -30,8 +30,8 @@ export default function SlideInPanel({ isVisible, children }: SlideInPanelProps)
 
   return (
     <div
-      onTransitionEnd={() => {
-        if (!animateIn) {
+      onTransitionEnd={(e) => {
+        if (e.propertyName === "max-width" && !animateIn) {
           setMounted(false);
         }
       }}
