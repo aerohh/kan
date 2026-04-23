@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { HiXMark } from "react-icons/hi2";
+import { HiCheckBadge, HiXMark } from "react-icons/hi2";
 import { IoChevronForwardSharp } from "react-icons/io5";
 
 import { authClient } from "@kan/auth/client";
@@ -22,6 +22,7 @@ import { usePermissions } from "~/hooks/usePermissions";
 import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { useWorkspace } from "~/providers/workspace";
+import { useChecklistPanel } from "~/providers/checklist-panel";
 import { api } from "~/utils/api";
 import { invalidateCard } from "~/utils/cardInvalidation";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
@@ -29,9 +30,7 @@ import { DeleteLabelConfirmation } from "../../components/DeleteLabelConfirmatio
 import ActivityList from "./components/ActivityList";
 import { AttachmentThumbnails } from "./components/AttachmentThumbnails";
 import { AttachmentUpload } from "./components/AttachmentUpload";
-import Checklists from "./components/Checklists";
 import { DeleteCardConfirmation } from "./components/DeleteCardConfirmation";
-import { DeleteChecklistConfirmation } from "./components/DeleteChecklistConfirmation";
 import { DeleteCommentConfirmation } from "./components/DeleteCommentConfirmation";
 import Dropdown from "./components/Dropdown";
 import { DueDateSelector } from "./components/DueDateSelector";
@@ -39,7 +38,6 @@ import LabelSelector from "./components/LabelSelector";
 import ListSelector from "./components/ListSelector";
 import MemberSelector from "./components/MemberSelector";
 import NewCardPage from "./components/NewCardPage";
-import { NewChecklistForm } from "./components/NewChecklistForm";
 import NewCommentForm from "./components/NewCommentForm";
 
 interface FormValues {
@@ -127,7 +125,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   const {
     modalContentType,
     entityId,
-    getModalState,
     clearModalState,
     isOpen,
     modalStates,
@@ -136,9 +133,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   const { workspace } = useWorkspace();
   const { canEditCard } = usePermissions();
   const { data: session } = authClient.useSession();
-  const [activeChecklistForm, setActiveChecklistForm] = useState<string | null>(
-    null,
-  );
+  const { isOpen: checklistPanelOpen, toggle: toggleChecklistPanel } = useChecklistPanel();
 
   const cardId = cardPublicIdOverride ?? (Array.isArray(router.query.cardId)
     ? router.query.cardId[0]
@@ -223,21 +218,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
       };
     }) ?? [];
 
-  const editorWorkspaceMembers =
-    workspaceMembers
-      ?.filter((member) => member.email)
-      .map((member) => ({
-        publicId: member.publicId,
-        email: member.email,
-        user: member.user
-          ? {
-              id: member.user.id,
-              name: member.user.name ?? null,
-              image: member.user.image ?? null,
-            }
-          : null,
-      })) ?? [];
-
   const updateCard = api.card.update.useMutation({
     onError: () => {
       showPopup({
@@ -298,16 +278,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
       clearModalState("NEW_LABEL_CREATED");
     }
   }, [modalStates.NEW_LABEL_CREATED, card, cardId]);
-
-  useEffect(() => {
-    if (!card) return;
-    const state = getModalState("ADD_CHECKLIST");
-    const createdId: string | undefined = state?.createdChecklistId;
-    if (createdId) {
-      setActiveChecklistForm(createdId);
-      clearModalState("ADD_CHECKLIST");
-    }
-  }, [card, getModalState, clearModalState]);
 
   useEffect(() => {
     const titleTextarea = document.getElementById(
@@ -372,6 +342,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                   isTemplate={isTemplate}
                   boardPublicId={boardId}
                   cardCreatedBy={card?.createdBy}
+                  onAddChecklist={toggleChecklistPanel}
                 />
                 <Link
                   href={`/${isTemplate ? "templates" : "boards"}/${boardId}`}
@@ -397,6 +368,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
               isTemplate={isTemplate}
               boardPublicId={boardId}
               cardCreatedBy={card?.createdBy}
+              onAddChecklist={toggleChecklistPanel}
             />
             {onClose && (
               <button
@@ -511,23 +483,24 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                         </div>
                       )}
                       {canEdit && (
-                        <div className="mt-6">
-                          <AttachmentUpload
-                            cardPublicId={cardId}
-                            checklistCount={card.checklists.length}
-                            onChecklistCreated={setActiveChecklistForm}
-                          />
+                        <div className="mt-6 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={toggleChecklistPanel}
+                            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                              checklistPanelOpen
+                                ? "bg-light-200 text-light-1000 dark:bg-dark-200 dark:text-dark-1000"
+                                : "text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
+                            }`}
+                          >
+                            <HiCheckBadge className="h-4 w-4" />
+                            {checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
+                          </button>
+                          <AttachmentUpload cardPublicId={cardId} />
                         </div>
                       )}
                     </>
                   )}
-                  <Checklists
-                    checklists={card.checklists}
-                    cardPublicId={cardId}
-                    activeChecklistForm={activeChecklistForm}
-                    setActiveChecklistForm={setActiveChecklistForm}
-                    viewOnly={!canEdit}
-                  />
                 </>
               )}
             </div>
@@ -595,23 +568,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
             isVisible={isOpen && modalContentType === "NEW_WORKSPACE"}
           >
             <NewWorkspaceForm />
-          </Modal>
-
-          <Modal
-            modalSize="sm"
-            isVisible={isOpen && modalContentType === "ADD_CHECKLIST"}
-          >
-            <NewChecklistForm cardPublicId={cardId} />
-          </Modal>
-
-          <Modal
-            modalSize="sm"
-            isVisible={isOpen && modalContentType === "DELETE_CHECKLIST"}
-          >
-            <DeleteChecklistConfirmation
-              cardPublicId={cardId}
-              checklistPublicId={entityId}
-            />
           </Modal>
 
           <Modal

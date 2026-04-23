@@ -18,11 +18,13 @@ export default function CardDropdown({
   isTemplate,
   boardPublicId,
   cardCreatedBy,
+  onAddChecklist,
 }: {
   cardPublicId: string;
   isTemplate?: boolean;
   boardPublicId?: string;
   cardCreatedBy?: string | null;
+  onAddChecklist?: () => void;
 }) {
   const { openModal } = useModal();
   const { showPopup } = usePopup();
@@ -59,11 +61,11 @@ export default function CardDropdown({
       action: handleCopyCardLink,
       icon: <HiLink className="h-[16px] w-[16px] text-dark-900" />,
     },
-    ...(canEditCard
+    ...(canEditCard && onAddChecklist
       ? [
           {
             label: t`Add checklist`,
-            action: () => openModal("ADD_CHECKLIST"),
+            action: onAddChecklist,
             icon: (
               <HiOutlineCheckCircle className="h-[16px] w-[16px] text-dark-900" />
             ),

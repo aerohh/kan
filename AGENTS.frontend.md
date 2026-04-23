@@ -100,27 +100,34 @@ Mutations are defined directly in `SheetView` using tRPC hooks. After mutations 
 
 ### Card Detail Page Layout
 
-The card detail page (`apps/web/src/views/card/index.tsx`) composes two main areas via the `Dashboard` component's `rightPanel` prop:
+The card detail page (`apps/web/src/views/card/index.tsx`) composes up to three panels:
 
-- **Main content** (`CardPage` default export): Title → inline selectors (List, Labels, Members, Due date) → Editor → Checklists → Attachments
-- **Right sidebar** (`CardActivityPanel` named export): Activity log → Comments
+- **Left panel** (`CardPage` default export): Title → inline selectors (List, Labels, Members, Due date) → Editor → Attachments
+- **Middle panel** (`CardChecklistPanel`): Checklists — shown/hidden via toggle button with `HiCheckBadge` icon
+- **Right panel** (`CardActivityPanel` named export): Activity log → Comments
+
+The `ChecklistPanelProvider` context (`apps/web/src/providers/checklist-panel.tsx`) shares panel open/close state between CardPage (toggle button) and CardChecklistPanel.
 
 Layout is wired in two places:
-- Full page: `pages/cards/[cardId]/index.tsx` passes `<CardActivityPanel />` to `getDashboardLayout(page, rightPanel, true)`
-- Slide-over: `components/CardSlideOver.tsx` renders `<CardPage>` and `<CardActivityPanel>` side-by-side in a flex row
+- Full page: `pages/cards/[cardId]/index.tsx` wraps layout in `ChecklistPanelProvider`, composes `CardChecklistPanel` + `CardActivityPanel` in flex container passed to `getDashboardLayout(page, rightPanel, true)`
+- Slide-over: `components/CardSlideOver.tsx` renders a 3-panel flex layout (max-width 1520px) with `ChecklistPanelProvider` inside `Dialog.Panel`
+
+#### Headless UI Transition.Child Ref Gotcha
+
+`Transition.Child` requires its **direct child** to pass `ref` to a real DOM node. If you wrap the child in a provider/context component that doesn't forward ref, the transition will fail silently. Always place providers **inside** the real DOM element (e.g., inside `Dialog.Panel`), not between `Transition.Child` and `Dialog.Panel`.
 
 ### CardSlideOver Modes
 
 `components/CardSlideOver.tsx` supports two modes:
 
-- **View mode** (default): Shows `<CardPage>` + `<CardActivityPanel>` side-by-side
-- **Add mode** (`mode="add"`): Shows only `<NewCardPage>` (no activity panel). Used for creating new cards from the board view
+- **View mode** (default): Shows 3-panel layout: `<CardPage>` + `<CardChecklistPanel>` + `<CardActivityPanel>` side-by-side in a flex row
+- **Add mode** (`mode="add"`): Shows only `<NewCardPage>` (no activity/checklist panels). Used for creating new cards from the board view
 
-When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/components/NewCardPage.tsx`) — a self-contained component with its own form state, board data fetching, card creation mutation, and label modals.
+When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/components/NewCardPage.tsx`) — a self-contained component with its own form state, board data fetching, card creation mutation, and label modals. `NewCardPage` has its own built-in draft checklist panel (`DraftChecklistPanel`) for managing checklists before the card exists.
 
 ### New Card Flow
 
-Creating cards from the board uses the add-mode `CardSlideOver` instead of a modal. The board view (`views/board/index.tsx`) manages `newCardSlideOver` state (isOpen, listPublicId, pre-selections) and renders `<CardSlideOver mode="add" ... />`. The `List` component triggers this via its `onOpenNewCard` callback prop.
+Creating cards from the board uses the add-mode `CardSlideOver` instead of a modal. The board view (`views/board/index.tsx`) manages `newCardSlideOver` state (isOpen, listPublicId, pre-selections) and renders `<CardSlideOver mode="add" ... />`. The `List` component triggers this via its `onOpenNewCard` callback prop. After card creation, `NewCardPage` persists draft checklists via sequential `checklist.create` and `checklist.createItem` API calls.
 
 ### Client-Side Card Reordering
 

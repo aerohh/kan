@@ -66,6 +66,7 @@ export default function PlainTextEditor({
         }),
         Placeholder.configure({ placeholder }),
       ],
+      immediatelyRender: false,
       content,
       editable: !readOnly,
       onUpdate: ({ editor }) => onChangeRef.current?.(editor.getText()),

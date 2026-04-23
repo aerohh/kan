@@ -11,6 +11,7 @@ import Editor from "~/components/Editor";
 import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
 import Modal from "~/components/modal";
+import SlideInPanel from "~/components/SlideInPanel";
 import Toggle from "~/components/Toggle";
 import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
@@ -19,11 +20,13 @@ import { api } from "~/utils/api";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
 import { DeleteLabelConfirmation } from "../../../components/DeleteLabelConfirmation";
 import {
+  HiCheckBadge,
   HiXMark,
 } from "react-icons/hi2";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import DraftChecklistPanel, { type DraftChecklist } from "./DraftChecklistPanel";
 
 type BoardQueryParams = RouterInputs["board"]["byId"];
 
@@ -101,6 +104,10 @@ export default function NewCardPage({
   const dueDate = watch("dueDate");
   const listPublicId = watch("listPublicId");
   const [isDateSelectorOpen, setIsDateSelectorOpen] = useState(false);
+  const [draftChecklists, setDraftChecklists] = useState<DraftChecklist[]>([]);
+  const [checklistPanelOpen, setChecklistPanelOpen] = useState(false);
+
+  const toggleChecklistPanel = () => setChecklistPanelOpen((prev) => !prev);
 
   const createCard = api.card.create.useMutation({
     onMutate: async (args) => {
@@ -162,7 +169,30 @@ export default function NewCardPage({
         icon: "error",
       });
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      if (draftChecklists.length > 0 && data.publicId) {
+        try {
+          for (const draft of draftChecklists) {
+            const checklistResult = await utils.client.checklist.create.mutate({
+              cardPublicId: data.publicId,
+              name: draft.name,
+            });
+            for (const item of draft.items) {
+              await utils.client.checklist.createItem.mutate({
+                checklistPublicId: checklistResult.publicId,
+                title: item.title,
+              });
+            }
+          }
+        } catch {
+          showPopup({
+            header: t`Checklists not created`,
+            message: t`The card was created, but checklists could not be added. You can add them manually.`,
+            icon: "error",
+          });
+        }
+      }
+
       if (!isCreateAnother) {
         onClose?.();
       } else {
@@ -176,6 +206,7 @@ export default function NewCardPage({
           dueDate: null as Date | null,
         };
         reset(newFormState);
+        setDraftChecklists([]);
       }
       if (queryParams) {
         await utils.board.byId.invalidate(queryParams);
@@ -309,20 +340,21 @@ export default function NewCardPage({
 
   return (
     <>
-      <div className="flex h-full flex-col">
-        <div className="flex w-full items-center justify-end px-4 py-2">
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-[5px] text-light-900 hover:bg-light-200 dark:text-dark-900 dark:hover:bg-dark-200"
-              aria-label={t`Close`}
-            >
-              <HiXMark className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        <div className="flex-1 w-full overflow-y-auto">
-          <div className="mx-auto flex h-full w-[540px] flex-col">
+      <div className="flex h-full">
+        <div className="flex h-full flex-1 flex-col">
+          <div className="flex w-full items-center justify-end px-4 py-2">
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="flex h-7 w-7 items-center justify-center rounded-[5px] text-light-900 hover:bg-light-200 dark:text-dark-900 dark:hover:bg-dark-200"
+                aria-label={t`Close`}
+              >
+                <HiXMark className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <div className="flex-1 w-full overflow-y-auto">
+            <div className="mx-auto flex h-full w-[540px] flex-col">
             <div className="p-6 md:p-8">
               <div className="mb-8 md:mt-4">
                 <form
@@ -488,25 +520,46 @@ export default function NewCardPage({
                 <div className="my-6 h-[1px] bg-light-500 dark:bg-dark-500" />
               </div>
 
-              <div className="flex items-center justify-end space-x-4">
-                <Toggle
-                  label={t`Create another`}
-                  isChecked={isCreateAnother}
-                  onChange={() =>
-                    setValue("isCreateAnotherEnabled", !isCreateAnother)
-                  }
-                />
-                <Button
+              <div className="flex items-center justify-between">
+                <button
                   type="button"
-                  disabled={title.length === 0 || createCard.isPending}
-                  onClick={() => handleSubmit(onSubmit)()}
+                  onClick={toggleChecklistPanel}
+                  className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    checklistPanelOpen
+                      ? "bg-light-200 text-light-1000 dark:bg-dark-200 dark:text-dark-1000"
+                      : "text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
+                  }`}
                 >
-                  {t`Create card`}
-                </Button>
+                  <HiCheckBadge className="h-4 w-4" />
+                  {checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
+                </button>
+                <div className="flex items-center space-x-4">
+                  <Toggle
+                    label={t`Create another`}
+                    isChecked={isCreateAnother}
+                    onChange={() =>
+                      setValue("isCreateAnotherEnabled", !isCreateAnother)
+                    }
+                  />
+                  <Button
+                    type="button"
+                    disabled={title.length === 0 || createCard.isPending}
+                    onClick={() => handleSubmit(onSubmit)()}
+                  >
+                    {t`Create card`}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        </div>
+        <SlideInPanel isVisible={checklistPanelOpen}>
+          <DraftChecklistPanel
+            checklists={draftChecklists}
+            onChange={setDraftChecklists}
+          />
+        </SlideInPanel>
       </div>
 
       <Modal
