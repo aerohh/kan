@@ -10,7 +10,7 @@ import { authClient } from "@kan/auth/client";
 import type { RouterInputs } from "@kan/api";
 
 import Avatar from "~/components/Avatar";
-import Editor from "~/components/Editor";
+import DocEditorForCard from "~/views/docs/components/DocEditorForCard";
 import FeedbackModal from "~/components/FeedbackModal";
 import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
@@ -485,18 +485,14 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                       onSubmit={handleSubmit(onSubmit)}
                       className="w-full space-y-6"
                     >
-                      <div className="mt-2 min-h-[200px] [&_.tiptap]:min-h-[180px]">
-                        <Editor
-                          content={card.description}
+                      <div className="mt-2 min-h-[200px]">
+                        <DocEditorForCard
+                          initialContent={card.description}
                           onChange={
                             canEdit
-                              ? (e) => setValue("description", e)
+                              ? (value) => setValue("description", value)
                               : undefined
                           }
-                          onBlur={
-                            canEdit ? () => handleSubmit(onSubmit)() : undefined
-                          }
-                          workspaceMembers={workspaceMembers ?? []}
                           readOnly={!canEdit}
                         />
                       </div>

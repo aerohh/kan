@@ -11,12 +11,12 @@ import Link from "@tiptap/extension-link";
 import Mention from "@tiptap/extension-mention";
 import Placeholder from "@tiptap/extension-placeholder";
 import {
-  BubbleMenu,
   EditorContent,
   Extension,
   ReactRenderer,
   useEditor,
 } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import Typography from "@tiptap/extension-typography";
 import StarterKit from "@tiptap/starter-kit";
 import Suggestion from "@tiptap/suggestion";
@@ -341,10 +341,7 @@ const SlashCommands = Extension.create<SlashCommandsOptions>({
           props.command({ editor, range });
         },
         items: ({ query }: { query: string }) => {
-          return filterSlashCommandItems(
-            this.parent().commandItems ?? [],
-            query,
-          );
+          return filterSlashCommandItems([], query);
         },
         render: () => {
           let component: ReturnType<typeof RenderSuggestions>;
@@ -372,10 +369,14 @@ const SlashCommands = Extension.create<SlashCommandsOptions>({
     };
   },
   addProseMirrorPlugins() {
+    const items = this.options.commandItems ?? [];
     return [
       Suggestion({
         editor: this.editor,
         ...this.options.suggestion,
+        items: ({ query }: { query: string }) => {
+          return filterSlashCommandItems(items, query);
+        },
         render: RenderSuggestions,
       } as SuggestionOptions),
     ];
@@ -573,6 +574,7 @@ export default function Editor({
       },
       editable: !readOnly,
       injectCSS: false,
+      immediatelyRender: false,
     },
     [], // creating the editor only once
   );
@@ -583,7 +585,7 @@ export default function Editor({
     const currentHTML = editor.getHTML();
     const safeContent = content ?? "";
     if (safeContent !== currentHTML) {
-      editor.commands.setContent(safeContent, false);
+      editor.commands.setContent(safeContent, { emitUpdate: false });
     }
   }, [content, editor]);
 
@@ -620,7 +622,7 @@ export default function Editor({
   );
 }
 
-function EditorBubbleMenu({ editor }: { editor: TiptapEditor | null }) {
+function EditorBubbleMenu({ editor }: { editor: TiptapEditor }) {
   const isMac = navigator.platform.includes("Mac");
 
   const bubbleMenuItems = [

@@ -37,5 +37,12 @@
       "@types/minimatch": "npm:minimatch@*",
       "@types/glob": "npm:@types/glob@^8.1.0"
     }
+  },
+  "dependencies": {
+    "@blocknote/core": "^0.48.1",
+    "@blocknote/mantine": "^0.48.1",
+    "@blocknote/react": "^0.48.1",
+    "@floating-ui/dom": "^1.7.6",
+    "tiptap-markdown": "^0.9.0"
   }
 }

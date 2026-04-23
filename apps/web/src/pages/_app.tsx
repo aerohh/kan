@@ -1,4 +1,5 @@
 import "~/styles/globals.css";
+import "~/views/docs/components/doc-editor-styles.css";
 import "~/utils/i18n";
 
 import type { NextPage, Viewport } from "next";
