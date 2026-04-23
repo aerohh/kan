@@ -30,6 +30,7 @@ interface ChecklistsProps {
   activeChecklistForm?: string | null;
   setActiveChecklistForm?: (id: string | null) => void;
   viewOnly?: boolean;
+  hideLineProgress?: boolean;
 }
 
 export default function Checklists({
@@ -38,6 +39,7 @@ export default function Checklists({
   activeChecklistForm,
   setActiveChecklistForm,
   viewOnly = false,
+  hideLineProgress = false,
 }: ChecklistsProps) {
   const { openModal } = useModal();
   const { showPopup } = usePopup();
@@ -178,12 +180,14 @@ export default function Checklists({
 
                 {checklist.items.length > 0 && (
                   <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-light-300 dark:bg-dark-300">
-                    <div
-                      className="h-full rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-500"
-                      style={{
-                        width: `${checklist.items.length > 0 ? (completedItems.length / checklist.items.length) * 100 : 0}%`,
-                      }}
-                    />
+                    {!hideLineProgress && (
+                      <div
+                        className="h-full rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-500"
+                        style={{
+                          width: `${checklist.items.length > 0 ? (completedItems.length / checklist.items.length) * 100 : 0}%`,
+                        }}
+                      />
+                    )}
                   </div>
                 )}
 

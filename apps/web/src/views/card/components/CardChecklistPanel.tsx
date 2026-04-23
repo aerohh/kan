@@ -127,6 +127,7 @@ export default function CardChecklistPanel({
             activeChecklistForm={activeChecklistForm}
             setActiveChecklistForm={setActiveChecklistForm}
             viewOnly={!canEdit}
+            hideLineProgress
           />
         </div>
       </div>
