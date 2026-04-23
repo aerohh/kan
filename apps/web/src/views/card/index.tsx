@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { HiCheckBadge, HiXMark } from "react-icons/hi2";
 import { IoChevronForwardSharp } from "react-icons/io5";
@@ -10,7 +10,7 @@ import { authClient } from "@kan/auth/client";
 import type { RouterInputs } from "@kan/api";
 
 import Avatar from "~/components/Avatar";
-import DocEditorForCard from "~/views/docs/components/DocEditorForCard";
+import DocEditorForCard, { type DocEditorForCardHandle } from "~/views/docs/components/DocEditorForCard";
 import FeedbackModal from "~/components/FeedbackModal";
 import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
@@ -122,6 +122,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
 }) {
   const router = useRouter();
   const utils = api.useUtils();
+  const editorRef = useRef<DocEditorForCardHandle>(null);
   const {
     modalContentType,
     entityId,
@@ -289,6 +290,20 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     }
   }, [card]);
 
+  const handleContentClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "BUTTON" || target.closest("button")) return;
+      if (target.tagName === "A" || target.closest("a")) return;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+      if (target.tagName === "SELECT") return;
+      if (target.closest("[role=\"listbox\"]") || target.closest("[role=\"option\"]")) return;
+      if (target.closest(".bn-editor")) return;
+      editorRef.current?.focus();
+    },
+    [],
+  );
+
   if (mode === "add") {
     return (
       <NewCardPage
@@ -381,10 +396,13 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
             )}
           </div>
         )}
-        <div className={isSlideOver
-          ? "w-full flex-1 overflow-y-auto"
-          : "scrollbar-thumb-rounded-[4px] scrollbar-track-rounded-[4px] w-full flex-1 overflow-y-auto scrollbar scrollbar-track-light-200 scrollbar-thumb-light-400 hover:scrollbar-thumb-light-400 dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-300 dark:hover:scrollbar-thumb-dark-300"
-        }>
+        <div
+          className={isSlideOver
+            ? "w-full flex-1 overflow-y-auto"
+            : "scrollbar-thumb-rounded-[4px] scrollbar-track-rounded-[4px] w-full flex-1 overflow-y-auto scrollbar scrollbar-track-light-200 scrollbar-thumb-light-400 hover:scrollbar-thumb-light-400 dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-300 dark:hover:scrollbar-thumb-dark-300"
+          }
+          onClick={handleContentClick}
+        >
           <div className={`p-auto mx-auto flex h-full ${isSlideOver ? "w-[540px]" : "w-[800px]"} flex-col`}>
             <div className="p-6 md:p-8">
               <div className="mb-8 md:mt-4">
@@ -459,6 +477,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                     >
                       <div className="mt-2 min-h-[200px]">
                         <DocEditorForCard
+                          ref={editorRef}
                           initialContent={card.description}
                           onChange={
                             canEdit
@@ -469,7 +488,6 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                         />
                       </div>
                     </form>
-                    <div className="my-6 h-[1px] bg-light-500 dark:bg-dark-500" />
                   </div>
                   {!isTemplate && (
                     <>

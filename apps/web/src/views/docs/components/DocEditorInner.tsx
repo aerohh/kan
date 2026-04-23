@@ -1,42 +1,15 @@
-import { useCreateBlockNote } from "@blocknote/react";
-import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import BlockNote from "~/components/BlockNote";
-
-function extractTextFromBlock(block: {
-  content?: Record<string, unknown>[];
-  children?: Record<string, unknown>[];
-}): string {
-  let text = "";
-  if (block.content && Array.isArray(block.content)) {
-    for (const item of block.content) {
-      if (typeof item === "object" && item !== null) {
-        if ("text" in item && typeof item.text === "string") {
-          text += item.text + " ";
-        }
-        if ("content" in item && Array.isArray(item.content)) {
-          text += extractTextFromBlock(item) + " ";
-        }
-      }
-    }
-  }
-  if (block.children && Array.isArray(block.children)) {
-    for (const child of block.children) {
-      text += extractTextFromBlock(child) + " ";
-    }
-  }
-  return text;
-}
+import { useBlockNoteEditor } from "~/hooks/useBlockNoteEditor";
 
 export default function DocEditorInner() {
   const [title, setTitle] = useState("");
   const [wordCount, setWordCount] = useState(0);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
-  const { resolvedTheme } = useTheme();
 
-  const editor = useCreateBlockNote({
+  const { editor, resolvedTheme, getFullText } = useBlockNoteEditor({
     placeholders: {
       default: "Type '/' for commands, or start writing...",
       heading: "Heading",
@@ -44,6 +17,7 @@ export default function DocEditorInner() {
       bulletListItem: "List",
       checkListItem: "Todo",
     },
+    wrapperRef: editorWrapperRef,
   });
 
   useEffect(() => {
@@ -53,25 +27,6 @@ export default function DocEditorInner() {
       titleRef.current.style.height = `${titleRef.current.scrollHeight}px`;
     }
   }, []);
-
-  useEffect(() => {
-    if (!editorWrapperRef.current) return;
-    const wrapper = editorWrapperRef.current;
-    const bnRoot = wrapper.querySelector(".bn-root");
-    if (bnRoot) {
-      bnRoot.setAttribute(
-        "data-color-scheme",
-        resolvedTheme === "dark" ? "dark" : "light",
-      );
-    }
-    const bnMantine = wrapper.querySelector(".bn-mantine");
-    if (bnMantine) {
-      bnMantine.setAttribute(
-        "data-mantine-color-scheme",
-        resolvedTheme === "dark" ? "dark" : "light",
-      );
-    }
-  }, [resolvedTheme]);
 
   const handleTitleInput = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -85,10 +40,7 @@ export default function DocEditorInner() {
 
   const handleEditorChange = useCallback(() => {
     if (!editor) return;
-    let fullText = "";
-    for (const block of editor.document) {
-      fullText += extractTextFromBlock(block as Record<string, unknown>) + " ";
-    }
+    let fullText = getFullText();
     if (title) {
       fullText = title + " " + fullText;
     }
@@ -97,7 +49,7 @@ export default function DocEditorInner() {
       .split(/\s+/)
       .filter((w) => w.length > 0);
     setWordCount(words.length);
-  }, [editor, title]);
+  }, [editor, title, getFullText]);
 
   const handleWrapperClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -145,6 +97,7 @@ export default function DocEditorInner() {
           editor={editor}
           resolvedTheme={resolvedTheme}
           onChange={handleEditorChange}
+          className="mt-10"
         />
         {wordCount > 0 && (
           <div className="mt-12 text-xs text-light-800 dark:text-dark-800">

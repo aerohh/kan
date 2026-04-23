@@ -7,7 +7,8 @@ import Avatar from "~/components/Avatar";
 import Button from "~/components/Button";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
 import DateSelector from "~/components/DateSelector";
-import Editor from "~/components/Editor";
+import DocEditorForCard, { type DocEditorForCardHandle } from "~/views/docs/components/DocEditorForCard";
+import { type MentionMember } from "~/components/MentionSpec";
 import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
 import Modal from "~/components/modal";
@@ -24,7 +25,7 @@ import {
   HiXMark,
 } from "react-icons/hi2";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import DraftChecklistPanel, { type DraftChecklist } from "./DraftChecklistPanel";
 
@@ -61,6 +62,7 @@ export default function NewCardPage({
   preSelectedMemberId,
   preSelectedDueDate,
 }: NewCardPageProps) {
+  const editorRef = useRef<DocEditorForCardHandle>(null);
   const utils = api.useUtils();
   const {
     modalContentType,
@@ -294,6 +296,16 @@ export default function NewCardPage({
           : null,
       })) ?? [];
 
+  const mentionMembers: MentionMember[] = useMemo(
+    () =>
+      editorWorkspaceMembers.map((m) => ({
+        id: m.publicId,
+        label: m.user?.name?.trim() || m.email || "",
+        image: m.user?.image ?? null,
+      })),
+    [editorWorkspaceMembers],
+  );
+
   const onSubmit = (data: NewCardFormValues) => {
     createCard.mutate({
       title: data.title,
@@ -338,6 +350,19 @@ export default function NewCardPage({
     if (queryParams) await utils.board.byId.invalidate(queryParams);
   };
 
+  const handleContentClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "BUTTON" || target.closest("button")) return;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+      if (target.tagName === "SELECT") return;
+      if (target.closest("[role=\"listbox\"]") || target.closest("[role=\"option\"]")) return;
+      if (target.closest(".bn-editor")) return;
+      editorRef.current?.focus();
+    },
+    [],
+  );
+
   return (
     <>
       <div className="flex h-full">
@@ -353,7 +378,7 @@ export default function NewCardPage({
               </button>
             )}
           </div>
-          <div className="flex-1 w-full overflow-y-auto">
+          <div className="flex-1 w-full overflow-y-auto" onClick={handleContentClick}>
             <div className="mx-auto flex h-full w-[540px] flex-col">
             <div className="p-6 md:p-8">
               <div className="mb-8 md:mt-4">
@@ -507,14 +532,15 @@ export default function NewCardPage({
               <div className="my-6 h-[1px] bg-light-500 dark:bg-dark-500" />
 
               <div className="mb-0 flex w-full flex-col justify-between">
-                <div className="mt-2 min-h-[200px] [&_.tiptap]:min-h-[180px]">
-                  <Editor
-                    content={description}
+                <div className="mt-2 min-h-[200px]">
+                  <DocEditorForCard
+                    ref={editorRef}
+                    initialContent={description}
                     onChange={(value) => {
                       setValue("description", value);
                     }}
-                    workspaceMembers={editorWorkspaceMembers}
-                    enableYouTubeEmbed={false}
+                    readOnly={false}
+                    workspaceMembers={mentionMembers}
                   />
                 </div>
               </div>

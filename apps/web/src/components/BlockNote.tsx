@@ -1,6 +1,7 @@
 import "@blocknote/mantine/style.css";
 
 import { BlockNoteView } from "@blocknote/mantine";
+import type { BlockNoteEditor } from "@blocknote/core";
 import {
   BasicTextStyleButton,
   BlockTypeSelect,
@@ -12,7 +13,6 @@ import {
   FormattingToolbarController,
   TextAlignButton,
 } from "@blocknote/react";
-import type { BlockNoteEditor } from "@blocknote/core";
 import React from "react";
 
 import { themeEditor } from "@kan/shared";
@@ -21,12 +21,18 @@ interface BlockNoteProps {
   editor: BlockNoteEditor;
   resolvedTheme: string | undefined;
   onChange: () => void;
+  editable?: boolean;
+  className?: string;
+  children?: React.ReactNode;
 }
 
 export default function BlockNote({
   editor,
   resolvedTheme,
   onChange: handleEditorChange,
+  editable = true,
+  className,
+  children,
 }: BlockNoteProps) {
   const Toolbar = () => (
     <FormattingToolbarController
@@ -77,7 +83,7 @@ export default function BlockNote({
   );
 
   return (
-    <div className="mt-10">
+    <div className={className}>
       <div className="[&_.bn-container]:!max-w-none [&_.bn-editor]:!px-0 [&_.bn-editor]:!py-0">
         <BlockNoteView
           editor={editor}
@@ -85,10 +91,12 @@ export default function BlockNote({
             resolvedTheme === "dark" ? themeEditor.dark : themeEditor.light
           }
           onChange={handleEditorChange}
+          editable={editable}
           sideMenu={false}
           formattingToolbar={false}
         >
           <Toolbar />
+          {children}
         </BlockNoteView>
       </div>
     </div>
