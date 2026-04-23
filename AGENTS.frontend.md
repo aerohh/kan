@@ -158,3 +158,29 @@ Dark mode detection for dynamic inline styles uses `useTheme()` from `next-theme
 
 - Implement optimistic updates in UI
 - Use tRPC hooks for data fetching efficiently
+
+## BlockNote Editor
+
+The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`) for rich text editing.
+
+### Shared Components & Hooks
+
+| File | Purpose |
+|------|---------|
+| `components/BlockNote.tsx` | Reusable `<BlockNote>` wrapper with formatting toolbar. Accepts `editable`, `className`, `children` props. Children render inside `BlockNoteView` context. |
+| `components/MentionSpec.tsx` | `@`-mention inline content spec for BlockNote. Exports `MentionMember`, `getMentionItems()`, `mentionInlineContentSpecs` |
+| `hooks/useBlockNoteEditor.ts` | Shared hook: editor creation, theme sync, initial content loading, `getFullText()`, `focus()`. Accepts optional `schema` for custom inline content. |
+| `views/docs/components/DocEditorForCard.tsx` | Card description editor. `forwardRef` exposing `focus()`. Accepts `workspaceMembers` to enable `@`-mentions. Uses `useBlockNoteEditor` hook. |
+| `views/docs/components/DocEditorInner.tsx` | Full-page doc editor with title + word count. Also uses `useBlockNoteEditor` hook. |
+
+### BlockNote Gotchas
+
+- **`SuggestionMenuController` must be a child of `BlockNoteView`** (i.e., inside `<BlockNote>` children), not a sibling. Otherwise: "useBlockNoteEditor was called outside of a BlockNoteContext provider"
+- **`createReactInlineContentSpec`** expects React components (JSX) for `render` and `toExternalHTML`, not vanilla DOM factories returning `{ dom }`
+- **`BlockNote` component accepts `children`** — pass context-dependent children (like `SuggestionMenuController`) through this prop so they render inside `BlockNoteView`
+- When using custom inline content (e.g., mentions), create a schema with `BlockNoteSchema.create({ inlineContentSpecs: mentionInlineContentSpecs })` and pass to `useBlockNoteEditor({ schema })`
+- Mention data flows: `NewCardPage` maps `WorkspaceMember[]` → `MentionMember[]` → `DocEditorForCard` prop → creates schema → `SuggestionMenuController`
+
+### Click-to-Focus Pattern
+
+`CardPage` and `NewCardPage` both have `onClick` on their scrollable content area that focuses the editor. The handler skips interactive elements (buttons, links, inputs, selects, dropdowns, editor itself). Uses `DocEditorForCardHandle.focus()` via `forwardRef`/`useImperativeHandle`.
