@@ -120,10 +120,10 @@ export default function DraftChecklistPanel({
   };
 
   return (
-    <div className="min-h-0 w-[360px] overflow-y-auto border-l-[1px] border-light-300 bg-light-50 p-8 text-light-900 dark:border-dark-300 dark:bg-dark-50 dark:text-dark-900">
+    <div className="h-full min-h-0 w-[360px] overflow-y-auto border-l-[1px] border-light-300 bg-light-100 p-8 text-light-900 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-900">
       <div className="pt-[18px]">
         <div className="flex items-center justify-between pb-4">
-          <h2 className="text-md font-medium text-light-1000 dark:text-dark-1000">
+          <h2 className="pb-4 text-xs font-semibold uppercase tracking-wider text-light-800 dark:text-dark-800">
             {t`Checklists`}
           </h2>
           <button
@@ -135,11 +135,11 @@ export default function DraftChecklistPanel({
           </button>
         </div>
 
-        {checklists.map((checklist) => {
+          {checklists.map((checklist) => {
           const completedItems = checklist.items.filter((item) => item.completed);
 
           return (
-            <div key={checklist.tempId} className="mb-4">
+            <div key={checklist.tempId} className="mb-3 rounded-lg border border-light-300 bg-light-50 p-3 dark:border-dark-300 dark:bg-dark-50">
               <div className="mb-2 flex items-center font-medium text-light-1000 dark:text-dark-1000">
                 <div className="min-w-0 flex-1">
                   <input
@@ -170,6 +170,17 @@ export default function DraftChecklistPanel({
                 </div>
               </div>
 
+              {checklist.items.length > 0 && (
+                <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-light-300 dark:bg-dark-300">
+                  <div
+                    className="h-full rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-500"
+                    style={{
+                      width: `${checklist.items.length > 0 ? (completedItems.length / checklist.items.length) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              )}
+
               <div className="ml-1">
                 {checklist.items.map((item) => (
                   <div
@@ -182,7 +193,7 @@ export default function DraftChecklistPanel({
                       onChange={() =>
                         toggleChecklistItem(checklist.tempId, item.tempId)
                       }
-                      className="h-4 w-4 rounded border-light-400 dark:border-dark-400"
+                      className="h-[18px] w-[18px] rounded border-light-400 dark:border-dark-400"
                     />
                     <input
                       type="text"
@@ -194,7 +205,7 @@ export default function DraftChecklistPanel({
                           e.target.value,
                         )
                       }
-                      className="flex-1 border-0 bg-transparent p-0 text-sm focus:outline-none focus:ring-0"
+                      className={`flex-1 border-0 bg-transparent p-0 text-base text-light-1000 focus:outline-none focus:ring-0 dark:text-dark-1000 ${item.completed ? "line-through text-light-800 dark:text-dark-800" : ""}`}
                     />
                     <button
                       onClick={() =>
@@ -202,7 +213,7 @@ export default function DraftChecklistPanel({
                       }
                       className="hidden rounded-md p-1 text-light-900 hover:bg-light-200 group-hover:block dark:text-dark-700 dark:hover:bg-dark-200"
                     >
-                      <HiXMark size={14} />
+                      <HiXMark size={18} />
                     </button>
                   </div>
                 ))}
@@ -212,7 +223,7 @@ export default function DraftChecklistPanel({
                     <input
                       type="checkbox"
                       disabled
-                      className="h-4 w-4 rounded border-light-400 dark:border-dark-400"
+                      className="h-[18px] w-[18px] rounded border-light-400 dark:border-dark-400"
                     />
                     <input
                       type="text"
@@ -238,7 +249,7 @@ export default function DraftChecklistPanel({
                       }}
                       placeholder={t`Add item`}
                       autoFocus
-                      className="flex-1 border-0 bg-transparent p-0 text-sm focus:outline-none focus:ring-0"
+                      className="flex-1 border-0 bg-transparent p-0 text-base focus:outline-none focus:ring-0"
                     />
                   </div>
                 )}

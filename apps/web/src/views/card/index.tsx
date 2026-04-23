@@ -82,9 +82,9 @@ export function CardActivityPanel({ isTemplate, cardPublicId: cardPublicIdOverri
       })) ?? [];
 
   return (
-    <div className="min-h-0 w-[360px] overflow-y-auto border-l-[1px] border-light-300 bg-light-50 p-8 text-light-900 dark:border-dark-300 dark:bg-dark-50 dark:text-dark-900">
+    <div className="h-full min-h-0 w-[360px] overflow-y-auto border-l-[1px] border-light-300 bg-light-100 p-8 text-light-900 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-900">
       <div className="pt-[18px]">
-        <h2 className="text-md pb-4 font-medium text-light-1000 dark:text-dark-1000">
+        <h2 className="pb-4 text-xs font-semibold uppercase tracking-wider text-light-800 dark:text-dark-800">
           {t`Activity`}
         </h2>
         {!isTemplate && (
@@ -311,7 +311,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
       <PageHead
         title={t`${card?.title ?? t`Card`} | ${board?.name ?? t`Board`}`}
       />
-      <div className={isSlideOver ? "flex flex-col" : "flex h-full flex-1 flex-col overflow-hidden"}>
+      <div className={isSlideOver ? "flex h-full flex-col" : "flex h-full flex-1 flex-col overflow-hidden"}>
         {!isSlideOver && (
         <div className="flex w-full items-center justify-between border-b-[1px] border-light-300 bg-light-50 px-8 py-2 dark:border-dark-300 dark:bg-dark-50">
           {!card && isLoading && (
@@ -382,7 +382,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
           </div>
         )}
         <div className={isSlideOver
-          ? "w-full"
+          ? "w-full flex-1 overflow-y-auto"
           : "scrollbar-thumb-rounded-[4px] scrollbar-track-rounded-[4px] w-full flex-1 overflow-y-auto scrollbar scrollbar-track-light-200 scrollbar-thumb-light-400 hover:scrollbar-thumb-light-400 dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-300 dark:hover:scrollbar-thumb-dark-300"
         }>
           <div className={`p-auto mx-auto flex h-full ${isSlideOver ? "w-[540px]" : "w-[800px]"} flex-col`}>
@@ -482,19 +482,19 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                           />
                         </div>
                       )}
-                      {canEdit && (
-                        <div className="mt-6 flex items-center justify-between">
+                      {canEdit && !isSlideOver && (
+                        <div className="mt-6 flex items-center justify-end gap-1">
                           <button
                             type="button"
                             onClick={toggleChecklistPanel}
-                            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                            title={checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
+                            className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
                               checklistPanelOpen
-                                ? "bg-light-200 text-light-1000 dark:bg-dark-200 dark:text-dark-1000"
-                                : "text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
+                                ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
                             }`}
                           >
-                            <HiCheckBadge className="h-4 w-4" />
-                            {checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
+                            <HiCheckBadge className="h-5 w-5" />
                           </button>
                           <AttachmentUpload cardPublicId={cardId} />
                         </div>
@@ -506,6 +506,24 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
             </div>
           </div>
         </div>
+
+        {isSlideOver && !isTemplate && canEdit && (
+          <div className="flex items-center justify-end gap-1 border-t border-light-300 bg-light-50 px-8 py-2 dark:border-dark-300 dark:bg-dark-50">
+            <button
+              type="button"
+              onClick={toggleChecklistPanel}
+              title={checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
+              className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                checklistPanelOpen
+                  ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                  : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
+              }`}
+            >
+              <HiCheckBadge className="h-5 w-5" />
+            </button>
+            <AttachmentUpload cardPublicId={cardId} />
+          </div>
+        )}
 
         <>
           <Modal

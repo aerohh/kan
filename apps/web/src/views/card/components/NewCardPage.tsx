@@ -517,42 +517,41 @@ export default function NewCardPage({
                     enableYouTubeEmbed={false}
                   />
                 </div>
-                <div className="my-6 h-[1px] bg-light-500 dark:bg-dark-500" />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={toggleChecklistPanel}
-                  className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    checklistPanelOpen
-                      ? "bg-light-200 text-light-1000 dark:bg-dark-200 dark:text-dark-1000"
-                      : "text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
-                  }`}
-                >
-                  <HiCheckBadge className="h-4 w-4" />
-                  {checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
-                </button>
-                <div className="flex items-center space-x-4">
-                  <Toggle
-                    label={t`Create another`}
-                    isChecked={isCreateAnother}
-                    onChange={() =>
-                      setValue("isCreateAnotherEnabled", !isCreateAnother)
-                    }
-                  />
-                  <Button
-                    type="button"
-                    disabled={title.length === 0 || createCard.isPending}
-                    onClick={() => handleSubmit(onSubmit)()}
-                  >
-                    {t`Create card`}
-                  </Button>
-                </div>
               </div>
             </div>
           </div>
-        </div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-light-300 bg-light-50 px-6 py-3 dark:border-dark-300 dark:bg-dark-50 md:px-8">
+            <button
+              type="button"
+              onClick={toggleChecklistPanel}
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                checklistPanelOpen
+                  ? "text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
+                  : "text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
+              }`}
+            >
+              <HiCheckBadge className={`h-4 w-4 ${checklistPanelOpen ? "text-blue-600 dark:text-blue-400" : ""}`} />
+              {checklistPanelOpen ? t`Hide checklists` : t`Checklists`}
+            </button>
+            <div className="flex items-center space-x-4">
+              <Toggle
+                label={t`Create another`}
+                isChecked={isCreateAnother}
+                onChange={() =>
+                  setValue("isCreateAnotherEnabled", !isCreateAnother)
+                }
+              />
+              <Button
+                type="button"
+                disabled={title.length === 0 || createCard.isPending}
+                onClick={() => handleSubmit(onSubmit)()}
+              >
+                {t`Create card`}
+              </Button>
+            </div>
+          </div>
         </div>
         <SlideInPanel isVisible={checklistPanelOpen}>
           <DraftChecklistPanel

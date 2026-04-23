@@ -47,7 +47,7 @@ function CardSlideOverContent({
       {isOpen && (isAddMode || cardPublicId) ? (
         <ModalProvider>
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 flex flex-col">
               <CardPage
                 cardPublicId={cardPublicId}
                 isTemplate={isTemplate}
@@ -100,7 +100,7 @@ export default function CardSlideOver(props: CardSlideOverProps) {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/20 transition-opacity dark:bg-black/40" />
+          <div className="fixed inset-0 bg-black/10 transition-opacity dark:bg-black/30" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-hidden">
@@ -115,7 +115,7 @@ export default function CardSlideOver(props: CardSlideOverProps) {
                 leaveFrom="translate-x-0"
                 leaveTo="translate-x-full"
               >
-                <Dialog.Panel className="pointer-events-auto flex h-full w-full max-w-[1520px] flex-col border-l border-light-300 bg-light-50 shadow-2xl dark:border-dark-300 dark:bg-dark-50">
+                <Dialog.Panel className="pointer-events-auto flex h-full w-full max-w-[1520px] flex-col border-l border-light-300 bg-light-50 shadow-xl dark:border-dark-300 dark:bg-dark-50 dark:shadow-none">
                   <ChecklistPanelProvider>
                     <CardSlideOverContent {...props} />
                   </ChecklistPanelProvider>

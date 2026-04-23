@@ -118,7 +118,7 @@ export default function Checklists({
                 : 2;
 
             return (
-              <div key={checklist.publicId} className="mb-4">
+              <div key={checklist.publicId} className="mb-3 rounded-lg border border-light-300 bg-light-50 p-3 dark:border-dark-300 dark:bg-dark-50">
                 <div className="mb-2 flex items-center font-medium text-light-1000 dark:text-dark-1000">
                   <div className="min-w-0 flex-1">
                     <ChecklistNameInput
@@ -175,6 +175,17 @@ export default function Checklists({
                     </div>
                   )}
                 </div>
+
+                {checklist.items.length > 0 && (
+                  <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-light-300 dark:bg-dark-300">
+                    <div
+                      className="h-full rounded-full bg-blue-600 transition-all duration-300 dark:bg-blue-500"
+                      style={{
+                        width: `${checklist.items.length > 0 ? (completedItems.length / checklist.items.length) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                )}
 
                 <Droppable
                   droppableId={checklist.publicId}

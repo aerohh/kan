@@ -35,12 +35,12 @@ export default function SlideInPanel({ isVisible, children }: SlideInPanelProps)
           setMounted(false);
         }
       }}
-      className={`overflow-hidden transition-[max-width] duration-200 ease-out ${
+      className={`h-full overflow-hidden transition-[max-width] duration-200 ease-out ${
         animateIn ? "max-w-[360px]" : "max-w-0"
       }`}
     >
       <div
-        className={`transform transition-transform duration-200 ease-out ${
+        className={`h-full transform transition-transform duration-200 ease-out ${
           animateIn ? "translate-x-0" : "translate-x-full"
         }`}
       >
