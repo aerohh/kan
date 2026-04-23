@@ -9,6 +9,7 @@ These files give AI agents a **lead** — so they spend less time searching, rea
 ## Agent Files
 
 For domain-specific instructions, read the relevant file:
+ALWAYS READ THESE AGENT FILES DOESN'T WHATEVER THE USER ASKS.
 
 | File | When to read |
 |------|-------------|
