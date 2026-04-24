@@ -37,3 +37,10 @@ export { listCreateResponseSchema, listUpdateResponseSchema } from "./list";
 export { memberInviteResponseSchema } from "./member";
 
 export { attachmentConfirmResponseSchema } from "./attachment";
+
+export {
+  docCreateResponseSchema,
+  docUpdateResponseSchema,
+  docDetailSchema,
+  docListItemSchema,
+} from "./doc";

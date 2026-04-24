@@ -1,0 +1,1 @@
+ALTER TABLE "card" ALTER COLUMN "description" SET DATA TYPE jsonb USING CASE WHEN description IS NULL OR description = '' THEN NULL ELSE to_jsonb(description) END;

@@ -2,7 +2,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import type { CustomBlockNoteSchema } from "@blocknote/core";
 import { useTheme } from "next-themes";
 import type { RefObject } from "react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function extractTextFromBlock(block: {
   content?: Record<string, unknown>[];
@@ -38,7 +38,7 @@ interface UseBlockNoteEditorOptions {
     checkListItem: string;
   };
   wrapperRef: RefObject<HTMLDivElement | null>;
-  initialContent?: string | null;
+  initialContent?: string | Record<string, unknown>[] | null;
   schema?: CustomBlockNoteSchema<any, any, any>;
 }
 
@@ -49,12 +49,13 @@ export function useBlockNoteEditor({
   schema,
 }: UseBlockNoteEditorOptions) {
   const { resolvedTheme } = useTheme();
+  const isContentLoaded = useRef(false);
   const initialContentRef = useRef(initialContent);
   initialContentRef.current = initialContent;
-  const isContentLoaded = useRef(false);
+  const [isReady, setIsReady] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const editor = useCreateBlockNote(schema ? { schema } as any : { placeholders });
+  const editor = useCreateBlockNote(schema ? { schema, placeholders } as any : { placeholders });
 
   useEffect(() => {
     if (!wrapperRef.current) return;
@@ -76,34 +77,49 @@ export function useBlockNoteEditor({
   }, [resolvedTheme, wrapperRef]);
 
   useEffect(() => {
-    if (!editor || isContentLoaded.current) return;
+    if (!editor) return;
+    if (isContentLoaded.current) return;
     const content = initialContentRef.current;
     if (!content) {
       isContentLoaded.current = true;
+      setIsReady(true);
       return;
     }
+
+    const loadBlocks = (blocks: Record<string, unknown>[]) => {
+      if (blocks.length === 0) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (editor as any).replaceBlocks(editor.document, blocks);
+    };
+
+    if (Array.isArray(content)) {
+      try {
+        loadBlocks(content);
+      } catch {
+        // If JSON blocks fail, leave as-is
+      }
+      isContentLoaded.current = true;
+      setIsReady(true);
+      return;
+    }
+
     try {
       const blocks = editor.tryParseHTMLToBlocks(content);
       if (blocks && blocks.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (editor as any).removeBlocks(editor.document);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (editor as any).insertBlocks(blocks);
+        loadBlocks(blocks);
       }
     } catch {
       try {
         const blocks = editor.tryParseMarkdownToBlocks(content);
         if (blocks && blocks.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (editor as any).removeBlocks(editor.document);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (editor as any).insertBlocks(blocks);
+          loadBlocks(blocks);
         }
       } catch {
         // If both fail, leave as-is
       }
     }
     isContentLoaded.current = true;
+    setIsReady(true);
   }, [editor]);
 
   const getFullText = useCallback(() => {
@@ -119,5 +135,5 @@ export function useBlockNoteEditor({
     editor?.focus();
   }, [editor]);
 
-  return { editor, resolvedTheme, getFullText, focus };
+  return { editor, resolvedTheme, getFullText, focus, isReady };
 }

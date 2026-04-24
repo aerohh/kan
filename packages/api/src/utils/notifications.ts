@@ -10,7 +10,7 @@ import * as notificationRepo from "@kan/db/repository/notification.repo";
 import * as userRepo from "@kan/db/repository/user.repo";
 import * as workspaceRepo from "@kan/db/repository/workspace.repo";
 import { sendEmail } from "@kan/email";
-import { parseMentionsFromHTML } from "@kan/shared/utils";
+import { parseMentionsFromContent } from "@kan/shared/utils";
 
 /**
  * Sends mention notification emails to mentioned members
@@ -19,19 +19,18 @@ import { parseMentionsFromHTML } from "@kan/shared/utils";
 export async function sendMentionEmails({
   db,
   cardPublicId,
-  commentHtml,
+  descriptionContent,
   commenterUserId,
   commentId,
 }: {
   db: dbClient;
   cardPublicId: string;
-  commentHtml: string;
+  descriptionContent: string | unknown[];
   commenterUserId: string;
   commentId?: number;
 }) {
   try {
-    // Parse mentions from HTML
-    const mentionPublicIds = parseMentionsFromHTML(commentHtml);
+    const mentionPublicIds = parseMentionsFromContent(descriptionContent);
     if (mentionPublicIds.length === 0) return;
 
     // Get card with board information

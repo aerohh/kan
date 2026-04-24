@@ -45,7 +45,7 @@ const Card = ({
       index: number;
     }[];
   }[];
-  description: string | null;
+  description: string | unknown[] | null;
   comments: { publicId: string }[];
   attachments?: { publicId: string }[];
   dueDate?: Date | null;
@@ -68,8 +68,9 @@ const Card = ({
   const progress =
     totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
-  const hasDescription =
-    description && description.replace(/<[^>]*>/g, "").trim().length > 0;
+  const hasDescription = typeof description === "string"
+    ? description.replace(/<[^>]*>/g, "").trim().length > 0
+    : Array.isArray(description) && description.length > 0;
   const hasAttachments = attachments && attachments.length > 0;
   const hasDueDate = !!dueDate;
 

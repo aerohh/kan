@@ -225,6 +225,20 @@
       "when": 1775170588247,
       "tag": "20260402225628_AddTeamWorkspacePlan",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1776987462733,
+      "tag": "20260423233742_AddDocsTable",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1776987689704,
+      "tag": "20260423234129_ChangeCardDescriptionToJsonb",
+      "breakpoints": true
     }
   ]
 }

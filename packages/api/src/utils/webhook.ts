@@ -17,7 +17,7 @@ export interface WebhookPayload {
     card: {
       id: string;
       title: string;
-      description?: string | null;
+      description?: string | unknown[] | null;
       dueDate?: string | null; // ISO string after JSON serialization
       listId: string;
       boardId: string;
@@ -222,7 +222,7 @@ export function createCardWebhookPayload(
   card: {
     id: string;
     title: string;
-    description?: string | null;
+    description?: string | unknown[] | null;
     dueDate?: Date | null;
     listId: string;
   },

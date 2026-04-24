@@ -43,8 +43,9 @@ import NewCommentForm from "./components/NewCommentForm";
 interface FormValues {
   cardId: string;
   title: string;
-  description: string;
+  description: string | Record<string, unknown>[];
 }
+const DESCRIPTION_AUTOSAVE_DELAY_MS = 700;
 
 type BoardQueryParams = RouterInputs["board"]["byId"];
 
@@ -107,7 +108,7 @@ export function CardActivityPanel({ isTemplate, cardPublicId: cardPublicIdOverri
   );
 }
 
-export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverride, isSlideOver, onClose, mode, boardPublicId, listPublicId, queryParams, preSelectedLabelId, preSelectedMemberId, preSelectedDueDate }: {
+export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverride, isSlideOver, onClose, mode, boardPublicId, listPublicId, queryParams, preSelectedLabelId, preSelectedMemberId, preSelectedDueDate, registerBeforeClose }: {
   isTemplate?: boolean;
   cardPublicId?: string;
   isSlideOver?: boolean;
@@ -119,10 +120,17 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   preSelectedLabelId?: string;
   preSelectedMemberId?: string;
   preSelectedDueDate?: Date;
+  registerBeforeClose?: (handler: (() => Promise<void>) | null) => void;
 }) {
   const router = useRouter();
   const utils = api.useUtils();
   const editorRef = useRef<DocEditorForCardHandle>(null);
+  const descriptionSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasPendingDescriptionSaveRef = useRef(false);
+  const latestDescriptionRef = useRef<string | Record<string, unknown>[]>(
+    "",
+  );
+  const flushPendingCardSaveRef = useRef<() => Promise<void>>(async () => {});
   const {
     modalContentType,
     entityId,
@@ -247,11 +255,11 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     },
   });
 
-  const { register, handleSubmit, setValue, watch } = useForm<FormValues>({
+  const { register, handleSubmit, setValue, watch, getValues } = useForm<FormValues>({
     values: {
       cardId: cardId ?? "",
       title: card?.title ?? "",
-      description: card?.description ?? "",
+      description: (card?.description as string | Record<string, unknown>[] | null) ?? "",
     },
   });
 
@@ -262,6 +270,11 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
       description: values.description,
     });
   };
+
+  useEffect(() => {
+    latestDescriptionRef.current =
+      (card?.description as string | Record<string, unknown>[] | null) ?? "";
+  }, [card?.description]);
 
   useEffect(() => {
     const newLabelId = modalStates.NEW_LABEL_CREATED;
@@ -279,6 +292,100 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
       clearModalState("NEW_LABEL_CREATED");
     }
   }, [modalStates.NEW_LABEL_CREATED, card, cardId]);
+
+  const flushPendingCardSave = useCallback(async (finalize = false, waitForNetwork = true) => {
+    if (descriptionSaveTimeoutRef.current) {
+      clearTimeout(descriptionSaveTimeoutRef.current);
+      descriptionSaveTimeoutRef.current = null;
+    }
+
+    if (!canEdit || !cardId) {
+      return;
+    }
+
+    if (finalize && typeof document !== "undefined") {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) {
+        active.blur();
+      }
+    }
+
+    const values = getValues();
+    const liveDescription = editorRef.current?.getDocument();
+    const descriptionToSave =
+      liveDescription !== undefined
+        ? liveDescription
+        : latestDescriptionRef.current ?? values.description;
+
+    const baselineTitle = card?.title ?? values.title;
+    const baselineDescription = card?.description ?? "";
+    const titleChanged = values.title !== baselineTitle;
+    const descriptionChanged =
+      JSON.stringify(descriptionToSave) !== JSON.stringify(baselineDescription);
+    const shouldSave = hasPendingDescriptionSaveRef.current || titleChanged || descriptionChanged;
+    if (!shouldSave) {
+      return;
+    }
+
+    hasPendingDescriptionSaveRef.current = false;
+    const payload: {
+      cardPublicId: string;
+      description: string | Record<string, unknown>[];
+      title?: string;
+      silent?: boolean;
+    } = {
+      cardPublicId: cardId,
+      description: descriptionToSave,
+    };
+    if (titleChanged) {
+      payload.title = values.title;
+    } else {
+      payload.silent = true;
+    }
+
+    // Keep immediate reopen consistent by updating local card cache before async save settles.
+    utils.card.byId.setData({ cardPublicId: cardId }, (current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        ...(payload.title !== undefined ? { title: payload.title } : {}),
+        description: payload.description,
+      };
+    });
+
+    if (!waitForNetwork) {
+      void utils.client.card.update.mutate(payload).catch(() => {
+        if (cardId) {
+          void invalidateCard(utils, cardId);
+        }
+      });
+      return;
+    }
+
+    await updateCard.mutateAsync(payload);
+  }, [canEdit, card, cardId, getValues, updateCard, utils.client.card.update]);
+
+  useEffect(() => {
+    flushPendingCardSaveRef.current = flushPendingCardSave;
+  }, [flushPendingCardSave]);
+
+  const flushPendingCardSaveForClose = useCallback(() => {
+    return flushPendingCardSave(true, false);
+  }, [flushPendingCardSave]);
+
+  useEffect(() => {
+    if (!registerBeforeClose) return;
+    registerBeforeClose(() => flushPendingCardSaveForClose());
+    return () => {
+      registerBeforeClose(null);
+    };
+  }, [flushPendingCardSaveForClose, registerBeforeClose]);
+
+  useEffect(() => {
+    return () => {
+      void flushPendingCardSaveRef.current();
+    };
+  }, []);
 
   useEffect(() => {
     const titleTextarea = document.getElementById(
@@ -481,9 +588,22 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                           initialContent={card.description}
                           onChange={
                             canEdit
-                              ? (value) => setValue("description", value)
+                              ? (value) => {
+                                  setValue("description", value);
+                                  latestDescriptionRef.current = value;
+                                  hasPendingDescriptionSaveRef.current = true;
+                                  if (descriptionSaveTimeoutRef.current) {
+                                    clearTimeout(descriptionSaveTimeoutRef.current);
+                                  }
+                                  descriptionSaveTimeoutRef.current = setTimeout(() => {
+                                    void flushPendingCardSaveRef.current();
+                                  }, DESCRIPTION_AUTOSAVE_DELAY_MS);
+                                }
                               : undefined
                           }
+                          onUnmountSnapshot={(value) => {
+                            latestDescriptionRef.current = value;
+                          }}
                           readOnly={!canEdit}
                         />
                       </div>

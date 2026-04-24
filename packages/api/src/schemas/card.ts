@@ -15,7 +15,7 @@ export const cardCreateResponseSchema = z.object({
 export const cardUpdateResponseSchema = z.object({
   publicId: z.string(),
   title: z.string(),
-  description: z.string().nullable(),
+  description: z.union([z.string(), z.array(z.unknown())]).nullable(),
   dueDate: z.date().nullable(),
 });
 
@@ -44,7 +44,7 @@ const cardMemberSchema = z.object({
 export const cardDetailSchema = z.object({
   publicId: z.string(),
   title: z.string(),
-  description: z.string().nullable(),
+  description: z.union([z.string(), z.array(z.unknown())]).nullable(),
   dueDate: z.date().nullable(),
   createdBy: z.string().nullable(),
   labels: z.array(labelSchema),
@@ -88,7 +88,7 @@ export const cardDetailSchema = z.object({
       toIndex: z.number().nullable(),
       fromTitle: z.string().nullable(),
       toTitle: z.string().nullable(),
-      fromDescription: z.string().nullable(),
+  fromDescription: z.string().nullable(),
       toDescription: z.string().nullable(),
       fromDueDate: z.date().nullable(),
       toDueDate: z.date().nullable(),
@@ -142,7 +142,6 @@ export const cardDetailSchema = z.object({
   ),
 });
 
-// ─── card.getActivities ──────────────────────────────────────
 export const activityItemSchema = z.object({
   publicId: z.string(),
   type: z.string(),

@@ -1,6 +1,6 @@
 import { BlockNoteSchema } from "@blocknote/core";
 import { SuggestionMenuController } from "@blocknote/react";
-import { forwardRef, useCallback, useMemo, useImperativeHandle, useRef } from "react";
+import { forwardRef, useCallback, useMemo, useImperativeHandle, useRef, useEffect } from "react";
 
 import BlockNote from "~/components/BlockNote";
 import {
@@ -13,20 +13,24 @@ import { useBlockNoteEditor } from "~/hooks/useBlockNoteEditor";
 
 export interface DocEditorForCardHandle {
   focus: () => void;
+  getDocument: () => Record<string, unknown>[];
 }
 
 const DocEditorForCard = forwardRef<
   DocEditorForCardHandle,
   {
-    initialContent: string | null;
-    onChange?: (value: string) => void;
+    initialContent: string | Record<string, unknown>[] | null;
+    onChange?: (value: string | Record<string, unknown>[]) => void;
+    onUnmountSnapshot?: (value: Record<string, unknown>[]) => void;
     readOnly?: boolean;
     workspaceMembers?: MentionMember[];
   }
->(function DocEditorForCard({ initialContent, onChange, readOnly = false, workspaceMembers }, ref) {
+>(function DocEditorForCard({ initialContent, onChange, onUnmountSnapshot, readOnly = false, workspaceMembers }, ref) {
   const editorWrapperRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onUnmountSnapshotRef = useRef(onUnmountSnapshot);
+  onUnmountSnapshotRef.current = onUnmountSnapshot;
 
   const schema = useMemo(() => {
     if (!workspaceMembers || workspaceMembers.length === 0) return undefined;
@@ -48,16 +52,30 @@ const DocEditorForCard = forwardRef<
     schema,
   });
 
-  useImperativeHandle(ref, () => ({ focus }), [focus]);
+  const getDocument = useCallback(() => {
+    if (!editor) return [];
+    return JSON.parse(JSON.stringify(editor.document)) as Record<string, unknown>[];
+  }, [editor]);
+
+  const getDocumentRef = useRef(getDocument);
+  getDocumentRef.current = getDocument;
+
+  useImperativeHandle(ref, () => ({ focus, getDocument }), [focus, getDocument]);
+
+  useEffect(() => {
+    return () => {
+      onUnmountSnapshotRef.current?.(getDocumentRef.current());
+    };
+  }, []);
 
   const handleChange = useCallback(() => {
     if (!editor || readOnly) return;
     const trimmed = getFullText().trim();
     if (trimmed) {
-      const html = editor.blocksToHTMLLossy();
-      onChangeRef.current?.(html);
+      const blocks = editor.document;
+      onChangeRef.current?.(blocks);
     } else {
-      onChangeRef.current?.("");
+      onChangeRef.current?.([]);
     }
   }, [editor, readOnly, getFullText]);
 

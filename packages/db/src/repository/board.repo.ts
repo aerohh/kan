@@ -749,7 +749,7 @@ export const createFromSnapshot = async (
         index: number;
         cards: {
           title: string;
-          description: string | null;
+          description: string | unknown[] | null;
           index: number;
           labels: {
             publicId: string;

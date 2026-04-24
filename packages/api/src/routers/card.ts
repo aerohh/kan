@@ -26,6 +26,9 @@ import {
   createCardWebhookPayload,
   sendWebhooksForWorkspace,
 } from "../utils/webhook";
+import { createLogger } from "@kan/logger";
+
+const log = createLogger("card-router");
 
 export const cardRouter = createTRPCRouter({
   create: protectedProcedure
@@ -42,7 +45,7 @@ export const cardRouter = createTRPCRouter({
     .input(
       z.object({
         title: z.string().min(1).max(2000),
-        description: z.string().max(10000),
+        description: z.union([z.string().max(10000), z.array(z.unknown())]),
         listPublicId: z.string().min(12),
         labelPublicIds: z.array(z.string().min(12)),
         memberPublicIds: z.array(z.string().min(12)),
@@ -171,38 +174,12 @@ export const cardRouter = createTRPCRouter({
         sendMentionEmails({
           db: ctx.db,
           cardPublicId: newCard.publicId,
-          commentHtml: input.description,
+          descriptionContent: input.description,
           commenterUserId: userId,
         }).catch((error) => {
-          console.error("Failed to send mention emails:", error);
+          log.error({ err: error }, "Failed to send mention emails");
         });
       }
-
-      // Fire webhooks (non-blocking)
-      sendWebhooksForWorkspace(
-        ctx.db,
-        list.workspaceId,
-        createCardWebhookPayload(
-          "card.created",
-          {
-            id: String(newCard.id),
-            title: input.title,
-            description: input.description,
-            dueDate: input.dueDate ?? null,
-            listId: String(newCard.listId),
-          },
-          {
-            boardId: list.boardPublicId,
-            boardName: list.boardName,
-            listName: list.name,
-            user: ctx.user
-              ? { id: ctx.user.id, name: ctx.user.name }
-              : undefined,
-          },
-        ),
-      ).catch((error) => {
-        console.error("Webhook delivery failed:", error);
-      });
 
       return newCard;
     }),
@@ -269,11 +246,11 @@ export const cardRouter = createTRPCRouter({
       sendMentionEmails({
         db: ctx.db,
         cardPublicId: input.cardPublicId,
-        commentHtml: input.comment,
+        descriptionContent: input.comment,
         commenterUserId: userId,
         commentId: newComment.id,
       }).catch((error) => {
-        console.error("Failed to send mention emails:", error);
+        log.error({ err: error }, "Failed to send mention emails");
       });
 
       return newComment;
@@ -359,11 +336,11 @@ export const cardRouter = createTRPCRouter({
       sendMentionEmails({
         db: ctx.db,
         cardPublicId: input.cardPublicId,
-        commentHtml: input.comment,
+        descriptionContent: input.comment,
         commenterUserId: userId,
         commentId: updatedComment.id,
       }).catch((error) => {
-        console.error("Failed to send mention emails:", error);
+        log.error({ err: error }, "Failed to send mention emails");
       });
 
       return updatedComment;
@@ -847,7 +824,7 @@ export const cardRouter = createTRPCRouter({
       z.object({
         cardPublicId: z.string().min(12),
         title: z.string().min(1).max(2000).optional(),
-        description: z.string().optional(),
+        description: z.union([z.string(), z.array(z.unknown())]).optional(),
         index: z.number().optional(),
         listPublicId: z.string().min(12).optional(),
         dueDate: z.date().nullable().optional(),
@@ -915,7 +892,7 @@ export const cardRouter = createTRPCRouter({
         | {
             id: number;
             title: string;
-            description: string | null;
+            description: string | unknown[] | null;
             publicId: string;
             dueDate: Date | null;
           }
@@ -923,12 +900,12 @@ export const cardRouter = createTRPCRouter({
 
       const previousDueDate = existingCard.dueDate;
 
-      if (input.title || input.description || input.dueDate !== undefined) {
+      if (input.title || input.description !== undefined || input.dueDate !== undefined) {
         result = await cardRepo.update(
           ctx.db,
           {
             ...(input.title && { title: input.title }),
-            ...(input.description && { description: input.description }),
+            ...(input.description !== undefined && { description: input.description }),
             ...(input.dueDate !== undefined && { dueDate: input.dueDate }),
           },
           { cardPublicId: input.cardPublicId },
@@ -961,58 +938,33 @@ export const cardRouter = createTRPCRouter({
         });
       }
 
-      if (input.description && existingCard.description !== input.description) {
+      const descriptionChanged = input.description !== undefined && JSON.stringify(existingCard.description) !== JSON.stringify(input.description);
+
+      if (descriptionChanged) {
+        const fromDescStr = typeof existingCard.description === "string"
+          ? existingCard.description
+          : existingCard.description
+            ? JSON.stringify(existingCard.description)
+            : undefined;
+        const toDescStr = typeof input.description === "string"
+          ? input.description
+          : JSON.stringify(input.description);
+
         activities.push({
           type: "card.updated.description" as const,
           cardId: result.id,
           createdBy: userId,
-          fromDescription: existingCard.description ?? undefined,
-          toDescription: input.description,
+          fromDescription: fromDescStr,
+          toDescription: toDescStr,
         });
 
         sendMentionEmails({
           db: ctx.db,
           cardPublicId: input.cardPublicId,
-          commentHtml: input.description,
+          descriptionContent: input.description!,
           commenterUserId: userId,
         }).catch((error) => {
-          console.error("Failed to send mention emails:", error);
-        });
-      }
-
-      if (
-        input.dueDate !== undefined &&
-        previousDueDate?.getTime() !== input.dueDate?.getTime()
-      ) {
-        let activityType:
-          | "card.updated.dueDate.added"
-          | "card.updated.dueDate.updated"
-          | "card.updated.dueDate.removed";
-
-        if (!previousDueDate) {
-          activityType = "card.updated.dueDate.added";
-        } else if (!input.dueDate) {
-          activityType = "card.updated.dueDate.removed";
-        } else {
-          activityType = "card.updated.dueDate.updated";
-        }
-
-        activities.push({
-          type: activityType,
-          cardId: result.id,
-          createdBy: userId,
-          fromDueDate: previousDueDate ?? undefined,
-          toDueDate: input.dueDate ?? undefined,
-        });
-      }
-
-      if (newListId && existingCard.listId !== newListId) {
-        activities.push({
-          type: "card.updated.list" as const,
-          cardId: result.id,
-          createdBy: userId,
-          fromListId: existingCard.listId,
-          toListId: newListId,
+          log.error({ err: error }, "Failed to send mention emails");
         });
       }
 
@@ -1052,7 +1004,7 @@ export const cardRouter = createTRPCRouter({
           {
             id: String(result.id),
             title: result.title,
-            description: result.description,
+            description: result.description as string | unknown[] | null,
             dueDate: result.dueDate,
             listId: String(newListId ?? existingCard.listId),
           },
@@ -1070,7 +1022,7 @@ export const cardRouter = createTRPCRouter({
           },
         ),
       ).catch((error) => {
-        console.error("Webhook delivery failed:", error);
+        log.error({ err: error }, "Webhook delivery failed");
       });
 
       return result;
@@ -1147,7 +1099,7 @@ export const cardRouter = createTRPCRouter({
             {
               id: String(fullCard.id),
               title: fullCard.title,
-              description: fullCard.description,
+              description: fullCard.description as string | unknown[] | null,
               dueDate: fullCard.dueDate,
               listId: String(fullCard.listId),
             },
@@ -1161,7 +1113,7 @@ export const cardRouter = createTRPCRouter({
             },
           ),
         ).catch((error) => {
-          console.error("Webhook delivery failed:", error);
+          log.error({ err: error }, "Webhook delivery failed");
         });
       }
 
@@ -1251,7 +1203,7 @@ export const cardRouter = createTRPCRouter({
 
       const newCard = await cardRepo.create(ctx.db, {
         title: input.title ?? sourceCard.title,
-        description: sourceCard.description ?? "",
+        description: (sourceCard.description as string | unknown[] | null) ?? [],
         createdBy: userId,
         listId: targetList.id,
         position: "end",

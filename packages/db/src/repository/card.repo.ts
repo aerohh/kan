@@ -38,7 +38,7 @@ export const create = async (
   db: dbClient,
   cardInput: {
     title: string;
-    description: string;
+    description: string | unknown[];
     createdBy: string;
     listId: number;
     position: "start" | "end";
@@ -183,7 +183,7 @@ export const update = async (
   db: dbClient,
   cardInput: {
     title?: string;
-    description?: string;
+    description?: string | unknown[] | null;
     dueDate?: Date | null;
   },
   args: {
@@ -262,7 +262,7 @@ export const bulkCreate = async (
   cardInput: {
     publicId: string;
     title: string;
-    description: string;
+    description: string | unknown[];
     createdBy: string;
     listId: number;
     index: number;
@@ -283,7 +283,7 @@ export const bulkCreate = async (
     const allValuesToInsert: {
       publicId: string;
       title: string;
-      description: string;
+      description: string | unknown[];
       createdBy: string;
       listId: number;
       index: number;

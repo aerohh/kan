@@ -1,6 +1,6 @@
 import { Dialog, Transition } from "@headlessui/react";
 import type { RouterInputs } from "@kan/api";
-import { Fragment } from "react";
+import { Fragment, useCallback, useRef } from "react";
 
 import SlideInPanel from "~/components/SlideInPanel";
 import { usePermissions } from "~/hooks/usePermissions";
@@ -23,7 +23,10 @@ interface CardSlideOverProps {
   preSelectedLabelId?: string;
   preSelectedMemberId?: string;
   preSelectedDueDate?: Date;
+  registerBeforeClose?: (handler: BeforeCloseHandler) => void;
 }
+
+type BeforeCloseHandler = (() => Promise<void>) | null;
 
 function CardSlideOverContent({
   cardPublicId,
@@ -37,6 +40,7 @@ function CardSlideOverContent({
   preSelectedLabelId,
   preSelectedMemberId,
   preSelectedDueDate,
+  registerBeforeClose,
 }: CardSlideOverProps) {
   const isAddMode = mode === "add";
   const { isOpen: checklistPanelOpen } = useChecklistPanel();
@@ -53,6 +57,7 @@ function CardSlideOverContent({
                 isTemplate={isTemplate}
                 isSlideOver
                 onClose={onClose}
+                registerBeforeClose={registerBeforeClose}
                 mode={mode}
                 boardPublicId={boardPublicId}
                 listPublicId={listPublicId}
@@ -84,12 +89,32 @@ function CardSlideOverContent({
 }
 
 export default function CardSlideOver(props: CardSlideOverProps) {
+  const beforeCloseHandlerRef = useRef<BeforeCloseHandler>(null);
+  const isClosingRef = useRef(false);
+
+  const registerBeforeClose = useCallback((handler: BeforeCloseHandler) => {
+    beforeCloseHandlerRef.current = handler;
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    void (async () => {
+      try {
+        await beforeCloseHandlerRef.current?.();
+      } finally {
+        props.onClose();
+        isClosingRef.current = false;
+      }
+    })();
+  }, [props.onClose]);
+
   return (
     <Transition.Root show={props.isOpen} as={Fragment}>
       <Dialog
         as="div"
         className="relative z-40"
-        onClose={props.onClose}
+        onClose={handleClose}
       >
         <Transition.Child
           as={Fragment}
@@ -117,7 +142,7 @@ export default function CardSlideOver(props: CardSlideOverProps) {
               >
                 <Dialog.Panel className="pointer-events-auto flex h-full w-full max-w-[1520px] flex-col border-l border-light-300 bg-light-50 shadow-xl dark:border-dark-300 dark:bg-dark-50 dark:shadow-none">
                   <ChecklistPanelProvider>
-                    <CardSlideOverContent {...props} />
+                    <CardSlideOverContent {...props} onClose={handleClose} registerBeforeClose={registerBeforeClose} />
                   </ChecklistPanelProvider>
                 </Dialog.Panel>
               </Transition.Child>

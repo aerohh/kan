@@ -37,7 +37,7 @@ const boardCardMemberSchema = z.object({
 const boardDetailCardSchema = z.object({
   publicId: z.string(),
   title: z.string(),
-  description: z.string().nullable(),
+  description: z.union([z.string(), z.array(z.unknown())]).nullable(),
   index: z.number(),
   dueDate: z.date().nullable(),
   labels: z.array(labelSchema),
@@ -80,7 +80,7 @@ export const boardDetailSchema = z.object({
 const boardSlugCardSchema = z.object({
   publicId: z.string(),
   title: z.string(),
-  description: z.string().nullable(),
+  description: z.union([z.string(), z.array(z.unknown())]).nullable(),
   index: z.number(),
   dueDate: z.date().nullable(),
   labels: z.array(labelSchema),

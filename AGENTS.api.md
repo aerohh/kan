@@ -54,6 +54,25 @@ Use `assertUserInWorkspace` helper for workspace checks.
 - **Activity Records**: Create activity records for significant changes
 - **Workspace Permissions**: Always check workspace permissions before operations
 
+## Docs feature Router
+
+- Router: `packages/api/src/routers/doc.ts`
+- Schemas: `packages/api/src/schemas/doc.ts`
+- CRUD endpoints: `create`, `update`, `byId`, `list`, `delete` (soft delete)
+- All endpoints follow the standard pattern: auth check → workspace lookup → `assertUserInWorkspace` → repo call
+- Registered as `doc: docRouter` in `root.ts`
+
+### Card Description as JSON Blocks
+
+- Card `description` fields in Zod schemas use `z.union([z.string(), z.array(z.unknown())])` to accept both legacy HTML strings and new JSON block arrays
+- The `card.update` procedure uses `input.description !== undefined` (not truthy check) since `[]` is falsy but valid
+- Description change detection uses `JSON.stringify()` comparison since the content is now structured data
+
+### Mention Parsing
+
+- `sendMentionEmails` (in `utils/notifications.ts`) accepts `descriptionContent: string | unknown[]` instead of `commentHtml: string`
+- Uses `parseMentionsFromContent` from `@kan/shared/utils` which handles both HTML strings (regex) and JSON block arrays (tree walk looking for `type: "mention"` nodes with `props.id`)
+
 ## Security
 
 - Always check workspace membership before operations

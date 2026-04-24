@@ -3,6 +3,7 @@ import {
   bigint,
   bigserial,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -58,7 +59,7 @@ export const cards = pgTable("card", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   publicId: varchar("publicId", { length: 12 }).notNull().unique(),
   title: text("title").notNull(),
-  description: text("description"),
+  description: jsonb("description").$type<string | unknown[] | null>(),
   index: integer("index").notNull(),
   createdBy: uuid("createdBy").references(() => users.id, {
     onDelete: "set null",

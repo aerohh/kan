@@ -517,7 +517,7 @@ export const workspaceRouter = createTRPCRouter({
           z.object({
             publicId: z.string(),
             title: z.string(),
-            description: z.string().nullable(),
+            description: z.union([z.string(), z.array(z.unknown())]).nullable(),
             boardPublicId: z.string(),
             boardName: z.string(),
             listName: z.string(),

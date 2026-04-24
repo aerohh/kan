@@ -6,9 +6,10 @@ import { getDashboardLayout } from "~/components/Dashboard";
 import DocEditor from "~/views/docs/components/DocEditor";
 import { useWorkspace } from "~/providers/workspace";
 
-const NewDocPage: NextPageWithLayout = () => {
+const DocDetailPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { workspace } = useWorkspace();
+  const docId = router.query.docId as string;
 
   return (
     <div className="flex h-full flex-col">
@@ -22,12 +23,15 @@ const NewDocPage: NextPageWithLayout = () => {
         </button>
       </div>
       <div className="flex-1 overflow-y-auto scrollbar-thin">
-        <DocEditor workspacePublicId={workspace.publicId} />
+        <DocEditor
+          docPublicId={docId}
+          workspacePublicId={workspace.publicId}
+        />
       </div>
     </div>
   );
 };
 
-NewDocPage.getLayout = (page) => getDashboardLayout(page);
+DocDetailPage.getLayout = (page) => getDashboardLayout(page);
 
-export default NewDocPage;
+export default DocDetailPage;

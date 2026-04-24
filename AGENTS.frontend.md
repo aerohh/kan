@@ -169,9 +169,10 @@ The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/m
 |------|---------|
 | `components/BlockNote.tsx` | Reusable `<BlockNote>` wrapper with formatting toolbar. Accepts `editable`, `className`, `children` props. Children render inside `BlockNoteView` context. |
 | `components/MentionSpec.tsx` | `@`-mention inline content spec for BlockNote. Exports `MentionMember`, `getMentionItems()`, `mentionInlineContentSpecs` |
-| `hooks/useBlockNoteEditor.ts` | Shared hook: editor creation, theme sync, initial content loading, `getFullText()`, `focus()`. Accepts optional `schema` for custom inline content. |
-| `views/docs/components/DocEditorForCard.tsx` | Card description editor. `forwardRef` exposing `focus()`. Accepts `workspaceMembers` to enable `@`-mentions. Uses `useBlockNoteEditor` hook. |
-| `views/docs/components/DocEditorInner.tsx` | Full-page doc editor with title + word count. Also uses `useBlockNoteEditor` hook. |
+| `hooks/useBlockNoteEditor.ts` | Shared hook: editor creation, theme sync, initial content loading, `getFullText()`, `focus()`, `isReady`. Accepts optional `schema` and `initialContent` (supports both HTML strings and JSON block arrays). |
+| `views/docs/components/DocEditorForCard.tsx` | Card description editor. `forwardRef` exposing `focus()` and `getDocument()`. Accepts `workspaceMembers` to enable `@`-mentions. Returns JSON blocks via `onUnmountSnapshot` and `onChange`. |
+| `views/docs/components/DocEditorInner.tsx` | Full-page doc editor with title + word count. Lazy doc creation on first edit, debounced autosave (1.5s), URL replacement for new docs. Also uses `useBlockNoteEditor` hook. |
+| `views/docs/components/DocEditor.tsx` | Wrapper that fetches existing doc data via `api.doc.byId` and renders `DocEditorInner` (dynamic import, SSR disabled). |
 
 ### BlockNote Gotchas
 
@@ -184,3 +185,18 @@ The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/m
 ### Click-to-Focus Pattern
 
 `CardPage` and `NewCardPage` both have `onClick` on their scrollable content area that focuses the editor. The handler skips interactive elements (buttons, links, inputs, selects, dropdowns, editor itself). Uses `DocEditorForCardHandle.focus()` via `forwardRef`/`useImperativeHandle`.
+
+### Card Description Autosave
+
+Card descriptions now autosave with a debounced flush pattern:
+- `DocEditorForCard` emits JSON blocks (not HTML) via `onChange` and captures final content via `onUnmountSnapshot` on unmount
+- `CardPage` tracks `latestDescriptionRef` and `hasPendingDescriptionSaveRef`, debounces saves (1.5s), and flushes on slide-over close via `registerBeforeClose`
+- Before saving, it compares with `JSON.stringify()` to detect actual changes, and sets `silent: true` on description-only saves (no activity logged)
+- The card cache is optimistically updated via `utils.card.byId.setData` before the network request fires
+
+### Docs feature Pages
+
+- **Docs listing** (`views/docs/index.tsx`): Grid of doc cards with title + date. Uses `api.doc.list` query. Empty state shown when no docs.
+- **New doc** (`pages/docs/new.tsx`): Creates doc lazily on first edit. After creation, URL is replaced to `/docs/{publicId}` via `router.replace` (shallow).
+- **Existing doc** (`pages/docs/[docId].tsx`): Loads via `api.doc.byId`, renders `DocEditor` wrapper which dynamically imports `DocEditorInner`.
+- `DocEditorInner` handles lazy doc creation: first content change triggers `doc.create` mutation, subsequent edits use debounced `doc.update`. Save is flushed on unmount.

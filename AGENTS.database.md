@@ -123,6 +123,21 @@ Create activity records for:
 3. Use in activity creation code
 4. Update activity display components if needed
 
+## Docs feature
+
+- Docs are workspace-scoped documents with title + BlockNote JSON content
+- Schema: `packages/db/src/schema/docs.ts` (table name `doc`)
+- Repository: `packages/db/src/repository/doc.repo.ts`
+- Uses `jsonb` for `content` column (stores BlockNote block arrays)
+- Soft deletion via `deletedAt`/`deletedBy` fields (same pattern as cards)
+- Follows same conventions: `publicId` (12-char), RLS enabled, indexes on `workspaceId`/`createdBy`/`deletedAt`
+
+### Card Description Storage
+
+- Card `description` column is `jsonb` (not `text`). It stores BlockNote block arrays (`unknown[] | null`) instead of HTML strings
+- The type in repos/schemas is `string | unknown[] | null` to support legacy HTML strings during transition, but new saves always write JSON blocks
+- Migration `20260423234129_ChangeCardDescriptionToJsonb` converts existing text to jsonb using `to_jsonb(description)`
+
 ## Performance
 
 - Use database indexes appropriately
