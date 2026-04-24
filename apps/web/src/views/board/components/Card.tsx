@@ -206,6 +206,7 @@ const Card = ({
 
                     return (
                       <Avatar
+                        key={user?.email ?? email}
                         name={user?.name ?? ""}
                         email={user?.email ?? email}
                         imageUrl={avatarUrl}

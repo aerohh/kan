@@ -42,7 +42,9 @@ export function Tooltip({
 
     return () => {
       instance.destroy();
-      rootRef.current?.unmount();
+      const rootToCleanup = rootRef.current;
+      rootRef.current = null;
+      queueMicrotask(() => rootToCleanup?.unmount());
     };
   }, [content, placement, delay]);
 
