@@ -54,7 +54,7 @@ function CardSlideOverContent({
       {isOpen && (isAddMode || cardPublicId) ? (
         <ModalProvider>
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            <div className="min-h-0 flex-1 flex flex-col">
+            <div className="h-full w-[612px] shrink-0 min-w-0 overflow-hidden">
               <CardPage
                 cardPublicId={cardPublicId}
                 isTemplate={isTemplate}

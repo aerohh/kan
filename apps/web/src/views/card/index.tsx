@@ -565,7 +565,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
       <PageHead
         title={t`${card?.title ?? t`Card`} | ${board?.name ?? t`Board`}`}
       />
-      <div className={isSlideOver ? "flex h-full flex-col" : "flex h-full flex-1 flex-col overflow-hidden"}>
+      <div className={isSlideOver ? "flex h-full min-w-0 flex-col overflow-hidden" : "flex h-full flex-1 flex-col overflow-hidden"}>
         {!isSlideOver && (
         <div className="flex w-full items-center justify-between border-b-[1px] border-light-300 bg-light-50 px-8 py-2 dark:border-dark-300 dark:bg-dark-50">
           {!card && isLoading && (
@@ -794,7 +794,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
         )}
 
         {isSlideOver && !isTemplate && visibleAttachedDocs.length > 0 && (
-          <div className="px-8 py-3">
+          <div className="w-full min-w-0 overflow-hidden px-8 py-3">
             <AttachedDocs
               docs={visibleAttachedDocs}
               onDocClick={(docPublicId) => onViewDoc?.(docPublicId)}

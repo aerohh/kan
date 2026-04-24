@@ -136,6 +136,8 @@ When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/co
 - Attached card docs are rendered by `views/card/components/AttachedDocs.tsx`
 - Doc preview panel is `views/card/components/DocViewerPanel.tsx` (read-only BlockNote viewer loaded via `api.doc.byId`)
 - In board cards (`views/board/components/Card.tsx`), a doc icon is shown when docs are attached; it takes precedence over the generic description icon
+- In slide-over mode, keep the primary card column fixed width (`w-[540px]`) and overflow hidden in `CardSlideOverContent` so child content cannot resize the panel
+- For doc chips, use an `overflow-x-auto` container with an `inline-flex` row and `shrink-0` chip items to keep attachments horizontally scrollable instead of resizing the panel
 
 ### New Card Flow
 

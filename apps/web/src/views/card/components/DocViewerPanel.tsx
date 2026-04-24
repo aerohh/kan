@@ -49,7 +49,7 @@ export default function DocViewerPanel({ docPublicId, onClose }: DocViewerPanelP
   if (!docPublicId) return null;
 
   return (
-    <div className="flex h-full w-[360px] flex-col border-l border-light-300 bg-light-100 dark:border-dark-300 dark:bg-dark-100">
+    <div className="flex h-full w-[360px] flex-col border-l border-light-300 bg-light-50 dark:border-dark-300 dark:bg-dark-50">
       <div className="flex items-center justify-between border-b border-light-300 px-4 py-3 dark:border-dark-300">
         <h2 className="truncate text-sm font-semibold text-light-900 dark:text-dark-900">
           {isLoading ? t`Loading...` : (doc?.title || t`Untitled`)}

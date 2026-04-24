@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/router";
 
 import BlockNote from "~/components/BlockNote";
 import { useBlockNoteEditor } from "~/hooks/useBlockNoteEditor";
@@ -20,7 +19,6 @@ export default function DocEditorInner({
   workspacePublicId,
   initialDoc,
 }: DocEditorInnerProps) {
-  const router = useRouter();
   const [title, setTitle] = useState(initialDoc?.title ?? "");
   const [wordCount, setWordCount] = useState(0);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -108,8 +106,8 @@ export default function DocEditorInner({
       })
       .then((result) => {
         docIdRef.current = result.publicId;
-        if (router.isReady && !docPublicId) {
-          router.replace(`/docs/${result.publicId}`, undefined, { shallow: true });
+        if (!docPublicId) {
+          window.history.replaceState({}, "", `/docs/${result.publicId}`);
         }
         return result.publicId;
       })
@@ -119,7 +117,7 @@ export default function DocEditorInner({
 
     creatingDocPromiseRef.current = createPromise;
     return createPromise;
-  }, [createDoc, workspacePublicId, router, docPublicId]);
+  }, [createDoc, workspacePublicId, docPublicId]);
 
   const flushPendingSave = useCallback(async () => {
     const pendingSave = pendingSavePayloadRef.current;
