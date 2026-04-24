@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
 import { useEffect, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { HiCheckBadge, HiXMark } from "react-icons/hi2";
+import { HiChatBubbleBottomCenterText, HiCheckBadge, HiXMark } from "react-icons/hi2";
 import { IoChevronForwardSharp } from "react-icons/io5";
 
 import { authClient } from "@kan/auth/client";
@@ -23,6 +23,7 @@ import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { useWorkspace } from "~/providers/workspace";
 import { useChecklistPanel } from "~/providers/checklist-panel";
+import { useActivityPanel } from "~/providers/activity-panel";
 import { api } from "~/utils/api";
 import { invalidateCard } from "~/utils/cardInvalidation";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
@@ -142,7 +143,8 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   const { workspace } = useWorkspace();
   const { canEditCard } = usePermissions();
   const { data: session } = authClient.useSession();
-  const { isOpen: checklistPanelOpen, toggle: toggleChecklistPanel } = useChecklistPanel();
+  const { isOpen: checklistPanelOpen, toggle: toggleChecklistPanel, open: openChecklistPanel } = useChecklistPanel();
+  const { isOpen: activityPanelOpen, toggle: toggleActivityPanel } = useActivityPanel();
 
   const cardId = cardPublicIdOverride ?? (Array.isArray(router.query.cardId)
     ? router.query.cardId[0]
@@ -161,6 +163,15 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
       }
     }
   }, [router, cardId, isLoading, error, card, isSlideOver]);
+
+  const checklistAutoOpenedRef = useRef(false);
+
+  useEffect(() => {
+    if (card && card.checklists.length > 0 && !checklistAutoOpenedRef.current) {
+      checklistAutoOpenedRef.current = true;
+      openChecklistPanel();
+    }
+  }, [card, openChecklistPanel]);
 
   const isCreator = card?.createdBy && session?.user.id === card.createdBy;
   const canEdit = canEditCard || isCreator;
@@ -626,18 +637,32 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                       )}
                       {canEdit && !isSlideOver && (
                         <div className="mt-6 flex items-center justify-between gap-1">
-                          <button
-                            type="button"
-                            onClick={toggleChecklistPanel}
-                            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
-                              checklistPanelOpen
-                                ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
-                                : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
-                            }`}
-                          >
-                            <HiCheckBadge className="h-5 w-5" />
-                            {t`Checklists`}
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={toggleChecklistPanel}
+                              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
+                                checklistPanelOpen
+                                  ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                  : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
+                              }`}
+                            >
+                              <HiCheckBadge className="h-5 w-5" />
+                              {t`Checklists`}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={toggleActivityPanel}
+                              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
+                                activityPanelOpen
+                                  ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                  : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
+                              }`}
+                            >
+                              <HiChatBubbleBottomCenterText className="h-5 w-5" />
+                              {t`Activity`}
+                            </button>
+                          </div>
                           <AttachmentUpload cardPublicId={cardId} />
                         </div>
                       )}
@@ -652,18 +677,32 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
         {isSlideOver && !isTemplate && canEdit && (
           <div className="flex items-center justify-between border-t border-light-300 bg-light-50 px-8 py-2 dark:border-dark-300 dark:bg-dark-50">
             <AttachmentUpload cardPublicId={cardId} />
-            <button
-              type="button"
-              onClick={toggleChecklistPanel}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
-                checklistPanelOpen
-                  ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
-                  : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
-              }`}
-            >
-              <HiCheckBadge className="h-5 w-5" />
-              {t`Checklists`}
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={toggleChecklistPanel}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
+                  checklistPanelOpen
+                    ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                    : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
+                }`}
+              >
+                <HiCheckBadge className="h-5 w-5" />
+                {t`Checklists`}
+              </button>
+              <button
+                type="button"
+                onClick={toggleActivityPanel}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
+                  activityPanelOpen
+                    ? "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                    : "text-light-950 hover:bg-light-300 dark:text-dark-950 dark:hover:bg-dark-200"
+                }`}
+              >
+                <HiChatBubbleBottomCenterText className="h-5 w-5" />
+                {t`Activity`}
+              </button>
+            </div>
           </div>
         )}
 

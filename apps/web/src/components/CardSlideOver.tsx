@@ -6,6 +6,7 @@ import SlideInPanel from "~/components/SlideInPanel";
 import { usePermissions } from "~/hooks/usePermissions";
 import { ModalProvider } from "~/providers/modal";
 import { ChecklistPanelProvider, useChecklistPanel } from "~/providers/checklist-panel";
+import { ActivityPanelProvider, useActivityPanel } from "~/providers/activity-panel";
 import CardPage, { CardActivityPanel } from "~/views/card";
 import CardChecklistPanel from "~/views/card/components/CardChecklistPanel";
 
@@ -44,6 +45,7 @@ function CardSlideOverContent({
 }: CardSlideOverProps) {
   const isAddMode = mode === "add";
   const { isOpen: checklistPanelOpen } = useChecklistPanel();
+  const { isOpen: activityPanelOpen } = useActivityPanel();
   const { canEditCard } = usePermissions();
 
   return (
@@ -76,10 +78,12 @@ function CardSlideOverContent({
               </SlideInPanel>
             )}
             {!isAddMode && cardPublicId && (
-              <CardActivityPanel
-                cardPublicId={cardPublicId}
-                isTemplate={isTemplate}
-              />
+              <SlideInPanel isVisible={activityPanelOpen}>
+                <CardActivityPanel
+                  cardPublicId={cardPublicId}
+                  isTemplate={isTemplate}
+                />
+              </SlideInPanel>
             )}
           </div>
         </ModalProvider>
@@ -137,7 +141,9 @@ export default function CardSlideOver(props: CardSlideOverProps) {
               >
                 <Dialog.Panel className="pointer-events-auto flex h-full w-full max-w-[1520px] flex-col border-l border-light-300 bg-light-50 shadow-xl dark:border-dark-300 dark:bg-dark-50 dark:shadow-none">
                   <ChecklistPanelProvider>
-                    <CardSlideOverContent {...props} onClose={handleClose} registerBeforeClose={registerBeforeClose} />
+                    <ActivityPanelProvider>
+                      <CardSlideOverContent {...props} onClose={handleClose} registerBeforeClose={registerBeforeClose} />
+                    </ActivityPanelProvider>
                   </ChecklistPanelProvider>
                 </Dialog.Panel>
               </Transition.Child>
