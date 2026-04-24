@@ -107,7 +107,7 @@ export default function CardChecklistPanel({
             <h2 className="pb-4 text-xs font-semibold uppercase tracking-wider text-light-800 dark:text-dark-800">
               {t`Checklists`}
             </h2>
-            {canEdit && (
+            {canEdit && checklists.length > 0 && (
               <Button
                 type="button"
                 variant="ghost"
@@ -121,6 +121,23 @@ export default function CardChecklistPanel({
               />
             )}
           </div>
+          {canEdit && checklists.length === 0 && (
+            <div className="flex justify-center py-8">
+              <button
+                type="button"
+                onClick={() =>
+                  createChecklist.mutate({
+                    name: `Checklist 1`,
+                    cardPublicId,
+                  })
+                }
+                className="inline-flex items-center gap-1.5 rounded-md bg-light-200 px-3 py-2 text-sm font-medium text-light-900 hover:bg-light-300 dark:bg-dark-200 dark:text-dark-900 dark:hover:bg-dark-300"
+              >
+                <HiPlus className="h-4 w-4" />
+                {t`Add Checklist`}
+              </button>
+            </div>
+          )}
           <Checklists
             checklists={checklists}
             cardPublicId={cardPublicId}

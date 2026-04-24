@@ -6,9 +6,11 @@ import SlideInPanel from "~/components/SlideInPanel";
 import { usePermissions } from "~/hooks/usePermissions";
 import { ModalProvider } from "~/providers/modal";
 import { ChecklistPanelProvider, useChecklistPanel } from "~/providers/checklist-panel";
+import { DraftChecklistProvider, useDraftChecklist } from "~/providers/draft-checklist";
 import { SidePanelProvider, useSidePanel } from "~/providers/side-panel";
 import CardPage, { CardActivityPanel } from "~/views/card";
 import CardChecklistPanel from "~/views/card/components/CardChecklistPanel";
+import DraftChecklistPanel from "~/views/card/components/DraftChecklistPanel";
 import DocViewerPanel from "~/views/card/components/DocViewerPanel";
 
 type BoardQueryParams = RouterInputs["board"]["byId"];
@@ -46,6 +48,7 @@ function CardSlideOverContent({
 }: CardSlideOverProps) {
   const isAddMode = mode === "add";
   const { isOpen: checklistPanelOpen } = useChecklistPanel();
+  const { draftChecklists, setDraftChecklists } = useDraftChecklist();
   const { activityPanelOpen, docPanelOpen, docPublicId, toggleActivityPanel, openDocPanel, closePanel } = useSidePanel();
   const { canEditCard } = usePermissions();
 
@@ -76,6 +79,14 @@ function CardSlideOverContent({
                 <CardChecklistPanel
                   cardPublicId={cardPublicId}
                   canEdit={canEditCard}
+                />
+              </SlideInPanel>
+            )}
+            {isAddMode && (
+              <SlideInPanel isVisible={checklistPanelOpen}>
+                <DraftChecklistPanel
+                  checklists={draftChecklists}
+                  onChange={setDraftChecklists}
                 />
               </SlideInPanel>
             )}
@@ -153,9 +164,11 @@ export default function CardSlideOver(props: CardSlideOverProps) {
               >
                 <Dialog.Panel className="pointer-events-auto flex h-full w-full max-w-[1520px] flex-col border-l border-light-300 bg-light-50 shadow-xl dark:border-dark-300 dark:bg-dark-50 dark:shadow-none">
                   <ChecklistPanelProvider>
-                    <SidePanelProvider>
-                      <CardSlideOverContent {...props} onClose={handleClose} registerBeforeClose={registerBeforeClose} />
-                    </SidePanelProvider>
+                    <DraftChecklistProvider>
+                      <SidePanelProvider>
+                        <CardSlideOverContent {...props} onClose={handleClose} registerBeforeClose={registerBeforeClose} />
+                      </SidePanelProvider>
+                    </DraftChecklistProvider>
                   </ChecklistPanelProvider>
                 </Dialog.Panel>
               </Transition.Child>

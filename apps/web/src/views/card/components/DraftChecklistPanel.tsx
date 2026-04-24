@@ -3,6 +3,9 @@ import { useState } from "react";
 import { HiPlus, HiXMark } from "react-icons/hi2";
 import { generateUID } from "@kan/shared/utils";
 
+import Button from "~/components/Button";
+import Modal from "~/components/modal";
+
 interface DraftChecklistItem {
   tempId: string;
   title: string;
@@ -26,6 +29,7 @@ export default function DraftChecklistPanel({
 }: DraftChecklistPanelProps) {
   const [newItemText, setNewItemText] = useState<Record<string, string>>({});
   const [activeChecklistForm, setActiveChecklistForm] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const addChecklist = () => {
     const newChecklist: DraftChecklist = {
@@ -126,14 +130,29 @@ export default function DraftChecklistPanel({
           <h2 className="pb-4 text-xs font-semibold uppercase tracking-wider text-light-800 dark:text-dark-800">
             {t`Checklists`}
           </h2>
-          <button
-            type="button"
-            onClick={addChecklist}
-            className="rounded-md p-1 text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
-          >
-            <HiPlus className="h-4 w-4" />
-          </button>
+          {checklists.length > 0 && (
+            <button
+              type="button"
+              onClick={addChecklist}
+              className="rounded-md p-1 text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
+            >
+              <HiPlus className="h-4 w-4" />
+            </button>
+          )}
         </div>
+
+          {checklists.length === 0 && (
+            <div className="flex justify-center py-8">
+              <button
+                type="button"
+                onClick={addChecklist}
+                className="inline-flex items-center gap-1.5 rounded-md bg-light-200 px-3 py-2 text-sm font-medium text-light-900 hover:bg-light-300 dark:bg-dark-200 dark:text-dark-900 dark:hover:bg-dark-300"
+              >
+                <HiPlus className="h-4 w-4" />
+                {t`Add Checklist`}
+              </button>
+            </div>
+          )}
 
           {checklists.map((checklist) => {
           const completedItems = checklist.items.filter((item) => item.completed);
@@ -157,7 +176,13 @@ export default function DraftChecklistPanel({
                   </div>
                   <button
                     className="rounded-md p-1 text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
-                    onClick={() => removeChecklist(checklist.tempId)}
+                    onClick={() => {
+                      if (checklist.items.length === 0) {
+                        removeChecklist(checklist.tempId);
+                      } else {
+                        setPendingDeleteId(checklist.tempId);
+                      }
+                    }}
                   >
                     <HiXMark size={16} />
                   </button>
@@ -258,6 +283,35 @@ export default function DraftChecklistPanel({
           );
         })}
       </div>
+
+      <Modal
+        modalSize="sm"
+        isVisible={!!pendingDeleteId}
+      >
+        <div className="p-5">
+          <div className="flex w-full flex-col justify-between pb-4">
+            <h2 className="text-md pb-4 font-medium text-neutral-900 dark:text-dark-1000">
+              {t`Are you sure you want to delete this checklist?`}
+            </h2>
+            <p className="text-sm font-medium text-light-900 dark:text-dark-900">
+              {t`This action can't be undone.`}
+            </p>
+          </div>
+          <div className="mt-5 flex justify-end space-x-2 sm:mt-6">
+            <Button variant="secondary" onClick={() => setPendingDeleteId(null)}>
+              {t`Cancel`}
+            </Button>
+            <Button
+              onClick={() => {
+                if (pendingDeleteId) removeChecklist(pendingDeleteId);
+                setPendingDeleteId(null);
+              }}
+            >
+              {t`Delete`}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

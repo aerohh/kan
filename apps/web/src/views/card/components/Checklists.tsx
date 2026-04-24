@@ -46,6 +46,33 @@ export default function Checklists({
 
   const utils = api.useUtils();
 
+  const deleteChecklist = api.checklist.delete.useMutation({
+    onMutate: async (vars) => {
+      await utils.card.byId.cancel({ cardPublicId });
+      const previous = utils.card.byId.getData({ cardPublicId });
+      utils.card.byId.setData({ cardPublicId }, (old) => {
+        if (!old) return old;
+        const updatedChecklists = old.checklists.filter(
+          (cl) => cl.publicId !== vars.checklistPublicId,
+        );
+        return { ...old, checklists: updatedChecklists } as typeof old;
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous)
+        utils.card.byId.setData({ cardPublicId }, ctx.previous);
+      showPopup({
+        header: t`Unable to delete checklist`,
+        message: t`Please try again later, or contact customer support.`,
+        icon: "error",
+      });
+    },
+    onSettled: async () => {
+      await utils.card.byId.invalidate({ cardPublicId });
+    },
+  });
+
   const reorderItemMutation = api.checklist.updateItem.useMutation({
     onMutate: async (vars) => {
       await utils.card.byId.cancel({ cardPublicId });
@@ -146,7 +173,9 @@ export default function Checklists({
                         <button
                           className="rounded-md p-1 text-light-900 hover:bg-light-100 dark:text-dark-700 dark:hover:bg-dark-100"
                           onClick={() =>
-                            openModal("DELETE_CHECKLIST", checklist.publicId)
+                            checklist.items.length === 0
+                              ? deleteChecklist.mutate({ checklistPublicId: checklist.publicId })
+                              : openModal("DELETE_CHECKLIST", checklist.publicId)
                           }
                         >
                           <HiXMark size={16} />

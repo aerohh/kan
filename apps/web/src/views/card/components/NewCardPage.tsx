@@ -12,8 +12,9 @@ import { type MentionMember } from "~/components/MentionSpec";
 import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
 import Modal from "~/components/modal";
-import SlideInPanel from "~/components/SlideInPanel";
 import Toggle from "~/components/Toggle";
+import { useChecklistPanel } from "~/providers/checklist-panel";
+import { useDraftChecklist } from "~/providers/draft-checklist";
 import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { useWorkspace } from "~/providers/workspace";
@@ -27,7 +28,6 @@ import {
 import { format } from "date-fns";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import DraftChecklistPanel, { type DraftChecklist } from "./DraftChecklistPanel";
 
 type BoardQueryParams = RouterInputs["board"]["byId"];
 
@@ -106,10 +106,8 @@ export default function NewCardPage({
   const dueDate = watch("dueDate");
   const listPublicId = watch("listPublicId");
   const [isDateSelectorOpen, setIsDateSelectorOpen] = useState(false);
-  const [draftChecklists, setDraftChecklists] = useState<DraftChecklist[]>([]);
-  const [checklistPanelOpen, setChecklistPanelOpen] = useState(false);
-
-  const toggleChecklistPanel = () => setChecklistPanelOpen((prev) => !prev);
+  const { isOpen: checklistPanelOpen, toggle: toggleChecklistPanel } = useChecklistPanel();
+  const { draftChecklists, setDraftChecklists } = useDraftChecklist();
 
   const createCard = api.card.create.useMutation({
     onMutate: async (args) => {
@@ -366,9 +364,8 @@ export default function NewCardPage({
 
   return (
     <>
-      <div className="flex h-full">
-        <div className="flex h-full flex-1 flex-col">
-          <div className="flex w-full items-center justify-end px-4 py-2">
+      <div className="flex h-full flex-col">
+        <div className="flex w-full items-center justify-end px-4 py-2">
             {onClose && (
               <button
                 onClick={onClose}
@@ -580,13 +577,6 @@ export default function NewCardPage({
             </div>
           </div>
         </div>
-        <SlideInPanel isVisible={checklistPanelOpen}>
-          <DraftChecklistPanel
-            checklists={draftChecklists}
-            onChange={setDraftChecklists}
-          />
-        </SlideInPanel>
-      </div>
 
       <Modal
         modalSize="sm"
