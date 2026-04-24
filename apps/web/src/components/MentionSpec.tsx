@@ -1,6 +1,10 @@
 import { defaultInlineContentSpecs } from "@blocknote/core";
-import { createReactInlineContentSpec, type DefaultReactSuggestionItem } from "@blocknote/react";
+import { createReactInlineContentSpec } from "@blocknote/react";
+import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import { HiDocumentText } from "react-icons/hi2";
+
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+const noop = () => {};
 
 export interface MentionMember {
   id: string;
@@ -13,11 +17,23 @@ export interface MentionDoc {
   label: string;
 }
 
+export interface LabelRefItem {
+  publicId: string;
+  name: string;
+  colourCode: string | null;
+}
+
 export type MentionSuggestionItem = DefaultReactSuggestionItem & {
   id: string;
   label: string;
   image: string | null;
   kind: "member" | "doc";
+};
+
+export type LabelRefSuggestionItem = DefaultReactSuggestionItem & {
+  publicId: string;
+  name: string;
+  colourCode: string | null;
 };
 
 const mentionSpec = createReactInlineContentSpec(
@@ -117,10 +133,75 @@ const docMentionSpec = createReactInlineContentSpec(
   },
 );
 
+const labelRefSpec = createReactInlineContentSpec(
+  {
+    type: "labelRef",
+    propSchema: {
+      id: { default: "" },
+      name: { default: "" },
+      colourCode: { default: "" },
+    },
+    content: "none",
+  },
+  {
+    render: (props) => {
+      const colour = props.inlineContent.props.colourCode || "#3730a3";
+      return (
+        <span
+          data-label-ref-id={props.inlineContent.props.id}
+          data-label-ref-name={props.inlineContent.props.name}
+          data-label-ref-colour={props.inlineContent.props.colourCode}
+          className="inline-flex w-fit items-center justify-center rounded-full border-2 px-3 pb-2.5 pt-2 text-[10px] font-medium leading-none"
+          style={{
+            backgroundColor: `${colour}25`,
+            borderColor: `${colour}30`,
+            color: colour,
+          }}
+          ref={props.contentRef}
+        >
+          <span>#{props.inlineContent.props.name}</span>
+        </span>
+      );
+    },
+    toExternalHTML: (props) => (
+      <span
+        data-type="labelRef"
+        data-id={props.inlineContent.props.id}
+        data-name={props.inlineContent.props.name}
+        data-colour={props.inlineContent.props.colourCode}
+      >
+        #{props.inlineContent.props.name}
+      </span>
+    ),
+    parse: (el) => {
+      if (el.getAttribute("data-type") === "labelRef") {
+        return {
+          id: el.getAttribute("data-id") ?? "",
+          name: el.getAttribute("data-name") ?? "",
+          colourCode: el.getAttribute("data-colour") ?? "",
+        };
+      }
+      if (el.tagName === "SPAN" && el.getAttribute("data-label-ref-id")) {
+        return {
+          id: el.getAttribute("data-label-ref-id") ?? "",
+          name: el.getAttribute("data-label-ref-name") ?? "",
+          colourCode: el.getAttribute("data-label-ref-colour") ?? "",
+        };
+      }
+      return undefined;
+    },
+  },
+);
+
 export const mentionInlineContentSpecs = {
   ...defaultInlineContentSpecs,
   mention: mentionSpec,
   docMention: docMentionSpec,
+};
+
+export const labelRefInlineContentSpecs = {
+  ...defaultInlineContentSpecs,
+  labelRef: labelRefSpec,
 };
 
 export function getMentionItems(
@@ -138,7 +219,7 @@ export function getMentionItems(
       image: m.image,
       kind: "member" as const,
       title: `@${m.label}`,
-      onItemClick: () => {},
+      onItemClick: noop,
     }));
 
   const docItems: MentionSuggestionItem[] = docs
@@ -149,13 +230,33 @@ export function getMentionItems(
       image: null,
       kind: "doc" as const,
       title: d.label,
-      onItemClick: () => {},
+      onItemClick: noop,
     }));
 
   const all = [...memberItems, ...docItems];
 
   if (!q) return all;
   return all.filter((item) => item.label.toLowerCase().includes(q));
+}
+
+export function getLabelRefItems(
+  labels: LabelRefItem[],
+  query: string,
+): LabelRefSuggestionItem[] {
+  const q = query.toLowerCase().trim();
+
+  const items: LabelRefSuggestionItem[] = labels
+    .filter((l) => l.name.length > 0)
+    .map((l) => ({
+      publicId: l.publicId,
+      name: l.name,
+      colourCode: l.colourCode,
+      title: l.name,
+      onItemClick: noop,
+    }));
+
+  if (!q) return items;
+  return items.filter((item) => item.name.toLowerCase().includes(q));
 }
 
 export function extractDocMentionIds(
@@ -169,6 +270,36 @@ export function extractDocMentionIds(
       if (!inline || typeof inline !== "object") continue;
       const i = inline as Record<string, unknown>;
       if (i.type === "docMention" && i.props && typeof i.props === "object") {
+        const p = i.props as Record<string, unknown>;
+        if (typeof p.id === "string" && p.id) ids.push(p.id);
+      }
+    }
+  }
+
+  function walkBlocks(blockList: unknown[]) {
+    for (const block of blockList) {
+      if (!block || typeof block !== "object") continue;
+      const b = block as Record<string, unknown>;
+      walkInlineContent(b.content);
+      if (Array.isArray(b.children)) walkBlocks(b.children);
+    }
+  }
+
+  walkBlocks(blocks);
+  return ids;
+}
+
+export function extractLabelRefIds(
+  blocks: Record<string, unknown>[],
+): string[] {
+  const ids: string[] = [];
+
+  function walkInlineContent(content: unknown) {
+    if (!Array.isArray(content)) return;
+    for (const inline of content) {
+      if (!inline || typeof inline !== "object") continue;
+      const i = inline as Record<string, unknown>;
+      if (i.type === "labelRef" && i.props && typeof i.props === "object") {
         const p = i.props as Record<string, unknown>;
         if (typeof p.id === "string" && p.id) ids.push(p.id);
       }

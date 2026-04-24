@@ -1,5 +1,15 @@
-ALTER TYPE "public"."card_activity_type" ADD VALUE 'card.updated.doc.attached';--> statement-breakpoint
-ALTER TYPE "public"."card_activity_type" ADD VALUE 'card.updated.doc.detached';--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TYPE "public"."card_activity_type" ADD VALUE 'card.updated.doc.attached';
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TYPE "public"."card_activity_type" ADD VALUE 'card.updated.doc.detached';
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "_card_docs" (
 	"cardId" bigint NOT NULL,
 	"docId" bigint NOT NULL,

@@ -1,6 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { BlockNoteSchema } from "@blocknote/core";
+import { SuggestionMenuController } from "@blocknote/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import BlockNote from "~/components/BlockNote";
+import {
+  extractLabelRefIds,
+  getLabelRefItems,
+  labelRefInlineContentSpecs,
+} from "~/components/MentionSpec";
+import type { LabelRefSuggestionItem } from "~/components/MentionSpec";
 import { useBlockNoteEditor } from "~/hooks/useBlockNoteEditor";
 import { api } from "~/utils/api";
 
@@ -39,14 +47,26 @@ export default function DocEditorInner({
   const hasUnsavedChangesRef = useRef(false);
   const docIdRef = useRef(docPublicId ?? null);
   const creatingDocPromiseRef = useRef<Promise<string> | null>(null);
-  const flushPendingSaveRef = useRef<() => Promise<void>>(async () => {});
+  const flushPendingSaveRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const createDoc = api.doc.create.useMutation();
   const updateDoc = api.doc.update.useMutation();
+  const syncLabelsMutation = api.doc.syncLabels.useMutation();
+
+  const { data: workspaceLabels } = api.label.listByWorkspace.useQuery(
+    { workspacePublicId },
+    { enabled: !!workspacePublicId },
+  );
+
+  const schema = useMemo(() => {
+    return BlockNoteSchema.create({
+      inlineContentSpecs: labelRefInlineContentSpecs,
+    });
+  }, []);
 
   const { editor, resolvedTheme, getFullText, isReady } = useBlockNoteEditor({
     placeholders: {
-      default: "Type '/' for commands, or start writing...",
+      default: "Type '/' for commands, '#' for labels, or start writing...",
       heading: "Heading",
       numberedListItem: "List",
       bulletListItem: "List",
@@ -54,6 +74,7 @@ export default function DocEditorInner({
     },
     wrapperRef: editorWrapperRef,
     initialContent: initialDoc?.content as Record<string, unknown>[] | null ?? null,
+    schema,
   });
 
   useEffect(() => {
@@ -64,6 +85,19 @@ export default function DocEditorInner({
     }
   }, []);
 
+  const syncLabelsForDoc = useCallback(
+    (targetDocId: string, content: unknown[]) => {
+      const labelIds = extractLabelRefIds(
+        content as Record<string, unknown>[],
+      );
+      syncLabelsMutation.mutate({
+        docPublicId: targetDocId,
+        labelPublicIds: labelIds,
+      });
+    },
+    [syncLabelsMutation],
+  );
+
   const saveDoc = useCallback((targetDocId: string, newTitle: string, newContent: unknown[]) => {
     hasUnsavedChangesRef.current = false;
     updateDoc.mutate({
@@ -71,7 +105,8 @@ export default function DocEditorInner({
       title: newTitle,
       content: newContent,
     });
-  }, [updateDoc]);
+    syncLabelsForDoc(targetDocId, newContent);
+  }, [updateDoc, syncLabelsForDoc]);
 
   const debouncedSave = useCallback(
     (targetDocId: string, newTitle: string, newContent: unknown[]) => {
@@ -227,6 +262,33 @@ export default function DocEditorInner({
     [editor],
   );
 
+  const getLabelItemsForEditor = useCallback(
+    async (query: string): Promise<LabelRefSuggestionItem[]> => {
+      return Promise.resolve(getLabelRefItems(workspaceLabels ?? [], query));
+    },
+    [workspaceLabels],
+  );
+
+  const handleLabelItemClick = useCallback(
+    (item: LabelRefSuggestionItem) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!editor) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      (editor as any).insertInlineContent([
+        {
+          type: "labelRef",
+          props: {
+            id: item.publicId,
+            name: item.name,
+            colourCode: item.colourCode ?? "",
+          },
+        },
+        " ",
+      ]);
+    },
+    [editor],
+  );
+
   return (
     <div
       ref={editorWrapperRef}
@@ -251,11 +313,18 @@ export default function DocEditorInner({
         />
 
         <BlockNote
-          editor={editor}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+          editor={editor as any}
           resolvedTheme={resolvedTheme}
           onChange={handleEditorChange}
           className="mt-10"
-        />
+        >
+          <SuggestionMenuController
+            triggerCharacter="#"
+            getItems={getLabelItemsForEditor}
+            onItemClick={handleLabelItemClick}
+          />
+        </BlockNote>
         {wordCount > 0 && (
           <div className="mt-12 text-xs text-light-800 dark:text-dark-800">
             {wordCount} {wordCount === 1 ? "word" : "words"}

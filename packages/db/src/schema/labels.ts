@@ -10,6 +10,7 @@ import {
 
 import { boards } from "./boards";
 import { cardsToLabels } from "./cards";
+import { docsToLabels } from "./docs";
 import { imports } from "./imports";
 import { users } from "./users";
 
@@ -49,6 +50,7 @@ export const labelsRelations = relations(labels, ({ one, many }) => ({
     references: [boards.id],
   }),
   cards: many(cardsToLabels),
+  docs: many(docsToLabels),
   import: one(imports, {
     fields: [labels.importId],
     references: [imports.id],

@@ -182,10 +182,10 @@ The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/m
 | File | Purpose |
 |------|---------|
 | `components/BlockNote.tsx` | Reusable `<BlockNote>` wrapper with formatting toolbar. Accepts `editable`, `className`, `children` props. Children render inside `BlockNoteView` context. |
-| `components/MentionSpec.tsx` | `@`-mention inline content spec for BlockNote. Exports `MentionMember`, `getMentionItems()`, `mentionInlineContentSpecs` |
+| `components/MentionSpec.tsx` | `@`-mention inline content spec for BlockNote. Exports `MentionMember`, `getMentionItems()`, `mentionInlineContentSpecs`. Also has `labelRef` spec (`labelRefInlineContentSpecs`), `getLabelRefItems()`, `extractLabelRefIds()`, and `extractDocMentionIds()` |
 | `hooks/useBlockNoteEditor.ts` | Shared hook: editor creation, theme sync, initial content loading, `getFullText()`, `focus()`, `isReady`. Accepts optional `schema` and `initialContent` (supports both HTML strings and JSON block arrays). |
 | `views/docs/components/DocEditorForCard.tsx` | Card description editor. `forwardRef` exposing `focus()` and `getDocument()`. Accepts `workspaceMembers` to enable `@`-mentions. Returns JSON blocks via `onUnmountSnapshot` and `onChange`. |
-| `views/docs/components/DocEditorInner.tsx` | Full-page doc editor with title + word count. Lazy doc creation on first edit, debounced autosave (1.5s), URL replacement for new docs. Also uses `useBlockNoteEditor` hook. |
+| `views/docs/components/DocEditorInner.tsx` | Full-page doc editor with title + word count. Lazy doc creation on first edit, debounced autosave (1.5s), URL replacement for new docs. Uses `labelRefInlineContentSpecs` schema with `#` label picker via `SuggestionMenuController`. Auto-syncs doc-label junction on every save via `extractLabelRefIds()` + `doc.syncLabels` mutation. Also uses `useBlockNoteEditor` hook. |
 | `views/docs/components/DocEditor.tsx` | Wrapper that fetches existing doc data via `api.doc.byId` and renders `DocEditorInner` (dynamic import, SSR disabled). |
 
 ### BlockNote Gotchas
@@ -210,6 +210,24 @@ The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/m
   - flush pending description autosave before doc-attach mutation when inserting a doc mention, to keep persisted description and card-doc junction state in sync
   - show only docs currently referenced in the description
   - detach docs removed from mentions during the close flush sequence
+
+### Label References in Doc Editor (`#` trigger)
+
+- Label ref spec (`labelRef`) is a BlockNote inline content spec in `MentionSpec.tsx`
+- Triggered by `#` character in `DocEditorInner` via `SuggestionMenuController`
+- Renders as a colored badge using the label's `colourCode` (background at `${colour}20`, text in `colour`, border at `${colour}40`, with colored dot icon)
+- Props: `id` (label publicId), `name`, `colourCode`
+- `getLabelRefItems(labels, query)` — filters workspace labels by name matching query
+- `extractLabelRefIds(blocks)` — walks BlockNote content tree to extract label public IDs from `labelRef` inline content (same pattern as `extractDocMentionIds`)
+- `labelRefInlineContentSpecs` — separate specs export (does not include mention/docMention specs)
+- Auto-sync flow in `DocEditorInner`:
+  1. On every editor change → debounced save (1.5s)
+  2. `saveDoc` calls `updateDoc.mutate` + `syncLabelsForDoc` (extracts label IDs via `extractLabelRefIds` and calls `doc.syncLabels` mutation)
+  3. Junction table is diff-synced (adds missing labels, removes extras)
+- `DocEditorInner` fetches workspace labels via `api.label.listByWorkspace.useQuery({ workspacePublicId })`
+- BlockNote schema uses `BlockNoteSchema.create({ inlineContentSpecs: labelRefInlineContentSpecs })`, passed to `useBlockNoteEditor({ schema })`
+- `SuggestionMenuController` with `triggerCharacter="#"` must be inside `<BlockNote>` children (same rule as `@` mentions)
+- Editor is passed as `any` to `<BlockNote />` (same type mismatch pattern as `DocEditorForCard`)
 
 ### Click-to-Focus Pattern
 

@@ -1,7 +1,7 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
 import type { dbClient } from "@kan/db/client";
-import { docs } from "@kan/db/schema";
+import { docs, docsToLabels } from "@kan/db/schema";
 import { generateUID } from "@kan/shared/utils";
 
 export const create = async (
@@ -117,4 +117,50 @@ export const softDelete = async (
     });
 
   return result;
+};
+
+export const getDocLabelIds = async (
+  db: dbClient,
+  docId: number,
+): Promise<number[]> => {
+  const rows = await db
+    .select({ labelId: docsToLabels.labelId })
+    .from(docsToLabels)
+    .where(eq(docsToLabels.docId, docId));
+  return rows.map((r) => r.labelId);
+};
+
+export const syncDocLabels = async (
+  db: dbClient,
+  args: {
+    docId: number;
+    labelIds: number[];
+  },
+) => {
+  const currentLabelIds = await getDocLabelIds(db, args.docId);
+  const currentSet = new Set(currentLabelIds);
+  const desiredSet = new Set(args.labelIds);
+
+  const toAdd = args.labelIds.filter((id) => !currentSet.has(id));
+  const toRemove = currentLabelIds.filter((id) => !desiredSet.has(id));
+
+  if (toAdd.length > 0) {
+    await db.insert(docsToLabels).values(
+      toAdd.map((labelId) => ({
+        docId: args.docId,
+        labelId,
+      })),
+    );
+  }
+
+  if (toRemove.length > 0) {
+    await db
+      .delete(docsToLabels)
+      .where(
+        and(
+          eq(docsToLabels.docId, args.docId),
+          inArray(docsToLabels.labelId, toRemove),
+        ),
+      );
+  }
 };

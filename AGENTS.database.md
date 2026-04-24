@@ -52,6 +52,17 @@ Instructions for working with the database layer (`packages/db/`).
   - Board/list card payloads include `docs: { publicId }[]`
   - Card detail payloads include `docs: { publicId, title }[]`
 
+### Doc ↔ Labels Relationship
+
+- Docs and labels are linked through `_doc_labels` (`docsToLabels` in Drizzle) with a composite primary key (`docId`, `labelId`) and cascade deletes on both foreign keys
+- Schema defined in `packages/db/src/schema/docs.ts` alongside `docs` table and `docsToLabels` relations
+- Labels relation added to `docsRelations` (`labels: many(docsToLabels)`) and `labelsRelations` (`docs: many(docsToLabels)`)
+- Note: circular import between `docs.ts` and `labels.ts` (same pattern as `cards.ts` ↔ `labels.ts`)
+- Repo functions in `packages/db/src/repository/doc.repo.ts`:
+  - `getDocLabelIds(db, docId)` — returns current label internal IDs for a doc
+  - `syncDocLabels(db, { docId, labelIds })` — diff-based sync (inserts missing, removes extras)
+- `label.repo.ts` has `getAllByWorkspaceId(db, workspaceId)` — fetches all non-deleted labels across all boards in a workspace (joins `labels` → `boards`, filters by `boards.workspaceId`)
+
 ### Activity Tracking
 
 - Every significant card change creates an activity record
@@ -156,3 +167,11 @@ Current card-doc activity types:
 - Batch operations when possible
 - Avoid N+1 queries
 - Use transactions for related operations
+
+## Migration Gotchas
+
+- When the dev database was set up via `drizzle-kit push` (no `__drizzle_migrations` table), running `drizzle-kit migrate` will try to apply ALL migrations from scratch against an existing schema — this can fail on `ALTER TYPE ADD VALUE` if enum labels already exist
+- Fix: wrap `ALTER TYPE ... ADD VALUE` in `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN null; END $$;` blocks
+- `ALTER TABLE ... SET DATA TYPE` also needs error handling (`EXCEPTION WHEN cannot_coerce THEN null`)
+- Always verify the generated migration SQL only contains the intended changes — if previous migrations weren't applied, `drizzle-kit generate` may capture their changes too
+- Be cautious running `docker compose -f docker-compose.dev.yml` commands when the production `docker-compose.yml` is also in use — both share the project name "kan" and Docker may recreate production containers

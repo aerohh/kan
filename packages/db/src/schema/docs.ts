@@ -5,12 +5,14 @@ import {
   index,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 
+import { labels } from "./labels";
 import { users } from "./users";
 import { workspaces } from "./workspaces";
 
@@ -41,7 +43,7 @@ export const docs = pgTable(
   ],
 ).enableRLS();
 
-export const docsRelations = relations(docs, ({ one }) => ({
+export const docsRelations = relations(docs, ({ one, many }) => ({
   createdBy: one(users, {
     fields: [docs.createdBy],
     references: [users.id],
@@ -56,5 +58,32 @@ export const docsRelations = relations(docs, ({ one }) => ({
     fields: [docs.workspaceId],
     references: [workspaces.id],
     relationName: "docWorkspace",
+  }),
+  labels: many(docsToLabels),
+}));
+
+export const docsToLabels = pgTable(
+  "_doc_labels",
+  {
+    docId: bigint("docId", { mode: "number" })
+      .notNull()
+      .references(() => docs.id, { onDelete: "cascade" }),
+    labelId: bigint("labelId", { mode: "number" })
+      .notNull()
+      .references(() => labels.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.docId, t.labelId] })],
+).enableRLS();
+
+export const docsToLabelsRelations = relations(docsToLabels, ({ one }) => ({
+  doc: one(docs, {
+    fields: [docsToLabels.docId],
+    references: [docs.id],
+    relationName: "docToLabelsDoc",
+  }),
+  label: one(labels, {
+    fields: [docsToLabels.labelId],
+    references: [labels.id],
+    relationName: "docToLabelsLabel",
   }),
 }));

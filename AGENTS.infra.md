@@ -49,6 +49,8 @@ The database runs in Docker and persists data in the `kan-dev-postgres-data` vol
 docker compose -f docker-compose.dev.yml --profile migrate up migrate
 ```
 
+**WARNING**: Do not run `docker compose -f docker-compose.dev.yml` commands when the production `docker-compose.yml` is also in use. Both share the project name "kan" and Docker may recreate production containers, potentially causing data loss. Always check `docker ps` first to see what's running.
+
 ## Adding a New Environment Variable
 
 Update all of the following:

@@ -4,9 +4,11 @@ import { z } from "zod";
 import * as boardRepo from "@kan/db/repository/board.repo";
 import * as cardRepo from "@kan/db/repository/card.repo";
 import * as labelRepo from "@kan/db/repository/label.repo";
+import * as workspaceRepo from "@kan/db/repository/workspace.repo";
 
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { assertPermission } from "../utils/permissions";
+import { assertUserInWorkspace } from "../utils/auth";
 
 const labelSchema = z.object({
   publicId: z.string(),
@@ -219,5 +221,52 @@ export const labelRouter = createTRPCRouter({
       });
 
       return { success: true };
+    }),
+  listByWorkspace: protectedProcedure
+    .meta({
+      openapi: {
+        summary: "List labels by workspace",
+        method: "GET",
+        path: "/labels/workspace/{workspacePublicId}",
+        description: "Lists all labels across all boards in a workspace",
+        tags: ["Labels"],
+        protect: true,
+      },
+    })
+    .input(
+      z.object({
+        workspacePublicId: z.string().min(12),
+      }),
+    )
+    .output(z.array(labelSchema))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.user?.id;
+
+      if (!userId)
+        throw new TRPCError({
+          message: `User not authenticated`,
+          code: "UNAUTHORIZED",
+        });
+
+      const workspace = await workspaceRepo.getByPublicId(
+        ctx.db,
+        input.workspacePublicId,
+      );
+
+      if (!workspace)
+        throw new TRPCError({
+          message: `Workspace with public ID ${input.workspacePublicId} not found`,
+          code: "NOT_FOUND",
+        });
+
+      await assertUserInWorkspace(ctx.db, userId, workspace.id);
+
+      const labels = await labelRepo.getAllByWorkspaceId(ctx.db, workspace.id);
+
+      return labels.map((l) => ({
+        publicId: l.publicId,
+        name: l.name,
+        colourCode: l.colourCode,
+      }));
     }),
 });

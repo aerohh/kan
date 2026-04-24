@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import * as docRepo from "@kan/db/repository/doc.repo";
+import * as labelRepo from "@kan/db/repository/label.repo";
 import * as workspaceRepo from "@kan/db/repository/workspace.repo";
 
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -12,9 +13,6 @@ import {
   docListItemSchema,
 } from "../schemas";
 import { assertUserInWorkspace } from "../utils/auth";
-import { createLogger } from "@kan/logger";
-
-const log = createLogger("doc-router");
 
 export const docRouter = createTRPCRouter({
   create: protectedProcedure
@@ -279,5 +277,49 @@ export const docRouter = createTRPCRouter({
         });
 
       return { publicId: result.publicId };
+    }),
+
+  syncLabels: protectedProcedure
+    .input(
+      z.object({
+        docPublicId: z.string().min(12),
+        labelPublicIds: z.array(z.string()),
+      }),
+    )
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user?.id;
+
+      if (!userId)
+        throw new TRPCError({
+          message: `User not authenticated`,
+          code: "UNAUTHORIZED",
+        });
+
+      const doc = await docRepo.getByPublicId(ctx.db, input.docPublicId);
+
+      if (!doc)
+        throw new TRPCError({
+          message: `Doc with public ID ${input.docPublicId} not found`,
+          code: "NOT_FOUND",
+        });
+
+      await assertUserInWorkspace(ctx.db, userId, doc.workspaceId);
+
+      const labelIds: number[] = [];
+      if (input.labelPublicIds.length > 0) {
+        const labels = await labelRepo.getAllByPublicIds(
+          ctx.db,
+          input.labelPublicIds,
+        );
+        labelIds.push(...labels.map((l) => l.id));
+      }
+
+      await docRepo.syncDocLabels(ctx.db, {
+        docId: doc.id,
+        labelIds,
+      });
+
+      return { success: true };
     }),
 });

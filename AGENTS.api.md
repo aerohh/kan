@@ -58,9 +58,23 @@ Use `assertUserInWorkspace` helper for workspace checks.
 
 - Router: `packages/api/src/routers/doc.ts`
 - Schemas: `packages/api/src/schemas/doc.ts`
-- CRUD endpoints: `create`, `update`, `byId`, `list`, `delete` (soft delete)
+- CRUD endpoints: `create`, `update`, `byId`, `list`, `delete` (soft delete), `syncLabels`
 - All endpoints follow the standard pattern: auth check → workspace lookup → `assertUserInWorkspace` → repo call
 - Registered as `doc: docRouter` in `root.ts`
+
+### Doc Labels Sync
+
+- `doc.syncLabels` is a tRPC mutation (no OpenAPI metadata — internal use only)
+- Input: `{ docPublicId: string, labelPublicIds: string[] }`
+- Auth flow: resolve doc → get workspaceId → `assertUserInWorkspace` → resolve label public IDs to internal IDs → call `docRepo.syncDocLabels`
+- Called from `DocEditorInner` on every doc save to keep `_doc_labels` junction table in sync with `#label` inline content
+
+### Label List by Workspace
+
+- `label.listByWorkspace` in `packages/api/src/routers/label.ts`
+- Input: `{ workspacePublicId: string }`, output: `z.array(z.object({ publicId, name, colourCode }))`
+- Returns all non-deleted labels across all boards in a workspace (for the `#` label picker in doc editor)
+- Auth: standard workspace membership check via `assertUserInWorkspace`
 
 ### Card Description as JSON Blocks
 

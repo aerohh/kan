@@ -1,7 +1,7 @@
 import { and, count, eq, inArray, isNull } from "drizzle-orm";
 
 import type { dbClient } from "@kan/db/client";
-import { cardsToLabels, labels } from "@kan/db/schema";
+import { boards, cardsToLabels, labels } from "@kan/db/schema";
 import { generateUID } from "@kan/shared/utils";
 
 export const getCount = async (db: dbClient) => {
@@ -153,4 +153,25 @@ export const getWorkspaceAndLabelIdByLabelPublicId = async (
         workspaceId: result.board.workspaceId,
       }
     : null;
+};
+
+export const getAllByWorkspaceId = async (
+  db: dbClient,
+  workspaceId: number,
+) => {
+  return db
+    .select({
+      id: labels.id,
+      publicId: labels.publicId,
+      name: labels.name,
+      colourCode: labels.colourCode,
+    })
+    .from(labels)
+    .innerJoin(boards, eq(labels.boardId, boards.id))
+    .where(
+      and(
+        eq(boards.workspaceId, workspaceId),
+        isNull(labels.deletedAt),
+      ),
+    );
 };
