@@ -1,6 +1,5 @@
 import { t } from "@lingui/core/macro";
 import { useEffect, useRef } from "react";
-import ContentEditable from "react-contenteditable";
 import { useForm } from "react-hook-form";
 
 import { generateUID } from "@kan/shared/utils";
@@ -37,16 +36,15 @@ const NewChecklistItemForm = ({
 
   const title = watch("title");
 
-  const editableRef = useRef<HTMLElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const keepOpenRef = useRef(false);
 
-  const refocusEditable = () => {
-    const el = editableRef.current;
+  const refocusInput = () => {
+    const el = inputRef.current;
     if (!el) return;
     if (readOnly) return;
     el.focus();
 
-    // hack to ensure the input is focused after creating new checklist item
     setTimeout(() => {
       el.focus();
     }, 100);
@@ -74,8 +72,7 @@ const NewChecklistItemForm = ({
 
       if (keepOpenRef.current) {
         reset({ title: "" });
-        if (editableRef.current) editableRef.current.innerHTML = "";
-        refocusEditable();
+        refocusInput();
       } else {
         onCancel();
       }
@@ -96,20 +93,10 @@ const NewChecklistItemForm = ({
     },
   });
 
-  const sanitizeHtmlToPlainText = (html: string): string => {
-    return html
-      .replace(/<br\s*\/?>(\n)?/gi, "\n")
-      .replace(/<div><br\s*\/?><\/div>/gi, "")
-      .replace(/<[^>]*>/g, "")
-      .replace(/&nbsp;/g, " ")
-      .trim();
-  };
-
   const submitIfNotEmpty = (keepOpen: boolean) => {
     if (readOnly) return;
     keepOpenRef.current = keepOpen;
-    const currentHtml = getValues("title") ?? "";
-    const plain = sanitizeHtmlToPlainText(currentHtml);
+    const plain = (getValues("title") ?? "").trim();
     if (!plain) {
       onCancel();
       return;
@@ -121,28 +108,32 @@ const NewChecklistItemForm = ({
   };
 
   useEffect(() => {
-    refocusEditable();
+    refocusInput();
   }, []);
 
   return (
     <form onSubmit={(e) => e.preventDefault()}>
-      <div className="group relative flex h-9 items-center gap-3 rounded-md pl-4 hover:bg-light-100 dark:hover:bg-dark-100">
-        <label className="relative inline-flex h-[16px] w-[16px] flex-shrink-0 cursor-default items-center justify-center">
+      <div className="group relative flex items-start gap-3 rounded-md py-2 pl-4 hover:bg-light-100 dark:hover:bg-dark-100">
+        <label className="relative mt-[2px] inline-flex h-[18px] w-[18px] flex-shrink-0 cursor-default items-center justify-center">
           <input
             type="checkbox"
             disabled
-            className="peer h-[16px] w-[16px] appearance-none rounded-md border border-light-500 bg-transparent outline-none ring-0 hover:border-light-500 hover:bg-transparent focus:outline-none focus:ring-0 focus-visible:outline-none dark:border-dark-500 dark:hover:border-dark-500"
+            className="h-[18px] w-[18px] appearance-none rounded-md border border-light-500 bg-transparent outline-none ring-0 hover:border-light-500 hover:bg-transparent focus:outline-none focus:ring-0 focus-visible:outline-none dark:border-dark-500 dark:hover:border-dark-500"
           />
         </label>
         <div className="flex-1 pr-7">
-          <ContentEditable
+          <input
+            ref={(el) => {
+              inputRef.current = el;
+            }}
             id={`checklist-item-input-${checklistPublicId}`}
+            type="text"
             tabIndex={readOnly ? -1 : 0}
             placeholder={t`Add an item...`}
-            html={title}
+            value={title}
             disabled={readOnly}
             onChange={(e) => setValue("title", e.target.value)}
-            className="m-0 min-h-[20px] w-full p-0 text-sm leading-5 text-light-900 outline-none focus-visible:outline-none dark:text-dark-950"
+            className="m-0 min-h-[22px] w-full border-0 bg-transparent p-0 text-base leading-[22px] text-light-1000 focus:outline-none focus:ring-0 dark:text-dark-1000"
             onBlur={() => submitIfNotEmpty(false)}
             onKeyDown={async (e) => {
               if (readOnly) return;
@@ -155,9 +146,7 @@ const NewChecklistItemForm = ({
                 onCancel();
               }
             }}
-            innerRef={(el) => {
-              editableRef.current = (el as unknown as HTMLElement) ?? null;
-            }}
+            autoFocus
           />
         </div>
       </div>

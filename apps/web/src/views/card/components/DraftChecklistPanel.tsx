@@ -249,7 +249,7 @@ export default function DraftChecklistPanel({
                       }}
                       placeholder={t`Add item`}
                       autoFocus
-                      className="flex-1 border-0 bg-transparent p-0 text-base focus:outline-none focus:ring-0"
+                      className="flex-1 border-0 bg-transparent p-0 text-base text-light-1000 focus:outline-none focus:ring-0 dark:text-dark-1000"
                     />
                   </div>
                 )}
