@@ -235,8 +235,9 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
         icon: "error",
       });
     },
-    onSettled: async () => {
-      if (cardId) await invalidateCard(utils, cardId);
+    onSettled: () => {
+      if (cardId) void invalidateCard(utils, cardId);
+      void utils.board.byId.invalidate();
     },
   });
 
@@ -248,10 +249,11 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
         icon: "error",
       });
     },
-    onSettled: async () => {
+    onSettled: () => {
       if (cardId) {
-        await utils.card.byId.invalidate({ cardPublicId: cardId });
+        void invalidateCard(utils, cardId);
       }
+      void utils.board.byId.invalidate();
     },
   });
 
@@ -354,7 +356,9 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     });
 
     if (!waitForNetwork) {
-      void utils.client.card.update.mutate(payload).catch(() => {
+      void utils.client.card.update.mutate(payload).then(() => {
+        void utils.board.byId.invalidate();
+      }).catch(() => {
         if (cardId) {
           void invalidateCard(utils, cardId);
         }

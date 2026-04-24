@@ -68,9 +68,40 @@ const Card = ({
   const progress =
     totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
-  const hasDescription = typeof description === "string"
-    ? description.replace(/<[^>]*>/g, "").trim().length > 0
-    : Array.isArray(description) && description.length > 0;
+  const hasDescription = (() => {
+    if (description == null) return false;
+    if (typeof description === "string") {
+      return description.replace(/<[^>]*>/g, "").trim().length > 0;
+    }
+    if (!Array.isArray(description)) return false;
+    return description.some((block) => {
+      if (!block || typeof block !== "object") return false;
+      const b = block as Record<string, unknown>;
+      if (Array.isArray(b.content)) {
+        if (b.content.some((inline: unknown) => {
+          if (!inline || typeof inline !== "object") return false;
+          const i = inline as Record<string, unknown>;
+          return typeof i.text === "string" && i.text.trim().length > 0;
+        })) return true;
+      }
+      if (Array.isArray(b.children) && b.children.length > 0) {
+        const b2 = b as { children: unknown[] };
+        return b2.children.some((child: unknown) => {
+          if (!child || typeof child !== "object") return false;
+          const c = child as Record<string, unknown>;
+          if (Array.isArray(c.content)) {
+            return c.content.some((inline: unknown) => {
+              if (!inline || typeof inline !== "object") return false;
+              const i = inline as Record<string, unknown>;
+              return typeof i.text === "string" && i.text.trim().length > 0;
+            });
+          }
+          return false;
+        });
+      }
+      return false;
+    });
+  })();
   const hasAttachments = attachments && attachments.length > 0;
   const hasDueDate = !!dueDate;
 

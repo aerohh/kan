@@ -99,14 +99,9 @@ export default function CardSlideOver(props: CardSlideOverProps) {
   const handleClose = useCallback(() => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
-    void (async () => {
-      try {
-        await beforeCloseHandlerRef.current?.();
-      } finally {
-        props.onClose();
-        isClosingRef.current = false;
-      }
-    })();
+    void beforeCloseHandlerRef.current?.();
+    props.onClose();
+    isClosingRef.current = false;
   }, [props.onClose]);
 
   return (
