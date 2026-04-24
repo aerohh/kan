@@ -15,6 +15,7 @@ import {
   cardActivities,
   cardAttachments,
   cards,
+  cardsToDocs,
   cardsToLabels,
   cardToWorkspaceMembers,
   checklistItems,
@@ -450,6 +451,16 @@ export const getWithListAndMembersByPublicId = async (
         where: isNull(cardAttachments.deletedAt),
         orderBy: asc(cardAttachments.createdAt),
       },
+      docs: {
+        with: {
+          doc: {
+            columns: {
+              publicId: true,
+              title: true,
+            },
+          },
+        },
+      },
       checklists: {
         columns: {
           publicId: true,
@@ -629,6 +640,7 @@ export const getWithListAndMembersByPublicId = async (
     ...card,
     labels: card.labels.map((label) => label.label),
     members: card.members.map((member) => member.member),
+    docs: card.docs.map((d) => d.doc),
     activities: card.activities.filter(
       (activity) => !activity.comment?.deletedAt,
     ),
@@ -971,4 +983,48 @@ export const getWorkspaceAndCardIdByCardPublicId = async (
         boardName: result.list.board.name,
       }
     : null;
+};
+
+export const getCardDocRelationship = async (
+  db: dbClient,
+  args: { cardId: number; docId: number },
+) => {
+  return db.query.cardsToDocs.findFirst({
+    where: and(
+      eq(cardsToDocs.cardId, args.cardId),
+      eq(cardsToDocs.docId, args.docId),
+    ),
+  });
+};
+
+export const createCardDocRelationship = async (
+  db: dbClient,
+  args: { cardId: number; docId: number },
+) => {
+  const [result] = await db
+    .insert(cardsToDocs)
+    .values({
+      cardId: args.cardId,
+      docId: args.docId,
+    })
+    .returning();
+
+  return result;
+};
+
+export const hardDeleteCardDocRelationship = async (
+  db: dbClient,
+  args: { cardId: number; docId: number },
+) => {
+  const [result] = await db
+    .delete(cardsToDocs)
+    .where(
+      and(
+        eq(cardsToDocs.cardId, args.cardId),
+        eq(cardsToDocs.docId, args.docId),
+      ),
+    )
+    .returning();
+
+  return result;
 };

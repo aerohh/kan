@@ -144,6 +144,7 @@ export default function NewCardPage({
               comments: [],
               checklists: [],
               attachments: [],
+              docs: [],
               _filteredLabels: labelPublicIds.map((id) => ({ publicId: id })),
               _filteredMembers: memberPublicIds.map((id) => ({ publicId: id })),
               index: 0,

@@ -15,6 +15,7 @@ import {
 
 import { boards } from "./boards";
 import { checklists } from "./checklists";
+import { docs } from "./docs";
 import { imports } from "./imports";
 import { labels } from "./labels";
 import { lists } from "./lists";
@@ -45,6 +46,8 @@ export const activityTypes = [
   "card.updated.checklist.item.deleted",
   "card.updated.attachment.added",
   "card.updated.attachment.removed",
+  "card.updated.doc.attached",
+  "card.updated.doc.detached",
   "card.updated.dueDate.added",
   "card.updated.dueDate.updated",
   "card.updated.dueDate.removed",
@@ -104,6 +107,7 @@ export const cardsRelations = relations(cards, ({ one, many }) => ({
   activities: many(cardActivities),
   checklists: many(checklists),
   attachments: many(cardAttachments),
+  docs: many(cardsToDocs),
 }));
 
 export const cardActivities = pgTable("card_activity", {
@@ -326,3 +330,30 @@ export const cardAttachmentsRelations = relations(
     }),
   }),
 );
+
+export const cardsToDocs = pgTable(
+  "_card_docs",
+  {
+    cardId: bigint("cardId", { mode: "number" })
+      .notNull()
+      .references(() => cards.id, { onDelete: "cascade" }),
+    docId: bigint("docId", { mode: "number" })
+      .notNull()
+      .references(() => docs.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.cardId, t.docId] })],
+);
+
+export const cardsToDocsRelations = relations(cardsToDocs, ({ one }) => ({
+  card: one(cards, {
+    fields: [cardsToDocs.cardId],
+    references: [cards.id],
+    relationName: "cardsToDocsCard",
+  }),
+  doc: one(docs, {
+    fields: [cardsToDocs.docId],
+    references: [docs.id],
+    relationName: "cardsToDocsDoc",
+  }),
+}));

@@ -7,6 +7,7 @@ import {
   getMentionItems,
   mentionInlineContentSpecs,
   type MentionMember,
+  type MentionDoc,
   type MentionSuggestionItem,
 } from "~/components/MentionSpec";
 import { useBlockNoteEditor } from "~/hooks/useBlockNoteEditor";
@@ -14,6 +15,41 @@ import { useBlockNoteEditor } from "~/hooks/useBlockNoteEditor";
 export interface DocEditorForCardHandle {
   focus: () => void;
   getDocument: () => Record<string, unknown>[];
+}
+
+function hasInlineMentions(blocks: Record<string, unknown>[]): boolean {
+  const walkInline = (content: unknown): boolean => {
+    if (!Array.isArray(content)) return false;
+    for (const inline of content) {
+      if (!inline || typeof inline !== "object") continue;
+      const inlineRecord = inline as Record<string, unknown>;
+      if (
+        inlineRecord.type === "mention" ||
+        inlineRecord.type === "docMention"
+      ) {
+        return true;
+      }
+      if (walkInline(inlineRecord.content)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const walkBlocks = (blockList: Record<string, unknown>[]): boolean => {
+    for (const block of blockList) {
+      if (walkInline(block.content)) return true;
+      if (
+        Array.isArray(block.children) &&
+        walkBlocks(block.children as Record<string, unknown>[])
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  return walkBlocks(blocks);
 }
 
 const DocEditorForCard = forwardRef<
@@ -24,20 +60,26 @@ const DocEditorForCard = forwardRef<
     onUnmountSnapshot?: (value: Record<string, unknown>[]) => void;
     readOnly?: boolean;
     workspaceMembers?: MentionMember[];
+    workspaceDocs?: MentionDoc[];
+    onDocMentionInsert?: (docPublicId: string) => void;
   }
->(function DocEditorForCard({ initialContent, onChange, onUnmountSnapshot, readOnly = false, workspaceMembers }, ref) {
+>(function DocEditorForCard({ initialContent, onChange, onUnmountSnapshot, readOnly = false, workspaceMembers, workspaceDocs, onDocMentionInsert }, ref) {
   const editorWrapperRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onUnmountSnapshotRef = useRef(onUnmountSnapshot);
   onUnmountSnapshotRef.current = onUnmountSnapshot;
+  const onDocMentionInsertRef = useRef(onDocMentionInsert);
+  onDocMentionInsertRef.current = onDocMentionInsert;
+
+  const hasMentions = (workspaceMembers && workspaceMembers.length > 0) || (workspaceDocs && workspaceDocs.length > 0);
 
   const schema = useMemo(() => {
-    if (!workspaceMembers || workspaceMembers.length === 0) return undefined;
+    if (!hasMentions) return undefined;
     return BlockNoteSchema.create({
       inlineContentSpecs: mentionInlineContentSpecs,
     });
-  }, [workspaceMembers]);
+  }, [hasMentions]);
 
   const { editor, resolvedTheme, getFullText, focus } = useBlockNoteEditor({
     placeholders: {
@@ -70,9 +112,9 @@ const DocEditorForCard = forwardRef<
 
   const handleChange = useCallback(() => {
     if (!editor || readOnly) return;
+    const blocks = editor.document as Record<string, unknown>[];
     const trimmed = getFullText().trim();
-    if (trimmed) {
-      const blocks = editor.document;
+    if (trimmed || hasInlineMentions(blocks)) {
       onChangeRef.current?.(blocks);
     } else {
       onChangeRef.current?.([]);
@@ -81,10 +123,9 @@ const DocEditorForCard = forwardRef<
 
   const getMentionItemsForEditor = useCallback(
     async (query: string): Promise<MentionSuggestionItem[]> => {
-      if (!workspaceMembers) return [];
-      return getMentionItems(workspaceMembers, query);
+      return getMentionItems(workspaceMembers ?? [], workspaceDocs ?? [], query);
     },
-    [workspaceMembers],
+    [workspaceMembers, workspaceDocs],
   );
 
   const handleMentionItemClick = useCallback(
@@ -93,11 +134,14 @@ const DocEditorForCard = forwardRef<
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (editor as any).insertInlineContent([
         {
-          type: "mention",
+          type: item.kind === "doc" ? "docMention" : "mention",
           props: { id: item.id, label: item.label },
         },
         " ",
       ]);
+      if (item.kind === "doc") {
+        onDocMentionInsertRef.current?.(item.id);
+      }
     },
     [editor],
   );
@@ -108,12 +152,13 @@ const DocEditorForCard = forwardRef<
       className="doc-editor min-h-[200px] transition-colors duration-200 [&_.bn-editor]:!min-h-0"
     >
       <BlockNote
-        editor={editor}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        editor={editor as any}
         resolvedTheme={resolvedTheme}
         onChange={handleChange}
         editable={!readOnly}
       >
-        {workspaceMembers && workspaceMembers.length > 0 && (
+        {hasMentions && (
           <SuggestionMenuController
             triggerCharacter="@"
             getItems={getMentionItemsForEditor}

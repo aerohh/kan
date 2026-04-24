@@ -5,6 +5,7 @@ import * as cardRepo from "@kan/db/repository/card.repo";
 import * as cardActivityRepo from "@kan/db/repository/cardActivity.repo";
 import * as cardCommentRepo from "@kan/db/repository/cardComment.repo";
 import * as checklistRepo from "@kan/db/repository/checklist.repo";
+import * as docRepo from "@kan/db/repository/doc.repo";
 import * as labelRepo from "@kan/db/repository/label.repo";
 import * as listRepo from "@kan/db/repository/list.repo";
 import * as workspaceRepo from "@kan/db/repository/workspace.repo";
@@ -612,6 +613,85 @@ export const cardRouter = createTRPCRouter({
       });
 
       return { newMember: true };
+    }),
+  addOrRemoveDoc: protectedProcedure
+    .meta({
+      openapi: {
+        summary: "Add or remove a doc from a card",
+        method: "PUT",
+        path: "/cards/{cardPublicId}/docs/{docPublicId}",
+        description: "Attaches or detaches a doc to/from a card",
+        tags: ["Cards"],
+        protect: true,
+      },
+    })
+    .input(
+      z.object({
+        cardPublicId: z.string().min(12),
+        docPublicId: z.string().min(12),
+      }),
+    )
+    .output(z.object({ attached: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user?.id;
+
+      if (!userId)
+        throw new TRPCError({
+          message: `User not authenticated`,
+          code: "UNAUTHORIZED",
+        });
+
+      const card = await cardRepo.getWorkspaceAndCardIdByCardPublicId(
+        ctx.db,
+        input.cardPublicId,
+      );
+
+      if (!card)
+        throw new TRPCError({
+          message: `Card with public ID ${input.cardPublicId} not found`,
+          code: "NOT_FOUND",
+        });
+
+      await assertPermission(ctx.db, userId, card.workspaceId, "card:edit");
+
+      const doc = await docRepo.getByPublicId(ctx.db, input.docPublicId);
+
+      if (!doc)
+        throw new TRPCError({
+          message: `Doc with public ID ${input.docPublicId} not found`,
+          code: "NOT_FOUND",
+        });
+
+      const cardDocIds = { cardId: card.id, docId: doc.id };
+
+      const existingDoc = await cardRepo.getCardDocRelationship(
+        ctx.db,
+        cardDocIds,
+      );
+
+      if (existingDoc) {
+        await cardRepo.hardDeleteCardDocRelationship(ctx.db, cardDocIds);
+
+        await cardActivityRepo.create(ctx.db, {
+          type: "card.updated.doc.detached" as const,
+          cardId: card.id,
+          toTitle: doc.title,
+          createdBy: userId,
+        });
+
+        return { attached: false };
+      }
+
+      await cardRepo.createCardDocRelationship(ctx.db, cardDocIds);
+
+      await cardActivityRepo.create(ctx.db, {
+        type: "card.updated.doc.attached" as const,
+        cardId: card.id,
+        toTitle: doc.title,
+        createdBy: userId,
+      });
+
+      return { attached: true };
     }),
   byId: publicProcedure
     .meta({

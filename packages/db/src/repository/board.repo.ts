@@ -19,6 +19,7 @@ import {
   cardActivities,
   cardAttachments,
   cards,
+  cardsToDocs,
   cardsToLabels,
   cardToWorkspaceMembers,
   checklistItems,
@@ -322,6 +323,15 @@ export const getByPublicId = async (
                 where: isNull(comments.deletedAt),
                 limit: 1,
               },
+              docs: {
+                with: {
+                  doc: {
+                    columns: {
+                      publicId: true,
+                    },
+                  },
+                },
+              },
             },
             where: and(
               cardIds.length > 0 ? inArray(cards.publicId, cardIds) : undefined,
@@ -369,6 +379,7 @@ export const getByPublicId = async (
         members: card.members
           .map((member) => member.member)
           .filter((member) => member.deletedAt === null),
+        docs: card.docs.map((d) => d.doc),
       })),
     })),
   };
@@ -475,6 +486,15 @@ export const getBySlug = async (
                 where: isNull(comments.deletedAt),
                 limit: 1,
               },
+              docs: {
+                with: {
+                  doc: {
+                    columns: {
+                      publicId: true,
+                    },
+                  },
+                },
+              },
               checklists: {
                 columns: {
                   publicId: true,
@@ -539,6 +559,7 @@ export const getBySlug = async (
       cards: list.cards.map((card) => ({
         ...card,
         labels: card.labels.map((label) => label.label),
+        docs: card.docs.map((d) => d.doc),
       })),
     })),
   };

@@ -45,6 +45,7 @@ const boardDetailCardSchema = z.object({
   attachments: z.array(z.object({ publicId: z.string() })),
   checklists: z.array(checklistResponseSchema),
   comments: z.array(z.object({ publicId: z.string() })),
+  docs: z.array(z.object({ publicId: z.string() })),
 });
 
 // ─── board.byId ──────────────────────────────────────────────
@@ -87,6 +88,7 @@ const boardSlugCardSchema = z.object({
   attachments: z.array(z.object({ publicId: z.string() })),
   checklists: z.array(checklistResponseSchema),
   comments: z.array(z.object({ publicId: z.string() })),
+  docs: z.array(z.object({ publicId: z.string() })),
 });
 
 // ─── board.bySlug ────────────────────────────────────────────

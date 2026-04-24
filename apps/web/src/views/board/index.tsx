@@ -69,7 +69,7 @@ const DUE_CATEGORIES = ["Overdue", "Due today", "Due tomorrow", "Due next week",
 type CardData = {
   publicId: string;
   title: string;
-  description: string | null;
+  description: string | unknown[] | null;
   index: number;
   dueDate: Date | null;
   labels: { publicId: string; name: string; colourCode: string | null }[];
@@ -94,6 +94,7 @@ type CardData = {
     }[];
   }[];
   comments: { publicId: string }[];
+  docs: { publicId: string }[];
 };
 
 type VirtualList = {
@@ -1183,6 +1184,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                               }
                                               comments={card.comments ?? []}
                                               attachments={card.attachments}
+                                              docs={card.docs}
                                               dueDate={card.dueDate ?? null}
                                               listColourCode={isListGroupMode ? list.colourCode : undefined}
                                               listName={isListGroupMode ? cardListNameMap.get(card.publicId) : undefined}

@@ -239,6 +239,13 @@
       "when": 1776987689704,
       "tag": "20260423234129_ChangeCardDescriptionToJsonb",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1777036794654,
+      "tag": "20260424131954_AddCardDocsJunction",
+      "breakpoints": true
     }
   ]
 }

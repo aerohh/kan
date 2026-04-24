@@ -5,8 +5,9 @@ import Popup from "~/components/Popup";
 import SlideInPanel from "~/components/SlideInPanel";
 import CardView, { CardActivityPanel } from "~/views/card";
 import CardChecklistPanel from "~/views/card/components/CardChecklistPanel";
+import DocViewerPanel from "~/views/card/components/DocViewerPanel";
 import { ChecklistPanelProvider, useChecklistPanel } from "~/providers/checklist-panel";
-import { ActivityPanelProvider, useActivityPanel } from "~/providers/activity-panel";
+import { SidePanelProvider, useSidePanel } from "~/providers/side-panel";
 import { usePermissions } from "~/hooks/usePermissions";
 
 function CardRightPanels({ isTemplate }: { isTemplate?: boolean }) {
@@ -15,7 +16,7 @@ function CardRightPanels({ isTemplate }: { isTemplate?: boolean }) {
     ? router.query.cardId[0]
     : router.query.cardId;
   const { isOpen: checklistPanelOpen } = useChecklistPanel();
-  const { isOpen: activityPanelOpen } = useActivityPanel();
+  const { activityPanelOpen, docPanelOpen, docPublicId, closePanel } = useSidePanel();
   const { canEditCard } = usePermissions();
 
   return (
@@ -31,6 +32,14 @@ function CardRightPanels({ isTemplate }: { isTemplate?: boolean }) {
       {cardId && cardId.length >= 12 && (
         <SlideInPanel isVisible={activityPanelOpen}>
           <CardActivityPanel isTemplate={isTemplate} />
+        </SlideInPanel>
+      )}
+      {cardId && cardId.length >= 12 && (
+        <SlideInPanel isVisible={docPanelOpen}>
+          <DocViewerPanel
+            docPublicId={docPublicId}
+            onClose={closePanel}
+          />
         </SlideInPanel>
       )}
     </div>
@@ -49,9 +58,9 @@ const CardPage: NextPageWithLayout = () => {
 CardPage.getLayout = (page) =>
   getDashboardLayout(
     <ChecklistPanelProvider>
-      <ActivityPanelProvider>
+      <SidePanelProvider>
         {page}
-      </ActivityPanelProvider>
+      </SidePanelProvider>
     </ChecklistPanelProvider>,
     <CardRightPanels />,
     true,

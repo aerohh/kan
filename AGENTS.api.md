@@ -73,6 +73,18 @@ Use `assertUserInWorkspace` helper for workspace checks.
 - `sendMentionEmails` (in `utils/notifications.ts`) accepts `descriptionContent: string | unknown[]` instead of `commentHtml: string`
 - Uses `parseMentionsFromContent` from `@kan/shared/utils` which handles both HTML strings (regex) and JSON block arrays (tree walk looking for `type: "mention"` nodes with `props.id`)
 
+### Card Docs Attachment API
+
+- `card.addOrRemoveDoc` in `packages/api/src/routers/card.ts` is a toggle endpoint (attach if missing, detach if existing)
+- Input: `{ cardPublicId, docPublicId }` (both min length 12), output: `{ attached: boolean }`
+- Authorization flow: authenticate user → resolve card + workspace by `cardPublicId` → `assertPermission(..., "card:edit")` → resolve doc by `docPublicId`
+- This mutation creates activity records:
+  - attach: `card.updated.doc.attached` with `toTitle`
+  - detach: `card.updated.doc.detached` with `toTitle`
+- Keep schema alignment with repo responses:
+  - `cardDetailSchema.docs`: `{ publicId, title }[]`
+  - board card schemas (`byId`/`bySlug`) include `docs: { publicId }[]`
+
 ## Security
 
 - Always check workspace membership before operations

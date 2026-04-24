@@ -108,6 +108,12 @@ The card detail page (`apps/web/src/views/card/index.tsx`) composes up to three 
 
 The `ChecklistPanelProvider` context (`apps/web/src/providers/checklist-panel.tsx`) shares panel open/close state between CardPage (toggle button) and CardChecklistPanel.
 
+`SidePanelProvider` (`apps/web/src/providers/side-panel.tsx`) manages mutually-exclusive right-side panels for:
+- Activity panel (`activePanel: "activity"`)
+- Doc viewer panel (`activePanel: "doc"`, stores `docPublicId`)
+
+Use `useSidePanel()` (not `useActivityPanel()`) in card full-page and slide-over layouts when doc viewing is enabled.
+
 Layout is wired in two places:
 - Full page: `pages/cards/[cardId]/index.tsx` wraps layout in `ChecklistPanelProvider`, composes `CardChecklistPanel` + `CardActivityPanel` in flex container passed to `getDashboardLayout(page, rightPanel, true)`
 - Slide-over: `components/CardSlideOver.tsx` renders a 3-panel flex layout (max-width 1520px) with `ChecklistPanelProvider` inside `Dialog.Panel`
@@ -124,6 +130,12 @@ Layout is wired in two places:
 - **Add mode** (`mode="add"`): Shows only `<NewCardPage>` (no activity/checklist panels). Used for creating new cards from the board view
 
 When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/components/NewCardPage.tsx`) — a self-contained component with its own form state, board data fetching, card creation mutation, and label modals. `NewCardPage` has its own built-in draft checklist panel (`DraftChecklistPanel`) for managing checklists before the card exists.
+
+### Attached Docs UI
+
+- Attached card docs are rendered by `views/card/components/AttachedDocs.tsx`
+- Doc preview panel is `views/card/components/DocViewerPanel.tsx` (read-only BlockNote viewer loaded via `api.doc.byId`)
+- In board cards (`views/board/components/Card.tsx`), a doc icon is shown when docs are attached; it takes precedence over the generic description icon
 
 ### New Card Flow
 
@@ -181,6 +193,21 @@ The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/m
 - **`BlockNote` component accepts `children`** — pass context-dependent children (like `SuggestionMenuController`) through this prop so they render inside `BlockNoteView`
 - When using custom inline content (e.g., mentions), create a schema with `BlockNoteSchema.create({ inlineContentSpecs: mentionInlineContentSpecs })` and pass to `useBlockNoteEditor({ schema })`
 - Mention data flows: `NewCardPage` maps `WorkspaceMember[]` → `MentionMember[]` → `DocEditorForCard` prop → creates schema → `SuggestionMenuController`
+- `DocEditorForCard` should preserve mention-only content (no plain text) by treating inline mention nodes as meaningful content. Use a helper like `hasInlineMentions()` before collapsing to `[]`
+- `DocEditorForCard` passes editor as `any` to `<BlockNote />` to satisfy type mismatch between custom schema editor and component typing
+
+### Doc Mentions in Card Descriptions
+
+- Mention spec supports two inline nodes:
+  - `mention` for workspace members
+  - `docMention` for workspace docs (`data-type="docMention"`, includes id + label)
+- `getMentionItems()` merges member and doc suggestions into one `@` menu and tags each suggestion with `kind: "member" | "doc"`
+- `extractDocMentionIds()` walks BlockNote blocks recursively and returns all referenced doc IDs from `docMention` inline content
+- `CardPage` uses this ID extraction to:
+  - auto-attach docs when doc mentions are inserted (`card.addOrRemoveDoc`)
+  - flush pending description autosave before doc-attach mutation when inserting a doc mention, to keep persisted description and card-doc junction state in sync
+  - show only docs currently referenced in the description
+  - detach docs removed from mentions during the close flush sequence
 
 ### Click-to-Focus Pattern
 

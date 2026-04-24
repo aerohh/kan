@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { HiChatBubbleBottomCenterText, HiCheckBadge, HiXMark } from "react-icons/hi2";
 import { IoChevronForwardSharp } from "react-icons/io5";
@@ -15,6 +15,7 @@ import FeedbackModal from "~/components/FeedbackModal";
 import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
 import Modal from "~/components/modal";
+import { extractDocMentionIds } from "~/components/MentionSpec";
 import { NewWorkspaceForm } from "~/components/NewWorkspaceForm";
 import { PageHead } from "~/components/PageHead";
 import { EditYouTubeModal } from "~/components/YouTubeEmbed/EditYouTubeModal";
@@ -23,7 +24,7 @@ import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { useWorkspace } from "~/providers/workspace";
 import { useChecklistPanel } from "~/providers/checklist-panel";
-import { useActivityPanel } from "~/providers/activity-panel";
+import { useSidePanel } from "~/providers/side-panel";
 import { api } from "~/utils/api";
 import { invalidateCard } from "~/utils/cardInvalidation";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
@@ -31,6 +32,7 @@ import { DeleteLabelConfirmation } from "../../components/DeleteLabelConfirmatio
 import ActivityList from "./components/ActivityList";
 import { AttachmentThumbnails } from "./components/AttachmentThumbnails";
 import { AttachmentUpload } from "./components/AttachmentUpload";
+import AttachedDocs from "./components/AttachedDocs";
 import { DeleteCardConfirmation } from "./components/DeleteCardConfirmation";
 import { DeleteCommentConfirmation } from "./components/DeleteCommentConfirmation";
 import Dropdown from "./components/Dropdown";
@@ -109,7 +111,7 @@ export function CardActivityPanel({ isTemplate, cardPublicId: cardPublicIdOverri
   );
 }
 
-export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverride, isSlideOver, onClose, mode, boardPublicId, listPublicId, queryParams, preSelectedLabelId, preSelectedMemberId, preSelectedDueDate, registerBeforeClose }: {
+export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverride, isSlideOver, onClose, mode, boardPublicId, listPublicId, queryParams, preSelectedLabelId, preSelectedMemberId, preSelectedDueDate, registerBeforeClose, onViewDoc }: {
   isTemplate?: boolean;
   cardPublicId?: string;
   isSlideOver?: boolean;
@@ -122,6 +124,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   preSelectedMemberId?: string;
   preSelectedDueDate?: Date;
   registerBeforeClose?: (handler: (() => Promise<void>) | null) => void;
+  onViewDoc?: (docPublicId: string) => void;
 }) {
   const router = useRouter();
   const utils = api.useUtils();
@@ -131,7 +134,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   const latestDescriptionRef = useRef<string | Record<string, unknown>[]>(
     "",
   );
-  const flushPendingCardSaveRef = useRef<() => Promise<void>>(async () => {});
+  const flushPendingCardSaveRef = useRef<(waitForNetwork?: boolean, silent?: boolean) => Promise<void>>(async () => {});
   const {
     modalContentType,
     entityId,
@@ -144,7 +147,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   const { canEditCard } = usePermissions();
   const { data: session } = authClient.useSession();
   const { isOpen: checklistPanelOpen, toggle: toggleChecklistPanel, open: openChecklistPanel } = useChecklistPanel();
-  const { isOpen: activityPanelOpen, toggle: toggleActivityPanel } = useActivityPanel();
+  const { activityPanelOpen, toggleActivityPanel } = useSidePanel();
 
   const cardId = cardPublicIdOverride ?? (Array.isArray(router.query.cardId)
     ? router.query.cardId[0]
@@ -268,6 +271,76 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     },
   });
 
+  const addOrRemoveDoc = api.card.addOrRemoveDoc.useMutation({
+    onError: () => {
+      showPopup({
+        header: t`Unable to update document attachment`,
+        message: t`Please try again later, or contact customer support.`,
+        icon: "error",
+      });
+    },
+    onSettled: () => {
+      if (cardId) void invalidateCard(utils, cardId);
+      void utils.board.byId.invalidate();
+    },
+  });
+
+  const workspacePublicId = card?.list?.board?.workspace?.publicId;
+  const { data: workspaceDocs } = api.doc.list.useQuery(
+    { workspacePublicId: workspacePublicId ?? "" },
+    { enabled: !!workspacePublicId },
+  );
+
+  const editorWorkspaceMembers = useMemo(() =>
+    workspaceMembers
+      ?.filter((member) => member.email)
+      .map((member) => ({
+        id: member.publicId,
+        label: formatMemberDisplayName(
+          member.user?.name ?? null,
+          member.user?.email ?? member.email,
+        ),
+        image: member.user?.image
+          ? getAvatarUrl(member.user.image)
+          : null,
+      })) ?? [],
+    [workspaceMembers],
+  );
+
+  const editorWorkspaceDocs = useMemo(() =>
+    workspaceDocs?.map((d) => ({
+      id: d.publicId,
+      label: d.title || "Untitled",
+    })) ?? [],
+    [workspaceDocs],
+  );
+
+  const previousDocIdsRef = useRef<Set<string>>(new Set(
+    card?.docs?.map((d) => d.publicId) ?? [],
+  ));
+  const pendingDocMutationsRef = useRef<Promise<unknown>[]>([]);
+
+  useEffect(() => {
+    if (card?.docs) {
+      previousDocIdsRef.current = new Set(card.docs.map((d) => d.publicId));
+    }
+  }, [card?.docs]);
+
+  const handleDocMentionInsert = useCallback(async (docPublicId: string) => {
+    if (!cardId || !canEdit) return;
+    if (!previousDocIdsRef.current.has(docPublicId)) {
+      await flushPendingCardSaveRef.current(true, true);
+
+      const p = addOrRemoveDoc
+        .mutateAsync({ cardPublicId: cardId, docPublicId })
+        .then(() => {
+          previousDocIdsRef.current = new Set([...previousDocIdsRef.current, docPublicId]);
+        })
+        .catch(() => {});
+      pendingDocMutationsRef.current.push(p);
+    }
+  }, [cardId, canEdit, addOrRemoveDoc]);
+
   const { register, handleSubmit, setValue, watch, getValues } = useForm<FormValues>({
     values: {
       cardId: cardId ?? "",
@@ -275,6 +348,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
       description: (card?.description as string | Record<string, unknown>[] | null) ?? "",
     },
   });
+  const descriptionValue = watch("description");
 
   const onSubmit = (values: FormValues) => {
     updateCard.mutate({
@@ -284,10 +358,30 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     });
   };
 
+  const handleDescriptionChange = useCallback((value: string | Record<string, unknown>[]) => {
+    setValue("description", value);
+    latestDescriptionRef.current = value;
+    hasPendingDescriptionSaveRef.current = true;
+    if (descriptionSaveTimeoutRef.current) {
+      clearTimeout(descriptionSaveTimeoutRef.current);
+    }
+    descriptionSaveTimeoutRef.current = setTimeout(() => {
+      void flushPendingCardSaveRef.current();
+    }, DESCRIPTION_AUTOSAVE_DELAY_MS);
+  }, [setValue]);
+
   useEffect(() => {
     latestDescriptionRef.current =
       (card?.description as string | Record<string, unknown>[] | null) ?? "";
   }, [card?.description]);
+
+  const visibleAttachedDocs = useMemo(() => {
+    if (!card?.docs || card.docs.length === 0) return [];
+    if (!Array.isArray(descriptionValue)) return card.docs;
+
+    const mentionIds = new Set(extractDocMentionIds(descriptionValue));
+    return card.docs.filter((doc) => mentionIds.has(doc.publicId));
+  }, [card?.docs, descriptionValue]);
 
   useEffect(() => {
     const newLabelId = modalStates.NEW_LABEL_CREATED;
@@ -384,9 +478,29 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
     flushPendingCardSaveRef.current = flushPendingCardSave;
   }, [flushPendingCardSave]);
 
-  const flushPendingCardSaveForClose = useCallback(() => {
+  const cardDocsRef = useRef(card?.docs);
+  cardDocsRef.current = card?.docs;
+
+  const flushPendingCardSaveForClose = useCallback(async () => {
+    const docPromises = [...pendingDocMutationsRef.current];
+    pendingDocMutationsRef.current = [];
+    await Promise.all(docPromises);
+
+    const liveDescription = editorRef.current?.getDocument();
+    if (cardId && canEdit && liveDescription && Array.isArray(liveDescription)) {
+      const mentionIds = new Set(extractDocMentionIds(liveDescription));
+      const attachedIds = new Set(cardDocsRef.current?.map((d) => d.publicId) ?? []);
+      const detachPromises: Promise<unknown>[] = [];
+      for (const docId of attachedIds) {
+        if (!mentionIds.has(docId)) {
+          detachPromises.push(addOrRemoveDoc.mutateAsync({ cardPublicId: cardId, docPublicId: docId }).catch(() => {}));
+        }
+      }
+      await Promise.all(detachPromises);
+    }
+
     return flushPendingCardSave(true, false);
-  }, [flushPendingCardSave]);
+  }, [flushPendingCardSave, cardId, canEdit, addOrRemoveDoc]);
 
   useEffect(() => {
     if (!registerBeforeClose) return;
@@ -398,6 +512,9 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
 
   useEffect(() => {
     return () => {
+      if (descriptionSaveTimeoutRef.current) {
+        clearTimeout(descriptionSaveTimeoutRef.current);
+      }
       void flushPendingCardSaveRef.current();
     };
   }, []);
@@ -600,26 +717,19 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                       <div className="mt-2 min-h-[200px]">
                         <DocEditorForCard
                           ref={editorRef}
-                          initialContent={card.description}
+                          initialContent={card.description as string | Record<string, unknown>[] | null}
                           onChange={
                             canEdit
-                              ? (value) => {
-                                  setValue("description", value);
-                                  latestDescriptionRef.current = value;
-                                  hasPendingDescriptionSaveRef.current = true;
-                                  if (descriptionSaveTimeoutRef.current) {
-                                    clearTimeout(descriptionSaveTimeoutRef.current);
-                                  }
-                                  descriptionSaveTimeoutRef.current = setTimeout(() => {
-                                    void flushPendingCardSaveRef.current();
-                                  }, DESCRIPTION_AUTOSAVE_DELAY_MS);
-                                }
+                              ? handleDescriptionChange
                               : undefined
                           }
                           onUnmountSnapshot={(value) => {
                             latestDescriptionRef.current = value;
                           }}
                           readOnly={!canEdit}
+                          workspaceMembers={editorWorkspaceMembers}
+                          workspaceDocs={editorWorkspaceDocs}
+                          onDocMentionInsert={handleDocMentionInsert}
                         />
                       </div>
                     </form>
@@ -673,6 +783,24 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
             </div>
           </div>
         </div>
+
+        {!isTemplate && !isSlideOver && visibleAttachedDocs.length > 0 && (
+          <div className="px-8 py-3">
+            <AttachedDocs
+              docs={visibleAttachedDocs}
+              onDocClick={(docPublicId) => onViewDoc?.(docPublicId)}
+            />
+          </div>
+        )}
+
+        {isSlideOver && !isTemplate && visibleAttachedDocs.length > 0 && (
+          <div className="px-8 py-3">
+            <AttachedDocs
+              docs={visibleAttachedDocs}
+              onDocClick={(docPublicId) => onViewDoc?.(docPublicId)}
+            />
+          </div>
+        )}
 
         {isSlideOver && !isTemplate && canEdit && (
           <div className="flex items-center justify-between border-t border-light-300 bg-light-50 px-8 py-2 dark:border-dark-300 dark:bg-dark-50">

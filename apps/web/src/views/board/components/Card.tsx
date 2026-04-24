@@ -5,6 +5,7 @@ import { HiOutlinePaperClip } from "react-icons/hi";
 import {
   HiBars3BottomLeft,
   HiChatBubbleLeft,
+  HiDocumentText,
   HiOutlineClock,
 } from "react-icons/hi2";
 import { twMerge } from "tailwind-merge";
@@ -24,6 +25,7 @@ const Card = ({
   description,
   comments,
   attachments,
+  docs,
   dueDate,
   listColourCode,
   listName,
@@ -48,6 +50,7 @@ const Card = ({
   description: string | unknown[] | null;
   comments: { publicId: string }[];
   attachments?: { publicId: string }[];
+  docs?: { publicId: string }[];
   dueDate?: Date | null;
   listColourCode?: string | null;
   listName?: string;
@@ -102,6 +105,7 @@ const Card = ({
       return false;
     });
   })();
+  const hasDocs = docs && docs.length > 0;
   const hasAttachments = attachments && attachments.length > 0;
   const hasDueDate = !!dueDate;
 
@@ -132,6 +136,7 @@ const Card = ({
       members.length ||
       checklists.length > 0 ||
       hasDescription ||
+      hasDocs ||
       comments.length > 0 ||
       hasDueDate ||
       hasAttachments ? (
@@ -151,11 +156,15 @@ const Card = ({
           )}
           <div className="mt-2 flex items-center justify-between gap-1">
             <div className="flex items-center gap-2">
-              {hasDescription && (
+              {hasDocs ? (
+                <div className="flex items-center gap-1 text-light-700 dark:text-dark-800">
+                  <HiDocumentText className="h-4 w-4" />
+                </div>
+              ) : hasDescription ? (
                 <div className="flex items-center gap-1 text-light-700 dark:text-dark-800">
                   <HiBars3BottomLeft className="h-4 w-4" />
                 </div>
-              )}
+              ) : null}
               {hasDueDate && dueDate && (
                 <div
                   className={twMerge(

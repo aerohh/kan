@@ -79,6 +79,12 @@ export const cardDetailSchema = z.object({
     }),
   }),
   members: z.array(cardMemberSchema),
+  docs: z.array(
+    z.object({
+      publicId: z.string(),
+      title: z.string(),
+    }),
+  ),
   activities: z.array(
     z.object({
       publicId: z.string(),

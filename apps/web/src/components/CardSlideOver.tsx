@@ -6,9 +6,10 @@ import SlideInPanel from "~/components/SlideInPanel";
 import { usePermissions } from "~/hooks/usePermissions";
 import { ModalProvider } from "~/providers/modal";
 import { ChecklistPanelProvider, useChecklistPanel } from "~/providers/checklist-panel";
-import { ActivityPanelProvider, useActivityPanel } from "~/providers/activity-panel";
+import { SidePanelProvider, useSidePanel } from "~/providers/side-panel";
 import CardPage, { CardActivityPanel } from "~/views/card";
 import CardChecklistPanel from "~/views/card/components/CardChecklistPanel";
+import DocViewerPanel from "~/views/card/components/DocViewerPanel";
 
 type BoardQueryParams = RouterInputs["board"]["byId"];
 
@@ -45,7 +46,7 @@ function CardSlideOverContent({
 }: CardSlideOverProps) {
   const isAddMode = mode === "add";
   const { isOpen: checklistPanelOpen } = useChecklistPanel();
-  const { isOpen: activityPanelOpen } = useActivityPanel();
+  const { activityPanelOpen, docPanelOpen, docPublicId, toggleActivityPanel, openDocPanel, closePanel } = useSidePanel();
   const { canEditCard } = usePermissions();
 
   return (
@@ -67,6 +68,7 @@ function CardSlideOverContent({
                 preSelectedLabelId={preSelectedLabelId}
                 preSelectedMemberId={preSelectedMemberId}
                 preSelectedDueDate={preSelectedDueDate}
+                onViewDoc={openDocPanel}
               />
             </div>
             {!isAddMode && cardPublicId && (
@@ -85,6 +87,14 @@ function CardSlideOverContent({
                 />
               </SlideInPanel>
             )}
+            {!isAddMode && cardPublicId && (
+              <SlideInPanel isVisible={docPanelOpen}>
+                <DocViewerPanel
+                  docPublicId={docPublicId}
+                  onClose={closePanel}
+                />
+              </SlideInPanel>
+            )}
           </div>
         </ModalProvider>
       ) : null}
@@ -100,10 +110,12 @@ export default function CardSlideOver(props: CardSlideOverProps) {
     beforeCloseHandlerRef.current = handler;
   }, []);
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback(async () => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
-    void beforeCloseHandlerRef.current?.();
+    try {
+      await beforeCloseHandlerRef.current?.();
+    } catch {}
     props.onClose();
     isClosingRef.current = false;
   }, [props.onClose]);
@@ -141,9 +153,9 @@ export default function CardSlideOver(props: CardSlideOverProps) {
               >
                 <Dialog.Panel className="pointer-events-auto flex h-full w-full max-w-[1520px] flex-col border-l border-light-300 bg-light-50 shadow-xl dark:border-dark-300 dark:bg-dark-50 dark:shadow-none">
                   <ChecklistPanelProvider>
-                    <ActivityPanelProvider>
+                    <SidePanelProvider>
                       <CardSlideOverContent {...props} onClose={handleClose} registerBeforeClose={registerBeforeClose} />
-                    </ActivityPanelProvider>
+                    </SidePanelProvider>
                   </ChecklistPanelProvider>
                 </Dialog.Panel>
               </Transition.Child>

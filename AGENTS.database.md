@@ -44,6 +44,14 @@ Instructions for working with the database layer (`packages/db/`).
 - In the API response, labels are **flattened** — each card has `labels: { publicId, name, colourCode }[]` (the join is resolved server-side in `board.repo.ts`)
 - Labels are rendered on cards as `<Badge>` components with `<LabelIcon>` showing the colour
 
+### Card ↔ Docs Relationship
+
+- Cards and docs are linked through `_card_docs` (`cardsToDocs` in Drizzle) with a composite primary key (`cardId`, `docId`) and cascade deletes on both foreign keys
+- Junction helper functions live in `packages/db/src/repository/card.repo.ts`: `getCardDocRelationship`, `createCardDocRelationship`, `hardDeleteCardDocRelationship`
+- Card and board repo responses flatten docs from the junction:
+  - Board/list card payloads include `docs: { publicId }[]`
+  - Card detail payloads include `docs: { publicId, title }[]`
+
 ### Activity Tracking
 
 - Every significant card change creates an activity record
@@ -122,6 +130,10 @@ Create activity records for:
 2. Create migration to update enum
 3. Use in activity creation code
 4. Update activity display components if needed
+
+Current card-doc activity types:
+- `card.updated.doc.attached`
+- `card.updated.doc.detached`
 
 ## Docs feature
 
