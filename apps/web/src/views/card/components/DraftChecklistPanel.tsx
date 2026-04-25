@@ -5,6 +5,7 @@ import { generateUID } from "@kan/shared/utils";
 
 import Button from "~/components/Button";
 import Modal from "~/components/modal";
+import ChecklistPanelShell from "./ChecklistPanelShell";
 
 interface DraftChecklistItem {
   tempId: string;
@@ -124,13 +125,10 @@ export default function DraftChecklistPanel({
   };
 
   return (
-    <div className="h-full min-h-0 w-[360px] overflow-y-auto border-l-[1px] border-light-300 bg-light-100 p-8 text-light-900 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-900">
-      <div className="pt-[18px]">
-        <div className="flex items-center justify-between pb-4">
-          <h2 className="pb-4 text-xs font-semibold uppercase tracking-wider text-light-800 dark:text-dark-800">
-            {t`Checklists`}
-          </h2>
-          {checklists.length > 0 && (
+    <>
+      <ChecklistPanelShell
+        headerActions={
+          checklists.length > 0 ? (
             <button
               type="button"
               onClick={addChecklist}
@@ -138,10 +136,10 @@ export default function DraftChecklistPanel({
             >
               <HiPlus className="h-4 w-4" />
             </button>
-          )}
-        </div>
-
-          {checklists.length === 0 && (
+          ) : undefined
+        }
+        emptyState={
+          checklists.length === 0 ? (
             <div className="flex justify-center py-8">
               <button
                 type="button"
@@ -152,9 +150,10 @@ export default function DraftChecklistPanel({
                 {t`Add Checklist`}
               </button>
             </div>
-          )}
-
-          {checklists.map((checklist) => {
+          ) : undefined
+        }
+      >
+        {checklists.map((checklist) => {
           const completedItems = checklist.items.filter((item) => item.completed);
 
           return (
@@ -282,7 +281,7 @@ export default function DraftChecklistPanel({
             </div>
           );
         })}
-      </div>
+      </ChecklistPanelShell>
 
       <Modal
         modalSize="sm"
@@ -312,7 +311,7 @@ export default function DraftChecklistPanel({
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 }
 

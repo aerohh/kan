@@ -106,17 +106,19 @@ The card detail page (`apps/web/src/views/card/index.tsx`) composes up to three 
 - **Middle panel** (`CardChecklistPanel`): Checklists — shown/hidden via toggle button with `HiCheckBadge` icon
 - **Right panel** (`CardActivityPanel` named export): Activity log → Comments
 
-The `ChecklistPanelProvider` context (`apps/web/src/providers/checklist-panel.tsx`) shares panel open/close state between CardPage (toggle button) and CardChecklistPanel.
+All panel state is managed by a single `CardPanelsProvider` context (`providers/card-panels.tsx`) accessed via `useCardPanels()`. This replaced the former `ChecklistPanelProvider`, `SidePanelProvider`, and `DraftChecklistProvider` (all deleted).
 
-`SidePanelProvider` (`apps/web/src/providers/side-panel.tsx`) manages mutually-exclusive right-side panels for:
-- Activity panel (`activePanel: "activity"`)
-- Doc viewer panel (`activePanel: "doc"`, stores `docPublicId`)
+`PanelOrchestrator` (`components/PanelOrchestrator.tsx`) handles the panel rendering wiring — it reads `useCardPanels()` context and renders the appropriate `SlideInPanel`-wrapped panels. Used in both `CardSlideOver` and full-page card layouts to avoid duplication.
 
-Use `useSidePanel()` (not `useActivityPanel()`) in card full-page and slide-over layouts when doc viewing is enabled.
+`ChecklistPanelShell` (`views/card/components/ChecklistPanelShell.tsx`) is the shared outer container for both `CardChecklistPanel` and `DraftChecklistPanel`, providing consistent styling (header, empty state, container).
 
 Layout is wired in two places:
-- Full page: `pages/cards/[cardId]/index.tsx` wraps layout in `ChecklistPanelProvider`, composes `CardChecklistPanel` + `CardActivityPanel` in flex container passed to `getDashboardLayout(page, rightPanel, true)`
-- Slide-over: `components/CardSlideOver.tsx` renders a 3-panel flex layout (max-width 1520px) with `ChecklistPanelProvider` inside `Dialog.Panel`
+- Full page: `pages/cards/[cardId]/index.tsx` passes `CardPanelsProvider` as the `Wrapper` param to `getDashboardLayout(page, <PanelOrchestrator />, true, CardPanelsProvider)`, ensuring context is shared between main content and right panel
+- Slide-over: `components/CardSlideOver.tsx` renders a 3-panel flex layout (max-width 1520px) with `CardPanelsProvider` inside `Dialog.Panel`
+
+#### `getDashboardLayout` Wrapper Pattern
+
+`getDashboardLayout` accepts an optional 4th param `Wrapper` (a React context provider component). When provided, it wraps the entire Dashboard (both main content and right panel), enabling context sharing. This is critical for `CardPanelsProvider` so that `PanelOrchestrator` in the right panel and toggle buttons in the main content share the same state.
 
 #### Headless UI Transition.Child Ref Gotcha
 
@@ -129,7 +131,7 @@ Layout is wired in two places:
 - **View mode** (default): Shows 3-panel layout: `<CardPage>` + `<CardChecklistPanel>` + `<CardActivityPanel>` side-by-side in a flex row
 - **Add mode** (`mode="add"`): Shows only `<NewCardPage>` (no activity/checklist panels). Used for creating new cards from the board view
 
-When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/components/NewCardPage.tsx`) — a self-contained component with its own form state, board data fetching, card creation mutation, and label modals. `NewCardPage` has its own built-in draft checklist panel (`DraftChecklistPanel`) for managing checklists before the card exists.
+When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/components/NewCardPage.tsx`) — a self-contained component with its own form state, board data fetching, card creation mutation, and label modals. `NewCardPage` has its own built-in draft checklist panel (`DraftChecklistPanel`) for managing checklists before the card exists. Both `CardChecklistPanel` and `DraftChecklistPanel` use the shared `ChecklistPanelShell` for consistent outer styling.
 
 ### Attached Docs UI
 

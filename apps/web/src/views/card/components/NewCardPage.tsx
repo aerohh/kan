@@ -13,8 +13,7 @@ import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
 import Modal from "~/components/modal";
 import Toggle from "~/components/Toggle";
-import { useChecklistPanel } from "~/providers/checklist-panel";
-import { useDraftChecklist } from "~/providers/draft-checklist";
+import { useCardPanels } from "~/providers/card-panels";
 import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { useWorkspace } from "~/providers/workspace";
@@ -106,8 +105,7 @@ export default function NewCardPage({
   const dueDate = watch("dueDate");
   const listPublicId = watch("listPublicId");
   const [isDateSelectorOpen, setIsDateSelectorOpen] = useState(false);
-  const { isOpen: checklistPanelOpen, toggle: toggleChecklistPanel } = useChecklistPanel();
-  const { draftChecklists, setDraftChecklists } = useDraftChecklist();
+  const { checklistPanelOpen, toggleChecklistPanel, draftChecklists, setDraftChecklists } = useCardPanels();
 
   const createCard = api.card.create.useMutation({
     onMutate: async (args) => {

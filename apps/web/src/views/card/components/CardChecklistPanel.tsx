@@ -10,6 +10,7 @@ import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { api } from "~/utils/api";
 import { invalidateCard } from "~/utils/cardInvalidation";
+import ChecklistPanelShell from "./ChecklistPanelShell";
 import Checklists from "./Checklists";
 import { DeleteChecklistConfirmation } from "./DeleteChecklistConfirmation";
 import { NewChecklistForm } from "./NewChecklistForm";
@@ -101,27 +102,24 @@ export default function CardChecklistPanel({
 
   return (
     <>
-      <div className="h-full min-h-0 w-[360px] overflow-y-auto border-l-[1px] border-light-300 bg-light-100 p-8 text-light-900 dark:border-dark-300 dark:bg-dark-100 dark:text-dark-900">
-        <div className="pt-[18px]">
-          <div className="flex items-center justify-between pb-4">
-            <h2 className="pb-4 text-xs font-semibold uppercase tracking-wider text-light-800 dark:text-dark-800">
-              {t`Checklists`}
-            </h2>
-            {canEdit && checklists.length > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                iconLeft={<HiPlus className="h-4 w-4" />}
-                onClick={() =>
-                  createChecklist.mutate({
-                    name: `Checklist ${checklists.length + 1}`,
-                    cardPublicId,
-                  })
-                }
-              />
-            )}
-          </div>
-          {canEdit && checklists.length === 0 && (
+      <ChecklistPanelShell
+        headerActions={
+          canEdit && checklists.length > 0 ? (
+            <Button
+              type="button"
+              variant="ghost"
+              iconLeft={<HiPlus className="h-4 w-4" />}
+              onClick={() =>
+                createChecklist.mutate({
+                  name: `Checklist ${checklists.length + 1}`,
+                  cardPublicId,
+                })
+              }
+            />
+          ) : undefined
+        }
+        emptyState={
+          canEdit && checklists.length === 0 ? (
             <div className="flex justify-center py-8">
               <button
                 type="button"
@@ -137,17 +135,18 @@ export default function CardChecklistPanel({
                 {t`Add Checklist`}
               </button>
             </div>
-          )}
-          <Checklists
-            checklists={checklists}
-            cardPublicId={cardPublicId}
-            activeChecklistForm={activeChecklistForm}
-            setActiveChecklistForm={setActiveChecklistForm}
-            viewOnly={!canEdit}
-            hideLineProgress
-          />
-        </div>
-      </div>
+          ) : undefined
+        }
+      >
+        <Checklists
+          checklists={checklists}
+          cardPublicId={cardPublicId}
+          activeChecklistForm={activeChecklistForm}
+          setActiveChecklistForm={setActiveChecklistForm}
+          viewOnly={!canEdit}
+          hideLineProgress
+        />
+      </ChecklistPanelShell>
 
       <Modal
         modalSize="sm"

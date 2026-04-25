@@ -27,12 +27,16 @@ export function getDashboardLayout(
   page: React.ReactElement,
   rightPanel?: React.ReactNode,
   hasRightPanel = false,
+  Wrapper?: React.FC<{ children: React.ReactNode }>,
 ) {
+  const dashboard = (
+    <Dashboard rightPanel={rightPanel} hasRightPanel={hasRightPanel}>
+      {page}
+    </Dashboard>
+  );
   return (
     <WorkspaceProvider>
-      <Dashboard rightPanel={rightPanel} hasRightPanel={hasRightPanel}>
-        {page}
-      </Dashboard>
+      {Wrapper ? <Wrapper>{dashboard}</Wrapper> : dashboard}
     </WorkspaceProvider>
   );
 }
@@ -187,11 +191,11 @@ export default function Dashboard({
               {hasRightPanel && rightPanel && (
                 <div
                   ref={rightPanelRef}
-                  className={`fixed right-0 top-12 z-40 h-[calc(100dvh-3rem)] w-80 transform border-l border-light-300 bg-light-200 transition-transform duration-300 ease-in-out dark:border-dark-300 dark:bg-dark-100 md:hidden ${
+                  className={`fixed right-0 top-12 z-40 h-[calc(100dvh-3rem)] transform border-l border-light-300 bg-light-200 transition-transform duration-300 ease-in-out dark:border-dark-300 dark:bg-dark-100 md:hidden ${
                     isRightPanelOpen ? "translate-x-0" : "translate-x-full"
                   }`}
                 >
-                  <div className="h-full">{rightPanel}</div>
+                  <div className="h-full overflow-x-auto">{rightPanel}</div>
                 </div>
               )}
 

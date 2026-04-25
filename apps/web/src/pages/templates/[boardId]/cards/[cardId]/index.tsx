@@ -5,7 +5,7 @@ import Popup from "~/components/Popup";
 import SlideInPanel from "~/components/SlideInPanel";
 import CardView, { CardActivityPanel } from "~/views/card";
 import CardChecklistPanel from "~/views/card/components/CardChecklistPanel";
-import { ChecklistPanelProvider, useChecklistPanel } from "~/providers/checklist-panel";
+import { CardPanelsProvider, useCardPanels } from "~/providers/card-panels";
 import { usePermissions } from "~/hooks/usePermissions";
 
 function TemplateCardRightPanels() {
@@ -13,7 +13,7 @@ function TemplateCardRightPanels() {
   const cardId = Array.isArray(router.query.cardId)
     ? router.query.cardId[0]
     : router.query.cardId;
-  const { isOpen: checklistPanelOpen } = useChecklistPanel();
+  const { checklistPanelOpen } = useCardPanels();
   const { canEditCard } = usePermissions();
 
   return (
@@ -42,11 +42,10 @@ const CardPage: NextPageWithLayout = () => {
 
 CardPage.getLayout = (page) =>
   getDashboardLayout(
-    <ChecklistPanelProvider>
-      {page}
-    </ChecklistPanelProvider>,
+    page,
     <TemplateCardRightPanels />,
     true,
+    CardPanelsProvider,
   );
 
 export default CardPage;

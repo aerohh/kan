@@ -23,8 +23,7 @@ import { usePermissions } from "~/hooks/usePermissions";
 import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { useWorkspace } from "~/providers/workspace";
-import { useChecklistPanel } from "~/providers/checklist-panel";
-import { useSidePanel } from "~/providers/side-panel";
+import { useCardPanels } from "~/providers/card-panels";
 import { api } from "~/utils/api";
 import { invalidateCard } from "~/utils/cardInvalidation";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
@@ -146,8 +145,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   const { workspace } = useWorkspace();
   const { canEditCard } = usePermissions();
   const { data: session } = authClient.useSession();
-  const { isOpen: checklistPanelOpen, toggle: toggleChecklistPanel, open: openChecklistPanel } = useChecklistPanel();
-  const { activityPanelOpen, toggleActivityPanel } = useSidePanel();
+  const { checklistPanelOpen, toggleChecklistPanel, openChecklistPanel, activityPanelOpen, toggleActivityPanel } = useCardPanels();
 
   const cardId = cardPublicIdOverride ?? (Array.isArray(router.query.cardId)
     ? router.query.cardId[0]
