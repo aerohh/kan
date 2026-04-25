@@ -7,8 +7,8 @@ import {
   extractLabelRefIds,
   getLabelRefItems,
   labelRefInlineContentSpecs,
-} from "~/components/MentionSpec";
-import type { LabelRefSuggestionItem } from "~/components/MentionSpec";
+  type LabelRefSuggestionItem,
+} from "~/components/blocknote-specs";
 import { useBlockNoteEditor } from "~/hooks/useBlockNoteEditor";
 import { api } from "~/utils/api";
 
@@ -271,10 +271,8 @@ export default function DocEditorInner({
 
   const handleLabelItemClick = useCallback(
     (item: LabelRefSuggestionItem) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!editor) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      (editor as any).insertInlineContent([
+      editor.insertInlineContent([
         {
           type: "labelRef",
           props: {
@@ -282,7 +280,7 @@ export default function DocEditorInner({
             name: item.name,
             colourCode: item.colourCode ?? "",
           },
-        },
+        } as any,
         " ",
       ]);
     },
@@ -313,8 +311,7 @@ export default function DocEditorInner({
         />
 
         <BlockNote
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-          editor={editor as any}
+          editor={editor}
           resolvedTheme={resolvedTheme}
           onChange={handleEditorChange}
           className="mt-10"

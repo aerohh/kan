@@ -181,8 +181,13 @@ The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/m
 
 | File | Purpose |
 |------|---------|
-| `components/BlockNote.tsx` | Reusable `<BlockNote>` wrapper with formatting toolbar. Accepts `editable`, `className`, `children` props. Children render inside `BlockNoteView` context. |
-| `components/MentionSpec.tsx` | `@`-mention inline content spec for BlockNote. Exports `MentionMember`, `getMentionItems()`, `mentionInlineContentSpecs`. Also has `labelRef` spec (`labelRefInlineContentSpecs`), `getLabelRefItems()`, `extractLabelRefIds()`, and `extractDocMentionIds()` |
+| `components/BlockNote.tsx` | Reusable `<BlockNote>` wrapper with formatting toolbar (extracted `Toolbar` component at module scope). Accepts `BlockNoteEditor<any,any,any>` so custom-schema editors don't need `as any` casts. |
+| `components/blocknote-specs/` | BlockNote inline content specs and utilities, split into focused modules (see below). |
+| `components/blocknote-specs/mention-spec.tsx` | `mentionInlineContentSpecs` bundle: `mention` (`@member`) and `docMention` (`@doc`) inline content specs |
+| `components/blocknote-specs/label-ref-spec.tsx` | `labelRefInlineContentSpecs` bundle: `labelRef` (`#label`) inline content spec |
+| `components/blocknote-specs/suggestions.ts` | `getMentionItems()`, `getLabelRefItems()` and their types (`MentionSuggestionItem`, `LabelRefSuggestionItem`) |
+| `components/blocknote-specs/extract.ts` | Tree-walking extractors: `extractDocMentionIds()`, `extractLabelRefIds()`, `hasInlineMentions()`. All delegate to `extractInlineContentIds()` / `hasInlineContentOfType()` from `@kan/shared/utils` |
+| `components/blocknote-specs/types.ts` | Shared types: `MentionMember`, `MentionDoc`, `LabelRefItem` |
 | `hooks/useBlockNoteEditor.ts` | Shared hook: editor creation, theme sync, initial content loading, `getFullText()`, `focus()`, `isReady`. Accepts optional `schema` and `initialContent` (supports both HTML strings and JSON block arrays). |
 | `views/docs/components/DocEditorForCard.tsx` | Card description editor. `forwardRef` exposing `focus()` and `getDocument()`. Accepts `workspaceMembers` to enable `@`-mentions. Returns JSON blocks via `onUnmountSnapshot` and `onChange`. |
 | `views/docs/components/DocEditorInner.tsx` | Full-page doc editor with title + word count. Lazy doc creation on first edit, debounced autosave (1.5s), URL replacement for new docs. Uses `labelRefInlineContentSpecs` schema with `#` label picker via `SuggestionMenuController`. Auto-syncs doc-label junction on every save via `extractLabelRefIds()` + `doc.syncLabels` mutation. Also uses `useBlockNoteEditor` hook. |
@@ -195,8 +200,8 @@ The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/m
 - **`BlockNote` component accepts `children`** — pass context-dependent children (like `SuggestionMenuController`) through this prop so they render inside `BlockNoteView`
 - When using custom inline content (e.g., mentions), create a schema with `BlockNoteSchema.create({ inlineContentSpecs: mentionInlineContentSpecs })` and pass to `useBlockNoteEditor({ schema })`
 - Mention data flows: `NewCardPage` maps `WorkspaceMember[]` → `MentionMember[]` → `DocEditorForCard` prop → creates schema → `SuggestionMenuController`
-- `DocEditorForCard` should preserve mention-only content (no plain text) by treating inline mention nodes as meaningful content. Use a helper like `hasInlineMentions()` before collapsing to `[]`
-- `DocEditorForCard` passes editor as `any` to `<BlockNote />` to satisfy type mismatch between custom schema editor and component typing
+- `DocEditorForCard` should preserve mention-only content (no plain text) by treating inline mention nodes as meaningful content. Use `hasInlineMentions()` from `~/components/blocknote-specs` before collapsing to `[]`
+- **Case-sensitive import**: The directory `components/blocknote-specs/` and file `components/BlockNote.tsx` differ only in casing. On macOS (case-insensitive FS), `~/components/blocknote-specs` resolves to the directory, `~/components/BlockNote` resolves to the file. Do not use `~/components/blocknote` (without the `-specs` suffix) — it will resolve to `BlockNote.tsx` on macOS.
 
 ### Doc Mentions in Card Descriptions
 
@@ -213,12 +218,12 @@ The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/m
 
 ### Label References in Doc Editor (`#` trigger)
 
-- Label ref spec (`labelRef`) is a BlockNote inline content spec in `MentionSpec.tsx`
+- Label ref spec (`labelRef`) is a BlockNote inline content spec in `components/blocknote-specs/label-ref-spec.tsx`
 - Triggered by `#` character in `DocEditorInner` via `SuggestionMenuController`
-- Renders as a colored badge using the label's `colourCode` (background at `${colour}20`, text in `colour`, border at `${colour}40`, with colored dot icon)
+- Renders as a colored badge using the label's `colourCode` (background at `${colour}25`, text in `colour`, border at `${colour}30`)
 - Props: `id` (label publicId), `name`, `colourCode`
 - `getLabelRefItems(labels, query)` — filters workspace labels by name matching query
-- `extractLabelRefIds(blocks)` — walks BlockNote content tree to extract label public IDs from `labelRef` inline content (same pattern as `extractDocMentionIds`)
+- `extractLabelRefIds(blocks)` — delegates to generic `extractInlineContentIds(blocks, ["labelRef"])` from `@kan/shared/utils`
 - `labelRefInlineContentSpecs` — separate specs export (does not include mention/docMention specs)
 - Auto-sync flow in `DocEditorInner`:
   1. On every editor change → debounced save (1.5s)
@@ -227,7 +232,6 @@ The project uses BlockNote (`@blocknote/core`, `@blocknote/react`, `@blocknote/m
 - `DocEditorInner` fetches workspace labels via `api.label.listByWorkspace.useQuery({ workspacePublicId })`
 - BlockNote schema uses `BlockNoteSchema.create({ inlineContentSpecs: labelRefInlineContentSpecs })`, passed to `useBlockNoteEditor({ schema })`
 - `SuggestionMenuController` with `triggerCharacter="#"` must be inside `<BlockNote>` children (same rule as `@` mentions)
-- Editor is passed as `any` to `<BlockNote />` (same type mismatch pattern as `DocEditorForCard`)
 
 ### Click-to-Focus Pattern
 

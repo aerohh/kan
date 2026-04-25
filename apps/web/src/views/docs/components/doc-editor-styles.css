@@ -74,10 +74,10 @@
 /* Quote (not blockquote) */
 
 .doc-editor .bn-block-content[data-content-type="quote"] blockquote {
-  border-left: 3px solid #d1d5db;
+  border-left: 3px solid var(--editor-quote-border);
   padding-left: 1rem;
   font-style: italic;
-  color: #6b7280;
+  color: var(--editor-quote-text);
   margin: 0.5rem 0;
 }
 
@@ -87,7 +87,7 @@
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   font-size: 13px;
   line-height: 1.6;
-  background-color: #f3f4f6;
+  background-color: var(--editor-code-bg);
   border-radius: 6px;
 }
 
@@ -98,27 +98,27 @@
 /* Placeholder */
 
 .doc-editor .bn-block-content:has(.ProseMirror-trailingBreak:only-child):after {
-  color: #9ca3af;
+  color: var(--editor-placeholder-text);
   font-style: normal;
 }
 
 /* Links */
 
 .doc-editor .bn-block-content a {
-  color: #2563eb;
+  color: var(--editor-link-color);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .doc-editor .bn-block-content a:hover {
-  color: #1d4ed8;
+  color: var(--editor-link-hover);
 }
 
 /* Horizontal rule */
 
 .doc-editor .bn-block-content[data-content-type="divider"] hr {
   border: none;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--editor-divider-color);
   margin: 1.5rem 0;
 }
 
@@ -140,57 +140,84 @@
 }
 
 .doc-title-input::placeholder {
-  color: #9ca3af;
+  color: var(--editor-placeholder-text);
 }
 
 /* ============================================================
-   Dark Mode: Editor Content
+   Section B: Theme Tokens — Light (default)
    ============================================================ */
-
-.bn-root[data-color-scheme="dark"] .bn-block-content[data-content-type="quote"] blockquote {
-  border-left-color: #4b5563;
-  color: #9ca3af;
-}
-
-.bn-root[data-color-scheme="dark"] .bn-block-content[data-content-type="codeBlock"] {
-  background-color: #1f2937;
-}
-
-.bn-root[data-color-scheme="dark"] .bn-block-content[data-content-type="divider"] hr {
-  border-top-color: #374151;
-}
-
-.bn-root[data-color-scheme="dark"] .bn-block-content a {
-  color: #60a5fa;
-}
-
-.bn-root[data-color-scheme="dark"] .bn-block-content a:hover {
-  color: #93c5fd;
-}
-
-.bn-root[data-color-scheme="dark"] .doc-title-input::placeholder {
-  color: #6b7280;
-}
-
-/* ============================================================
-   Section B: UI Components — Override Mantine Defaults
-   ============================================================ */
-
-/* --- Root wrapper — set Mantine variables to clean values --- */
 
 .doc-editor .bn-mantine {
   --mantine-color-scheme: light;
   --mantine-radius-default: 6px;
   --mantine-font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Content tokens */
+  --editor-quote-border: #d1d5db;
+  --editor-quote-text: #6b7280;
+  --editor-code-bg: #f3f4f6;
+  --editor-divider-color: #e5e7eb;
+  --editor-link-color: #2563eb;
+  --editor-link-hover: #1d4ed8;
+  --editor-placeholder-text: #9ca3af;
+
+  /* UI tokens */
+  --ui-surface: #ffffff;
+  --ui-surface-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  --ui-text: #374151;
+  --ui-text-secondary: #6b7280;
+  --ui-text-muted: #9ca3af;
+  --ui-hover: #f3f4f6;
+  --ui-active: #e5e7eb;
+  --ui-active-text: #111827;
+  --ui-border: #e5e7eb;
+  --ui-input-border: #e5e7eb;
+  --ui-input-focus-border: #2563eb;
+  --ui-input-focus-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  --ui-tooltip-bg: #1f2937;
+  --ui-tooltip-text: #ffffff;
 }
+
+.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] {
+  --mantine-color-scheme: dark;
+
+  /* Content tokens */
+  --editor-quote-border: #4b5563;
+  --editor-quote-text: #9ca3af;
+  --editor-code-bg: #1f2937;
+  --editor-divider-color: #374151;
+  --editor-link-color: #60a5fa;
+  --editor-link-hover: #93c5fd;
+  --editor-placeholder-text: #6b7280;
+
+  /* UI tokens */
+  --ui-surface: #1f2937;
+  --ui-surface-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --ui-text: #d1d5db;
+  --ui-text-secondary: #9ca3af;
+  --ui-text-muted: #6b7280;
+  --ui-hover: #374151;
+  --ui-active: #4b5563;
+  --ui-active-text: #f9fafb;
+  --ui-border: #374151;
+  --ui-input-border: #374151;
+  --ui-input-focus-border: #3b82f6;
+  --ui-input-focus-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  --ui-tooltip-bg: #4b5563;
+  --ui-tooltip-text: #f9fafb;
+}
+
+/* ============================================================
+   Section C: UI Components — Shared (uses tokens above)
+   ============================================================ */
 
 /* --- Formatting Toolbar --- */
 
 .doc-editor .bn-mantine .bn-formatting-toolbar {
-  background: #ffffff;
+  background: var(--ui-surface);
   border: none;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--ui-surface-shadow);
   padding: 4px 6px;
 }
 
@@ -199,46 +226,46 @@
 .doc-editor .bn-mantine .bn-formatting-toolbar button,
 .doc-editor .bn-mantine .bn-formatting-toolbar [role="button"] {
   border-radius: 4px;
-  color: #374151;
+  color: var(--ui-text);
   transition: all 0.1s ease;
 }
 
 .doc-editor .bn-mantine .bn-formatting-toolbar button:hover,
 .doc-editor .bn-mantine .bn-formatting-toolbar [role="button"]:hover {
-  background-color: #f3f4f6;
+  background-color: var(--ui-hover);
 }
 
 .doc-editor .bn-mantine .bn-formatting-toolbar button[data-active="true"],
 .doc-editor .bn-mantine .bn-formatting-toolbar [aria-pressed="true"] {
-  background-color: #e5e7eb;
-  color: #111827;
+  background-color: var(--ui-active);
+  color: var(--ui-active-text);
 }
 
 /* Toolbar separator */
 
 .doc-editor .bn-mantine .bn-formatting-toolbar hr,
 .doc-editor .bn-mantine .bn-formatting-toolbar [role="separator"] {
-  border-color: #e5e7eb;
+  border-color: var(--ui-border);
 }
 
 /* Block type select in toolbar */
 
 .doc-editor .bn-mantine .bn-formatting-toolbar [data-popover],
 .doc-editor .bn-mantine .bn-formatting-toolbar .mantine-Popover-dropdown {
-  background: #ffffff;
+  background: var(--ui-surface);
   border: none;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--ui-surface-shadow);
 }
 
 /* --- Slash / Suggestion Menu --- */
 
 .doc-editor .bn-mantine .bn-suggestion-menu,
 .doc-editor .bn-mantine #bn-suggestion-menu {
-  background: #ffffff;
+  background: var(--ui-surface);
   border: none;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--ui-surface-shadow);
   padding: 4px;
   min-width: 200px;
 }
@@ -252,24 +279,24 @@
   margin: 0 2px;
   transition: background-color 0.1s ease;
   font-size: 14px;
-  color: #374151;
+  color: var(--ui-text);
 }
 
 .doc-editor .bn-mantine .bn-suggestion-menu-item:hover,
 .doc-editor .bn-mantine .bn-suggestion-menu-item[aria-selected="true"] {
-  background-color: #f3f4f6;
+  background-color: var(--ui-hover);
 }
 
 .doc-editor .bn-mantine .bn-suggestion-menu-item svg {
   width: 18px;
   height: 18px;
-  color: #6b7280;
+  color: var(--ui-text-secondary);
 }
 
 /* Menu section label */
 
 .doc-editor .bn-mantine .bn-suggestion-menu-label {
-  color: #9ca3af;
+  color: var(--ui-text-muted);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -281,40 +308,40 @@
 
 .doc-editor .bn-mantine .bn-side-menu button {
   border-radius: 4px;
-  color: #9ca3af;
+  color: var(--ui-text-muted);
   transition: all 0.1s ease;
 }
 
 .doc-editor .bn-mantine .bn-side-menu button:hover {
-  background-color: #f3f4f6;
-  color: #6b7280;
+  background-color: var(--ui-hover);
+  color: var(--ui-text-secondary);
 }
 
 /* --- Drag Menu --- */
 
 .doc-editor .bn-mantine .mantine-Menu-dropdown {
-  background: #ffffff;
+  background: var(--ui-surface);
   border: none;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--ui-surface-shadow);
   padding: 4px;
 }
 
 .doc-editor .bn-mantine .mantine-Menu-item {
   border-radius: 4px;
   font-size: 13px;
-  color: #374151;
+  color: var(--ui-text);
   padding: 6px 8px;
 }
 
 .doc-editor .bn-mantine .mantine-Menu-item:hover {
-  background-color: #f3f4f6;
+  background-color: var(--ui-hover);
 }
 
 .doc-editor .bn-mantine .mantine-Menu-item svg {
   width: 16px;
   height: 16px;
-  color: #9ca3af;
+  color: var(--ui-text-muted);
 }
 
 /* --- Link Toolbar --- */
@@ -323,149 +350,27 @@
 .doc-editor .bn-mantine .mantine-Popover-dropdown [type="text"],
 .doc-editor .bn-mantine .mantine-TextInput-input,
 .doc-editor .bn-mantine .mantine-Input-input {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--ui-input-border);
   border-radius: 6px;
   font-size: 13px;
   padding: 6px 10px;
-  background: #ffffff;
+  background: var(--ui-surface);
 }
 
 .doc-editor .bn-mantine .mantine-Popover-dropdown input:focus,
 .doc-editor .bn-mantine .mantine-TextInput-input:focus,
 .doc-editor .bn-mantine .mantine-Input-input:focus {
-  border-color: #2563eb;
+  border-color: var(--ui-input-focus-border);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  box-shadow: var(--ui-input-focus-shadow);
 }
 
 /* --- Tooltip --- */
 
 .doc-editor .bn-mantine .mantine-Tooltip-tooltip {
-  background: #1f2937;
-  color: #ffffff;
+  background: var(--ui-tooltip-bg);
+  color: var(--ui-tooltip-text);
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 4px;
-}
-
-/* ============================================================
-   Dark Mode: UI Components
-   ============================================================ */
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] {
-  --mantine-color-scheme: dark;
-}
-
-/* --- Formatting Toolbar --- */
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-formatting-toolbar {
-  background: #1f2937;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-formatting-toolbar button,
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-formatting-toolbar [role="button"] {
-  color: #d1d5db;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-formatting-toolbar button:hover,
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-formatting-toolbar [role="button"]:hover {
-  background-color: #374151;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-formatting-toolbar button[data-active="true"],
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-formatting-toolbar [aria-pressed="true"] {
-  background-color: #4b5563;
-  color: #f9fafb;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-formatting-toolbar hr,
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-formatting-toolbar [role="separator"] {
-  border-color: #374151;
-}
-
-/* Block type dropdown */
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .mantine-Popover-dropdown {
-  background: #1f2937;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* --- Slash / Suggestion Menu --- */
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-suggestion-menu,
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] #bn-suggestion-menu {
-  background: #1f2937;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-suggestion-menu-item,
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] #bn-suggestion-menu-item {
-  color: #d1d5db;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-suggestion-menu-item:hover,
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-suggestion-menu-item[aria-selected="true"] {
-  background-color: #374151;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-suggestion-menu-item svg {
-  color: #9ca3af;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-suggestion-menu-label {
-  color: #6b7280;
-}
-
-/* --- Side Menu --- */
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-side-menu button {
-  color: #6b7280;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .bn-side-menu button:hover {
-  background-color: #374151;
-  color: #9ca3af;
-}
-
-/* --- Drag Menu --- */
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .mantine-Menu-dropdown {
-  background: #1f2937;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .mantine-Menu-item {
-  color: #d1d5db;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .mantine-Menu-item:hover {
-  background-color: #374151;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .mantine-Menu-item svg {
-  color: #6b7280;
-}
-
-/* --- Link Toolbar --- */
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] input,
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .mantine-TextInput-input,
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .mantine-Input-input {
-  border-color: #374151;
-  background: #1f2937;
-  color: #f9fafb;
-}
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] input:focus,
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .mantine-TextInput-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-/* --- Tooltip --- */
-
-.doc-editor .bn-mantine[data-mantine-color-scheme="dark"] .mantine-Tooltip-tooltip {
-  background: #4b5563;
-  color: #f9fafb;
 }

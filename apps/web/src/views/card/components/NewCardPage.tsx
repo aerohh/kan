@@ -8,7 +8,7 @@ import Button from "~/components/Button";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
 import DateSelector from "~/components/DateSelector";
 import DocEditorForCard, { type DocEditorForCardHandle } from "~/views/docs/components/DocEditorForCard";
-import { type MentionMember } from "~/components/MentionSpec";
+import { type MentionMember } from "~/components/blocknote-specs";
 import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
 import Modal from "~/components/modal";

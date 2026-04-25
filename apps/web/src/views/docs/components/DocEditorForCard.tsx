@@ -5,51 +5,17 @@ import { forwardRef, useCallback, useMemo, useImperativeHandle, useRef, useEffec
 import BlockNote from "~/components/BlockNote";
 import {
   getMentionItems,
+  hasInlineMentions,
   mentionInlineContentSpecs,
-  type MentionMember,
   type MentionDoc,
+  type MentionMember,
   type MentionSuggestionItem,
-} from "~/components/MentionSpec";
+} from "~/components/blocknote-specs";
 import { useBlockNoteEditor } from "~/hooks/useBlockNoteEditor";
 
 export interface DocEditorForCardHandle {
   focus: () => void;
   getDocument: () => Record<string, unknown>[];
-}
-
-function hasInlineMentions(blocks: Record<string, unknown>[]): boolean {
-  const walkInline = (content: unknown): boolean => {
-    if (!Array.isArray(content)) return false;
-    for (const inline of content) {
-      if (!inline || typeof inline !== "object") continue;
-      const inlineRecord = inline as Record<string, unknown>;
-      if (
-        inlineRecord.type === "mention" ||
-        inlineRecord.type === "docMention"
-      ) {
-        return true;
-      }
-      if (walkInline(inlineRecord.content)) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  const walkBlocks = (blockList: Record<string, unknown>[]): boolean => {
-    for (const block of blockList) {
-      if (walkInline(block.content)) return true;
-      if (
-        Array.isArray(block.children) &&
-        walkBlocks(block.children as Record<string, unknown>[])
-      ) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  return walkBlocks(blocks);
 }
 
 const DocEditorForCard = forwardRef<
@@ -131,12 +97,11 @@ const DocEditorForCard = forwardRef<
   const handleMentionItemClick = useCallback(
     (item: MentionSuggestionItem) => {
       if (!editor) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (editor as any).insertInlineContent([
+      editor.insertInlineContent([
         {
           type: item.kind === "doc" ? "docMention" : "mention",
           props: { id: item.id, label: item.label },
-        },
+        } as any,
         " ",
       ]);
       if (item.kind === "doc") {
@@ -152,8 +117,7 @@ const DocEditorForCard = forwardRef<
       className="doc-editor min-h-[200px] transition-colors duration-200 [&_.bn-editor]:!min-h-0"
     >
       <BlockNote
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        editor={editor as any}
+        editor={editor}
         resolvedTheme={resolvedTheme}
         onChange={handleChange}
         editable={!readOnly}

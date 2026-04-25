@@ -15,7 +15,7 @@ import FeedbackModal from "~/components/FeedbackModal";
 import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
 import Modal from "~/components/modal";
-import { extractDocMentionIds } from "~/components/MentionSpec";
+import { extractDocMentionIds } from "~/components/blocknote-specs";
 import { NewWorkspaceForm } from "~/components/NewWorkspaceForm";
 import { PageHead } from "~/components/PageHead";
 import { EditYouTubeModal } from "~/components/YouTubeEmbed/EditYouTubeModal";

@@ -1,5 +1,5 @@
 import { useCreateBlockNote } from "@blocknote/react";
-import type { CustomBlockNoteSchema } from "@blocknote/core";
+import type { BlockNoteEditor, CustomBlockNoteSchema } from "@blocknote/core";
 import { useTheme } from "next-themes";
 import type { RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -55,7 +55,7 @@ export function useBlockNoteEditor({
   const [isReady, setIsReady] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const editor = useCreateBlockNote(schema ? { schema, placeholders } as any : { placeholders });
+  const editor: BlockNoteEditor<any, any, any> = useCreateBlockNote(schema ? { schema, placeholders } as any : { placeholders });
 
   useEffect(() => {
     if (!wrapperRef.current) return;
@@ -88,8 +88,7 @@ export function useBlockNoteEditor({
 
     const loadBlocks = (blocks: Record<string, unknown>[]) => {
       if (blocks.length === 0) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (editor as any).replaceBlocks(editor.document, blocks);
+      editor.replaceBlocks(editor.document, blocks as any);
     };
 
     if (Array.isArray(content)) {

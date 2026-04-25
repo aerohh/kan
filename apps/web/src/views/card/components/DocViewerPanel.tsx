@@ -25,8 +25,7 @@ function DocViewerEditor({ content }: { content: Record<string, unknown>[] | nul
   return (
     <div ref={editorWrapperRef} className="doc-editor min-h-[200px] [&_.bn-editor]:!min-h-0">
       <BlockNote
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        editor={editor as any}
+        editor={editor}
         resolvedTheme={resolvedTheme}
         onChange={noop}
         editable={false}
