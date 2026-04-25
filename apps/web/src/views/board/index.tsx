@@ -295,13 +295,15 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     useState<PublicListId>("");
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  const [newCardSlideOver, setNewCardSlideOver] = useState<{
-    isOpen: boolean;
-    listPublicId: string;
-    preSelectedLabelId?: string;
-    preSelectedMemberId?: string;
-    preSelectedDueDate?: Date;
-  }>({ isOpen: false, listPublicId: "" });
+  type SlideOverState =
+    | { mode: "closed" }
+    | { mode: "view"; cardPublicId: string }
+    | { mode: "add"; listPublicId: string; preSelectedLabelId?: string; preSelectedMemberId?: string; preSelectedDueDate?: Date };
+
+  const urlCardId = (router.query.card as string) || null;
+  const [slideOverState, setSlideOverState] = useState<SlideOverState>(
+    urlCardId ? { mode: "view", cardPublicId: urlCardId } : { mode: "closed" },
+  );
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -311,26 +313,31 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
 
   const viewMode = (router.query.view as string) || "kanban";
 
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(
-    (router.query.card as string) || null,
-  );
-
   useEffect(() => {
-    const urlCardId = (router.query.card as string) || null;
-    setSelectedCardId(urlCardId);
+    const cardId = (router.query.card as string) || null;
+    setSlideOverState((prev) => {
+      if (cardId) {
+        if (prev.mode === "view" && prev.cardPublicId === cardId) return prev;
+        return { mode: "view", cardPublicId: cardId };
+      }
+      if (prev.mode !== "view") return prev;
+      return { mode: "closed" };
+    });
   }, [router.query.card]);
 
   const handleOpenCard = (cardPublicId: string) => {
-    setSelectedCardId(cardPublicId);
-    void router.push(
-      { pathname: router.pathname, query: { ...router.query, card: cardPublicId } },
-      undefined,
-      { shallow: true },
-    );
+    setSlideOverState({ mode: "view", cardPublicId });
+    setTimeout(() => {
+      void router.push(
+        { pathname: router.pathname, query: { ...router.query, card: cardPublicId } },
+        undefined,
+        { shallow: true },
+      );
+    }, 300);
   };
 
   const handleCloseCard = () => {
-    setSelectedCardId(null);
+    setSlideOverState({ mode: "closed" });
     const { card: _, ...rest } = router.query;
     void router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
   };
@@ -588,8 +595,8 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
       }
     }
 
-    setNewCardSlideOver({
-      isOpen: true,
+    setSlideOverState({
+      mode: "add",
       listPublicId: firstRealListId,
       preSelectedLabelId: preSelection.labelPublicId,
       preSelectedMemberId: preSelection.memberPublicId,
@@ -1093,8 +1100,8 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                 list={list}
                                 isVirtual={!!isListGroupMode}
                                 onOpenNewCard={(publicListId) =>
-                                  setNewCardSlideOver({
-                                    isOpen: true,
+                                  setSlideOverState({
+                                    mode: "add",
                                     listPublicId: publicListId,
                                   })
                                 }
@@ -1222,22 +1229,17 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
         )}
         {renderModalContent()}
         <CardSlideOver
-          cardPublicId={selectedCardId ?? ""}
+          mode={slideOverState.mode === "add" ? "add" : "view"}
+          cardPublicId={slideOverState.mode === "view" ? slideOverState.cardPublicId : undefined}
+          isOpen={slideOverState.mode !== "closed"}
+          onClose={slideOverState.mode === "add" ? () => setSlideOverState({ mode: "closed" }) : handleCloseCard}
           isTemplate={isTemplate}
-          isOpen={!!selectedCardId}
-          onClose={handleCloseCard}
-        />
-        <CardSlideOver
-          mode="add"
-          isOpen={newCardSlideOver.isOpen}
-          onClose={() => setNewCardSlideOver({ isOpen: false, listPublicId: "" })}
-          isTemplate={isTemplate}
-          boardPublicId={boardId ?? ""}
-          listPublicId={newCardSlideOver.listPublicId}
-          queryParams={queryParams}
-          preSelectedLabelId={newCardSlideOver.preSelectedLabelId}
-          preSelectedMemberId={newCardSlideOver.preSelectedMemberId}
-          preSelectedDueDate={newCardSlideOver.preSelectedDueDate}
+          boardPublicId={slideOverState.mode === "add" ? boardId ?? "" : undefined}
+          listPublicId={slideOverState.mode === "add" ? slideOverState.listPublicId : undefined}
+          queryParams={slideOverState.mode === "add" ? queryParams : undefined}
+          preSelectedLabelId={slideOverState.mode === "add" ? slideOverState.preSelectedLabelId : undefined}
+          preSelectedMemberId={slideOverState.mode === "add" ? slideOverState.preSelectedMemberId : undefined}
+          preSelectedDueDate={slideOverState.mode === "add" ? slideOverState.preSelectedDueDate : undefined}
         />
       </div>
     </>
