@@ -6,10 +6,10 @@ import { useCallback, useMemo, useRef, useState, Fragment } from "react";
 import { HiOutlinePlusSmall } from "react-icons/hi2";
 
 import Avatar from "~/components/Avatar";
-import Badge from "~/components/Badge";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
 import LabelIcon from "~/components/LabelIcon";
 import { QuickAddCardInput } from "~/components/QuickAddCardInput";
+import LabelSelector from "~/views/card/components/LabelSelector";
 import { usePopup } from "~/providers/popup";
 import { useQuickAddCard } from "~/hooks/useQuickAddCard";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
@@ -51,7 +51,6 @@ function CardRow({
   allLists,
   weekStartDay,
   updateCard,
-  addOrRemoveLabel,
   addOrRemoveMember,
   handleUpdateDueDate,
   groupColourCode,
@@ -66,7 +65,6 @@ function CardRow({
   allLists: SheetViewProps["allLists"];
   weekStartDay: number;
   updateCard: ReturnType<typeof api.card.update>["mutate"];
-  addOrRemoveLabel: ReturnType<typeof api.card.addOrRemoveLabel>["mutate"];
   addOrRemoveMember: ReturnType<typeof api.card.addOrRemoveMember>["mutate"];
   handleUpdateDueDate: (id: string, date: Date | null) => void;
   groupColourCode?: string | null;
@@ -153,42 +151,23 @@ function CardRow({
         style={cellBorderStyle}
         onClick={(e) => e.stopPropagation()}
       >
-        <CheckboxDropdown
-          items={boardLabels.map((label) => ({
-            key: label.publicId,
-            value: label.name,
-            selected: card.labels.some(
+        <LabelSelector
+          cardPublicId={card.publicId}
+          labels={boardLabels.map((label) => {
+            const isSelected = card.labels.some(
               (l) => l.publicId === label.publicId,
-            ),
-            leftIcon: (
-              <LabelIcon colourCode={label.colourCode} />
-            ),
-          }))}
-          handleSelect={(_, item) => {
-            addOrRemoveLabel({
-              cardPublicId: card.publicId,
-              labelPublicId: item.key,
-            });
-          }}
+            );
+            return {
+              key: label.publicId,
+              value: label.name,
+              selected: isSelected,
+              leftIcon: <LabelIcon colourCode={label.colourCode} />,
+              colourCode: label.colourCode,
+            };
+          })}
+          isLoading={false}
           disabled={!canEditCard}
-        >
-          <div className="flex cursor-pointer flex-wrap gap-1">
-            {card.labels.length > 0 ? (
-              card.labels.map((label, i) => (
-                <Badge
-                  key={`${label.publicId}-${i}`}
-                  value={label.name}
-                  colourCode={label.colourCode}
-                  variant="compact"
-                />
-              ))
-            ) : (
-              <span className="text-light-700 dark:text-dark-700">
-                &mdash;
-              </span>
-            )}
-          </div>
-        </CheckboxDropdown>
+        />
       </td>
 
       <td
@@ -395,17 +374,6 @@ export default function SheetView({
     await utils.board.byId.invalidate();
   };
 
-  const addOrRemoveLabel = api.card.addOrRemoveLabel.useMutation({
-    onError: () => {
-      showPopup({
-        header: t`Unable to update label`,
-        message: t`Please try again later.`,
-        icon: "error",
-      });
-    },
-    onSettled: invalidateBoard,
-  });
-
   const addOrRemoveMember = api.card.addOrRemoveMember.useMutation({
     onError: () => {
       showPopup({
@@ -455,7 +423,6 @@ export default function SheetView({
     allLists,
     weekStartDay,
     updateCard: updateCard.mutate,
-    addOrRemoveLabel: addOrRemoveLabel.mutate,
     addOrRemoveMember: addOrRemoveMember.mutate,
     handleUpdateDueDate,
   };
