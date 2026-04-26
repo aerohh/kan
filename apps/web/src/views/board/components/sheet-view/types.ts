@@ -47,6 +47,7 @@ export interface SheetViewProps {
   allLists: { publicId: string; name: string }[];
   canEditCard: boolean;
   weekStartDay: number;
+  canCreateCard: boolean;
 }
 
 export type SortColumn = "title" | "dueDate" | "progress";

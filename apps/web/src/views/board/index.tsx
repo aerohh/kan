@@ -347,7 +347,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     direction: "horizontal",
   });
 
-  const { canCreateList, canEditList, canEditCard, canEditBoard } =
+  const { canCreateList, canCreateCard, canEditList, canEditCard, canEditBoard } =
     usePermissions();
 
   const { tooltipContent: createListShortcutTooltipContent } =
@@ -1012,18 +1012,19 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
 
                   return (
                     <SheetView
-                      cards={flatCards}
-                      groups={sheetGroups}
-                      boardPublicId={boardId ?? ""}
-                      isTemplate={!!isTemplate}
-                      onOpenCard={handleOpenCard}
-                      boardLabels={boardData.labels}
-                      workspaceMembers={boardData.workspace.members.filter(
-                        (member) => member.user !== null,
-                      )}
-                      allLists={boardData.allLists}
-                      canEditCard={!!canEditCard}
-                      weekStartDay={workspace.weekStartDay ?? 1}
+                       cards={flatCards}
+                       groups={sheetGroups}
+                       boardPublicId={boardId ?? ""}
+                       isTemplate={!!isTemplate}
+                       onOpenCard={handleOpenCard}
+                       boardLabels={boardData.labels}
+                       workspaceMembers={boardData.workspace.members.filter(
+                         (member) => member.user !== null,
+                       )}
+                       allLists={boardData.allLists}
+                       canEditCard={!!canEditCard}
+                       canCreateCard={!!canCreateCard}
+                       weekStartDay={workspace.weekStartDay ?? 1}
                       onContextMenu={(e, cardPublicId) => {
                         if (
                           cardPublicId.startsWith("PLACEHOLDER") ||
@@ -1095,30 +1096,31 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                 : groupedCards;
                             return (
                               <List
-                                index={listIndex}
-                                key={listIndex}
-                                list={list}
-                                isVirtual={!!isListGroupMode}
-                                onOpenNewCard={(publicListId) =>
-                                  setSlideOverState({
-                                    mode: "add",
-                                    listPublicId: publicListId,
-                                  })
-                                }
-                                onDeleteList={(publicListId) => {
-                                  setSelectedPublicListId(publicListId);
-                                  openModal("DELETE_LIST");
-                                }}
-                                onVirtualAddCard={() =>
-                                  handleVirtualAddCard(
-                                    list.publicId,
-                                    list.name,
-                                  )
-                                }
-                                cardCount={sortedCards.length}
-                                sortMode={sortMode}
-                                sortDir={sortDir}
-                              >
+                                 index={listIndex}
+                                 key={listIndex}
+                                 list={list}
+                                 isVirtual={!!isListGroupMode}
+                                 onOpenNewCard={(publicListId) =>
+                                   setSlideOverState({
+                                     mode: "add",
+                                     listPublicId: publicListId,
+                                   })
+                                 }
+                                 onDeleteList={(publicListId) => {
+                                   setSelectedPublicListId(publicListId);
+                                   openModal("DELETE_LIST");
+                                 }}
+                                 onVirtualAddCard={() =>
+                                   handleVirtualAddCard(
+                                     list.publicId,
+                                     list.name,
+                                   )
+                                 }
+                                 cardCount={sortedCards.length}
+                                 sortMode={sortMode}
+                                 sortDir={sortDir}
+                                 queryParams={queryParams}
+                               >
                                 <Droppable
                                   droppableId={`${list.publicId}`}
                                   type="CARD"

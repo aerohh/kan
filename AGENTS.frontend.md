@@ -26,7 +26,7 @@ Instructions for working with the frontend (`apps/web/`).
 - Use tRPC React Query hooks for server state
 - Use `useModal` hook for modal management
 - Use `usePopup` hook for toast notifications
-- Use `usePermissions()` hook — returns `canCreateList`, `canEditList`, `canEditCard`, `canEditBoard`
+- Use `usePermissions()` hook — returns `canCreateList`, `canCreateCard`, `canEditList`, `canEditCard`, `canEditBoard`
 
 ## UI Components
 
@@ -79,6 +79,18 @@ The `viewMode` variable (`(router.query.view as string) || "kanban"`) controls w
 - Kanban uses `useDragToScroll` (horizontal) and `useScrollRestore`; sheet disables both
 - Sheet flattens all cards from all lists into a single array with `listName`/`listPublicId` added to each card
 - Sheet reuses `getSortedCards()` and `getGroupedCards()` for sorting/grouping on the flat array (requires type assertion since functions expect `CardData[]`)
+
+#### Sheet View Viewport-Constrained Table
+
+The table fills available viewport height with fixed header/footer and scrollable body:
+- Outer wrapper: `flex h-full flex-col` (fills parent, flex column)
+- "New card" button takes natural height at top
+- Outer scroll spacer: `min-h-0 flex-1` (fills remaining space, provides max-height reference)
+- Inner bordered container: `max-h-full overflow-auto rounded-lg border` (shrinks to content when few rows, caps at parent height and scrolls when many rows)
+- `thead` row: `sticky top-0 z-10` (header stays fixed at top)
+- `tfoot` row: `sticky bottom-0 z-10` (footer stays fixed at bottom)
+
+This two-layer approach (`flex-1` outer + `max-h-full` inner) ensures the border wraps tightly around content when few rows exist, while still capping at viewport height and scrolling when content overflows.
 
 #### Sheet View Inline Editing
 
@@ -143,7 +155,15 @@ When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/co
 
 ### New Card Flow
 
-Creating cards from the board uses the add-mode `CardSlideOver` instead of a modal. The board view (`views/board/index.tsx`) manages `newCardSlideOver` state (isOpen, listPublicId, pre-selections) and renders `<CardSlideOver mode="add" ... />`. The `List` component triggers this via its `onOpenNewCard` callback prop. After card creation, `NewCardPage` persists draft checklists via sequential `checklist.create` and `checklist.createItem` API calls.
+There are two ways to create cards from the board:
+
+1. **Quick Add** (default): Clicking the "+" button in a list toggles an inline `QuickAddCardInput` (`components/QuickAddCardInput.tsx`) at the top of the list. Enter submits, Escape cancels. The `useQuickAddCard` hook (`hooks/useQuickAddCard.ts`) handles the mutation with optimistic updates (inserts placeholder card at `position: "start"`). After submit, the input resets and stays open for rapid entry. Clicking the rotated "+" icon again closes it. Not available for virtual lists.
+
+2. **Full form** (slide-over): Still available via `onOpenNewCard` callback prop on `List`, which opens the add-mode `CardSlideOver` with `<NewCardPage>`. Used for cards needing labels, members, checklists, or description before creation.
+
+In **Sheet View**, quick add is available via a "New card" button in the table footer or header. It inserts a row at the top of the table. Cards are created in the first list (`allLists[0]`). The `SheetView` component receives `canCreateCard` prop to conditionally render the UI.
+
+The `List` component now receives a `queryParams` prop (`RouterInputs["board"]["byId"]`) needed by `useQuickAddCard` for cache operations.
 
 ### Client-Side Card Reordering
 

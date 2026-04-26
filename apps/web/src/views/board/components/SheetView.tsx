@@ -1,13 +1,17 @@
 import { useRouter } from "next/router";
 import { useTheme } from "next-themes";
 import { t } from "@lingui/core/macro";
-import { useState, useMemo, Fragment } from "react";
+import type { RouterInputs } from "@kan/api";
+import { useCallback, useMemo, useRef, useState, Fragment } from "react";
+import { HiOutlinePlusSmall } from "react-icons/hi2";
 
 import Avatar from "~/components/Avatar";
 import Badge from "~/components/Badge";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
 import LabelIcon from "~/components/LabelIcon";
+import { QuickAddCardInput } from "~/components/QuickAddCardInput";
 import { usePopup } from "~/providers/popup";
+import { useQuickAddCard } from "~/hooks/useQuickAddCard";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
 import { api } from "~/utils/api";
 
@@ -307,8 +311,8 @@ function GroupSectionHeader({
 export default function SheetView({
   cards,
   groups,
-  _boardPublicId,
-  _isTemplate,
+  boardPublicId,
+  isTemplate: _isTemplate,
   onContextMenu,
   onOpenCard,
   boardLabels,
@@ -316,6 +320,7 @@ export default function SheetView({
   allLists,
   canEditCard,
   weekStartDay,
+  canCreateCard,
 }: SheetViewProps) {
   const router = useRouter();
   const { showPopup } = usePopup();
@@ -325,6 +330,32 @@ export default function SheetView({
 
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddTitle, setQuickAddTitle] = useState("");
+  const [focusCount, setFocusCount] = useState(0);
+  const quickAddRef = useRef<HTMLTextAreaElement>(null);
+
+  const firstListId = allLists[0]?.publicId ?? "";
+  const queryParams: RouterInputs["board"]["byId"] = {
+    boardPublicId,
+  };
+
+  const { createCard: quickCreateCard, isPending: isQuickAddPending } =
+    useQuickAddCard(queryParams);
+
+  const handleQuickAddSubmit = useCallback(() => {
+    const trimmed = quickAddTitle.trim();
+    if (!trimmed || !firstListId) return;
+    quickCreateCard(trimmed, firstListId);
+    setQuickAddTitle("");
+    setFocusCount((c) => c + 1);
+  }, [quickAddTitle, firstListId, quickCreateCard]);
+
+  const handleQuickAddCancel = useCallback(() => {
+    setShowQuickAdd(false);
+    setQuickAddTitle("");
+  }, []);
 
   const sorted = useMemo(
     () => sortCards(cards, sortColumn, sortDir),
@@ -430,15 +461,65 @@ export default function SheetView({
   };
 
   return (
-    <div className="px-8 pb-8">
-      <div className="overflow-auto rounded-lg border border-light-500 dark:border-dark-400">
-        <table className="w-full border-collapse text-sm">
+    <div className="flex h-full flex-col px-8 pb-8">
+      {canCreateCard && (
+        <div className="mb-3 flex items-center justify-end">
+          <button
+            onClick={() => setShowQuickAdd(!showQuickAdd)}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+              showQuickAdd
+                ? "bg-light-300 text-light-900 hover:bg-light-400 dark:bg-dark-300 dark:text-dark-900 dark:hover:bg-dark-400"
+                : "text-light-800 hover:bg-light-200 hover:text-light-900 dark:text-dark-800 dark:hover:bg-dark-200 dark:hover:text-dark-900"
+            }`}
+          >
+            <HiOutlinePlusSmall className={`h-3.5 w-3.5 transition-transform ${showQuickAdd ? "rotate-45" : ""}`} />
+            {showQuickAdd ? t`Done` : t`New card`}
+          </button>
+        </div>
+      )}
+      <div className="min-h-0 flex-1">
+        <div className="max-h-full overflow-auto rounded-lg border border-light-500 dark:border-dark-400">
+          <table className="w-full border-collapse text-sm">
           <SheetViewHeader
             sortColumn={sortColumn}
             sortDir={sortDir}
             onSort={handleSort}
           />
           <tbody>
+            {showQuickAdd && (
+              <tr className="border-b border-light-600 bg-blue-50/30 transition-colors dark:border-dark-400 dark:bg-blue-900/5">
+                <td className="border-r border-light-600 py-2 pl-4 pr-3 dark:border-dark-400">
+                  <QuickAddCardInput
+                    ref={quickAddRef}
+                    value={quickAddTitle}
+                    onChange={setQuickAddTitle}
+                    onSubmit={handleQuickAddSubmit}
+                    onCancel={handleQuickAddCancel}
+                    focusCount={focusCount}
+                    placeholder={t`Enter a title...`}
+                    disabled={isQuickAddPending}
+                    className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-sm text-neutral-900 placeholder:text-light-600 focus:ring-0 dark:text-dark-1000 dark:placeholder:text-dark-600"
+                  />
+                </td>
+                <td className="border-r border-light-600 px-4 py-2.5 text-center dark:border-dark-400">
+                  <span className="inline-block rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 dark:bg-dark-300 dark:text-dark-800">
+                    {allLists[0]?.name ?? "—"}
+                  </span>
+                </td>
+                <td className="border-r border-light-600 px-4 py-2.5 text-center dark:border-dark-400">
+                  <span className="text-light-500 dark:text-dark-600">&mdash;</span>
+                </td>
+                <td className="border-r border-light-600 px-4 py-2.5 text-center dark:border-dark-400">
+                  <span className="text-light-500 dark:text-dark-600">&mdash;</span>
+                </td>
+                <td className="border-r border-light-600 px-4 py-2.5 text-center dark:border-dark-400">
+                  <span className="text-light-500 dark:text-dark-600">&mdash;</span>
+                </td>
+                <td className="px-4 py-2.5 text-center">
+                  <span className="text-light-500 dark:text-dark-600">&mdash;</span>
+                </td>
+              </tr>
+            )}
             {sortedGroups
               ? sortedGroups.map((group) => (
                   <Fragment key={group.name}>
@@ -459,13 +540,14 @@ export default function SheetView({
                 ))}
           </tbody>
           <tfoot>
-            <tr className="border-t border-light-500 bg-light-200 text-[12px] text-light-800 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-800">
+            <tr className="sticky bottom-0 z-10 border-t border-light-500 bg-light-200 text-[12px] text-light-800 dark:border-dark-400 dark:bg-dark-100 dark:text-dark-800">
               <td colSpan={6} className="px-4 py-2">
                 {totalCount} {totalCount === 1 ? "card" : "cards"}
               </td>
             </tr>
           </tfoot>
         </table>
+        </div>
       </div>
     </div>
   );

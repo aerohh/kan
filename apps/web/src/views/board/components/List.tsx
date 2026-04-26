@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { t } from "@lingui/core/macro";
+import type { RouterInputs } from "@kan/api";
 import { useTheme } from "next-themes";
 import { Draggable } from "react-beautiful-dnd";
 import { useForm } from "react-hook-form";
@@ -16,9 +18,13 @@ import {
 import { authClient } from "@kan/auth/client";
 
 import Dropdown from "~/components/Dropdown";
+import { QuickAddCardInput } from "~/components/QuickAddCardInput";
 import { Tooltip } from "~/components/Tooltip";
 import { usePermissions } from "~/hooks/usePermissions";
+import { useQuickAddCard } from "~/hooks/useQuickAddCard";
 import { api } from "~/utils/api";
+
+type BoardQueryParams = RouterInputs["board"]["byId"];
 
 interface ListProps {
   children: ReactNode;
@@ -31,6 +37,7 @@ interface ListProps {
   cardCount?: number;
   sortMode?: string;
   sortDir?: "asc" | "desc";
+  queryParams?: BoardQueryParams;
 }
 
 interface List {
@@ -58,6 +65,7 @@ export default function List({
   cardCount,
   sortMode,
   sortDir = "asc",
+  queryParams,
 }: ListProps) {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
@@ -67,6 +75,26 @@ export default function List({
   const canEdit = !isVirtual && (canEditList || isCreator);
   const canDrag = !isVirtual && (canEditList || isCreator);
   const isDark = resolvedTheme === "dark";
+
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddTitle, setQuickAddTitle] = useState("");
+  const [focusCount, setFocusCount] = useState(0);
+  const quickAddRef = useRef<HTMLTextAreaElement>(null);
+  const { createCard: quickCreateCard, isPending: isQuickAddPending } =
+    useQuickAddCard(queryParams ?? { boardPublicId: "" });
+
+  const handleQuickAddSubmit = useCallback(() => {
+    const trimmed = quickAddTitle.trim();
+    if (!trimmed || !queryParams) return;
+    quickCreateCard(trimmed, list.publicId);
+    setQuickAddTitle("");
+    setFocusCount((c) => c + 1);
+  }, [quickAddTitle, queryParams, quickCreateCard, list.publicId]);
+
+  const handleQuickAddCancel = useCallback(() => {
+    setShowQuickAdd(false);
+    setQuickAddTitle("");
+  }, []);
 
   const openNewCardForm = (publicListId: PublicListId) => {
     if (!canCreateCard) return;
@@ -215,14 +243,16 @@ export default function List({
                   onClick={() => {
                     if (isVirtual && onVirtualAddCard) {
                       onVirtualAddCard();
+                    } else if (showQuickAdd) {
+                      handleQuickAddCancel();
                     } else {
-                      openNewCardForm(list.publicId);
+                      setShowQuickAdd(true);
                     }
                   }}
                   disabled={!canCreateCard}
                 >
                   <HiOutlinePlusSmall
-                    className="h-5 w-5 text-dark-900"
+                    className={`h-5 w-5 text-dark-900 transition-transform ${showQuickAdd ? "rotate-45" : ""}`}
                     aria-hidden="true"
                   />
                 </button>
@@ -234,6 +264,22 @@ export default function List({
               </span>
             )}
           </div>
+          {!isVirtual && canCreateCard && queryParams && showQuickAdd && (
+            <div className="mx-1 mb-2">
+              <div className="flex flex-col overflow-hidden rounded-md border border-light-200 bg-light-50 px-3 py-2 dark:border-dark-200 dark:bg-dark-200">
+                <QuickAddCardInput
+                  ref={quickAddRef}
+                  value={quickAddTitle}
+                  onChange={setQuickAddTitle}
+                  onSubmit={handleQuickAddSubmit}
+                  onCancel={handleQuickAddCancel}
+                  focusCount={focusCount}
+                  disabled={isQuickAddPending}
+                  className="block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-[14px] font-semibold text-neutral-900 placeholder:text-light-700 focus:ring-0 dark:text-dark-1000 dark:placeholder:text-dark-700"
+                />
+              </div>
+            </div>
+          )}
           {children}
         </div>
       )}
