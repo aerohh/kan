@@ -23,8 +23,28 @@ Instructions for infrastructure, Docker, deployment, and environment configurati
 - `docker compose -f docker-compose.dev.yml down` - Stop dev services
 
 **Container naming**:
-- Development: `kan-dev-db`, `kan-dev-migrate`, `kan-dev-network`
+- Development: `kan-dev-db`, `kan-dev-migrate`, `kan-dev-backup`, `kan-dev-network`
 - Production: `kan-db`, `kan-migrate`, `kan-network`
+
+## Database Backups
+
+### Manual Backup & Restore
+
+- `./scripts/backup-db.sh` — runs `pg_dump` via `docker exec` against the running DB container, saves gzipped SQL to `backups/`
+- `./scripts/restore-db.sh <file.sql.gz>` — drops/recreates the database and restores from backup (prompts for confirmation)
+- Backups are stored in `backups/` (gitignored)
+- Auto-cleanup keeps last 10 backups (configurable via `KEEP_BACKUPS` env var)
+- Container name defaults to `kan-dev-db` (overridable via `DB_CONTAINER` env var)
+
+### Scheduled Backup Service
+
+- A `backup` service in `docker-compose.dev.yml` runs `pg_dump` on a schedule inside a sidecar container
+- Start: `docker compose -f docker-compose.dev.yml up backup -d`
+- Logs: `docker logs -f kan-dev-backup`
+- Configurable via env vars:
+  - `BACKUP_INTERVAL` — seconds between backups (default: `86400` = 24h)
+  - `KEEP_BACKUPS` — number of backups to retain (default: `7`)
+- Backups stored in Docker volume `kan-dev-backup-data`
 
 ## Development Workflow (Recommended)
 
