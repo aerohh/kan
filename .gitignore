@@ -58,3 +58,6 @@ i18n.cache
 /apps/web/pgdata
 
 .claude
+
+# database backups
+/backups/

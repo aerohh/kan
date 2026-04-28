@@ -37,8 +37,47 @@ services:
     networks:
       - kan-dev-network
 
+  backup:
+    image: postgres:15
+    container_name: kan-dev-backup
+    environment:
+      - POSTGRES_DB=kan_db
+      - POSTGRES_USER=kan
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - BACKUP_INTERVAL=${BACKUP_INTERVAL:-86400}
+      - KEEP_BACKUPS=${KEEP_BACKUPS:-7}
+    volumes:
+      - kan-dev-backup-data:/backups
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        echo "Starting scheduled backups (every $${BACKUP_INTERVAL}s, keeping $${KEEP_BACKUPS})"
+        while true; do
+          TIMESTAMP=$$(date +"%Y%m%d_%H%M%S")
+          FILENAME="/backups/$${POSTGRES_DB}_$${TIMESTAMP}.sql.gz"
+          echo "[$$(date)] Backing up to $${FILENAME}..."
+          pg_dump -h postgres -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" --format=plain --no-owner --no-privileges \
+            | gzip > "$${FILENAME}" \
+            && echo "[$$(date)] Backup complete ($$(du -h $${FILENAME} | cut -f1))" \
+            || echo "[$$(date)] Backup FAILED"
+          TOTAL=$$(ls -1t /backups/$${POSTGRES_DB}_*.sql.gz 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$$TOTAL" -gt "$$KEEP_BACKUPS" ]; then
+            COUNT=$$((TOTAL - KEEP_BACKUPS))
+            ls -1t /backups/$${POSTGRES_DB}_*.sql.gz | tail -n "$$COUNT" | xargs rm -f
+            echo "[$$(date)] Cleaned up $$COUNT old backup(s)"
+          fi
+          sleep "$$BACKUP_INTERVAL"
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - kan-dev-network
+
 networks:
   kan-dev-network:
 
 volumes:
   kan-dev-postgres-data:
+  kan-dev-backup-data:
