@@ -53,6 +53,7 @@ export const create = async (
         type: propertyGroups.type,
         boardId: propertyGroups.boardId,
         index: propertyGroups.index,
+        showOnCard: propertyGroups.showOnCard,
       });
 
     return result;
@@ -93,6 +94,7 @@ export const getByPublicId = async (
       type: true,
       boardId: true,
       index: true,
+      showOnCard: true,
     },
     where: eq(propertyGroups.publicId, publicId),
   });
@@ -106,6 +108,7 @@ export const getAllByBoardId = async (db: dbClient, boardId: number) => {
       name: true,
       type: true,
       index: true,
+      showOnCard: true,
     },
     where: and(
       eq(propertyGroups.boardId, boardId),
@@ -134,11 +137,13 @@ export const update = async (
     publicId: string;
     name?: string;
     type?: "single-select" | "multi-select";
+    showOnCard?: boolean;
   },
 ) => {
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (input.name !== undefined) updates.name = input.name;
   if (input.type !== undefined) updates.type = input.type;
+  if (input.showOnCard !== undefined) updates.showOnCard = input.showOnCard;
 
   const [result] = await db
     .update(propertyGroups)

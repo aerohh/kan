@@ -242,3 +242,24 @@ Properties follow the same flattening pattern as labels:
 - `propertyGroupsRelations` in `property-groups.ts` includes `options: many(propertyOptions)`
 - `boardsRelations` in `boards.ts` includes `propertyGroups: many(propertyGroups)` (separate from card-level)
 - Circular import: `cards.ts` ↔ `property-options.ts` (same pattern as `cards.ts` ↔ `labels.ts`)
+
+### showOnCard: Property Group Visibility on Cards
+
+- `property_group` table has a `showOnCard` boolean column (default: `true`)
+- Controls which property groups display as badges on cards in the board view
+- New groups default to visible (`showOnCard: true`), toggled via star icon in PropertyGroupManager
+- Repository queries fetch `showOnCard` via nested joins in `board.repo.ts`:
+  - Board-level queries include `id` and `showOnCard` in `propertyGroups` columns
+  - Card-level property queries include nested `group` relation to access `showOnCard`:
+    ```ts
+    properties: {
+      with: {
+        option: {
+          columns: { publicId, name, colourCode, groupId },
+          with: { group: { columns: { showOnCard: true } } }
+        }
+      }
+    }
+    ```
+- **Client-side filtering**: Both the main board view (`apps/web/src/views/board/index.tsx`) and the public board view (`apps/web/src/views/public/board/index.tsx`) build a `starredGroupIds` Set from groups with `showOnCard: true`, then filter card properties by `groupId` membership before rendering
+- PropertyGroupManager UI shows star toggle: filled amber = visible, outline = hidden

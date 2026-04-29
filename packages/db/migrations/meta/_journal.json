@@ -260,6 +260,13 @@
       "when": 1777411346165,
       "tag": "20260428212226_AddPropertyGroupsAndOptions",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1777431477955,
+      "tag": "20260429025757_AddShowOnCardToPropertyGroup",
+      "breakpoints": true
     }
   ]
 }

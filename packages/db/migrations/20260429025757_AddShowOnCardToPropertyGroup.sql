@@ -1,0 +1,1 @@
+ALTER TABLE "property_group" ADD COLUMN "showOnCard" boolean DEFAULT true NOT NULL;

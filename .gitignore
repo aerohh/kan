@@ -61,3 +61,11 @@ i18n.cache
 
 # database backups
 /backups/
+
+# craft agent
+views.json
+.claude-plugin/plugin.json
+config.json
+events.jsonl
+statuses
+sessions

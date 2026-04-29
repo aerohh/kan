@@ -77,10 +77,12 @@ export const getAllByWorkspaceId = async (
       },
       propertyGroups: {
         columns: {
+          id: true,
           publicId: true,
           name: true,
           type: true,
           index: true,
+          showOnCard: true,
         },
         where: isNull(propertyGroups.deletedAt),
         orderBy: [asc(propertyGroups.index)],
@@ -264,10 +266,12 @@ export const getByPublicId = async (
       },
       propertyGroups: {
         columns: {
+          id: true,
           publicId: true,
           name: true,
           type: true,
           index: true,
+          showOnCard: true,
         },
         where: isNull(propertyGroups.deletedAt),
         orderBy: [asc(propertyGroups.index)],
@@ -321,6 +325,13 @@ export const getByPublicId = async (
                       name: true,
                       colourCode: true,
                       groupId: true,
+                    },
+                    with: {
+                      group: {
+                        columns: {
+                          showOnCard: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -503,10 +514,12 @@ export const getBySlug = async (
       },
       propertyGroups: {
         columns: {
+          id: true,
           publicId: true,
           name: true,
           type: true,
           index: true,
+          showOnCard: true,
         },
         where: isNull(propertyGroups.deletedAt),
         orderBy: [asc(propertyGroups.index)],
@@ -560,6 +573,13 @@ export const getBySlug = async (
                       name: true,
                       colourCode: true,
                       groupId: true,
+                    },
+                    with: {
+                      group: {
+                        columns: {
+                          showOnCard: true,
+                        },
+                      },
                     },
                   },
                 },

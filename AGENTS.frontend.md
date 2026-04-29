@@ -194,13 +194,10 @@ Property filtering is **client-side only** (not passed as API query params). The
 
 #### Virtual List Color Tinting
 
-Virtual lists are tinted with their label's `colourCode` to visually distinguish them. The styling differs by theme:
+Virtual lists are tinted with their label's `colourCode` to visually distinguish them. The styling uses theme-aware colors via `resolveColour()`:
 
-- **Light mode**: Simple hex opacity (e.g., `${colourCode}20`)
-- **Dark mode** (Notion-style): Uses `color-mix(in srgb, ...)` to first lighten the color by mixing with white, then apply at low opacity over the dark background. This creates subtle, muted color washes instead of harsh tints. Pattern:
-  ```ts
-  `color-mix(in srgb, color-mix(in srgb, ${colourCode} 40%, white) 12%, transparent)`
-  ```
+- **Light mode**: Simple hex opacity (e.g., `${resolvedColour}20`)
+- **Dark mode**: Single `color-mix` with resolved dark shade (e.g., `color-mix(in srgb, ${resolvedDarkColour} 12%, transparent)`)
 
 Dark mode detection for dynamic inline styles uses `useTheme()` from `next-themes` (not Tailwind's `dark:` prefix, which can't handle dynamic values). The `resolvedTheme` property returns `"dark"` or `"light"`.
 
@@ -291,16 +288,32 @@ Card descriptions now autosave with a debounced flush pattern:
 ### Property Groups & Options UI
 
 - **PropertySelector** (`components/PropertySelector.tsx`): Universal component for toggling property options on a card. Accepts `groups` (PropertyGroup[]) and `cardPropertyIds` (string[] of selected option publicIds). Uses `CheckboxDropdown` per group. Invalidates both `card.byId` and `board.byId` on mutation settle (needed because it's used in both card detail and SheetView contexts). Accepts optional `onMutationSettled` callback for additional invalidation.
-- **PropertyGroupManager** (`components/PropertyGroupManager.tsx`): Notion-style board-level panel for CRUD on groups and their options. Uses `InlineEdit` for click-to-rename on group/option names, `Popover` color picker on color dots, click-to-toggle type badge (Single/Multi), and `Transition` for expand/collapse. Delete buttons are hover-reveal via `group/name` Tailwind groups. Options are shown as a vertical list with left-border tree indentation. No `react-hook-form` dependency — uses `useState` for inline forms. Auto-selects an unused color when adding new options.
-- **Filters** (`views/board/components/Filters.tsx`): Updated to use `propertyGroups` instead of hardcoded `labels`/`lists`. Filter sections auto-generated from property groups. URL param: `?properties=<optionPublicId>`.
+- **PropertyGroupManager** (`components/PropertyGroupManager.tsx`): Notion-style board-level panel for CRUD on groups and their options. Uses `InlineEdit` for click-to-rename on group/option names, inline expanding color picker (replaces `Popover`), star toggle for `showOnCard` visibility, click-to-toggle type badge (Single/Multi), and `Transition` for expand/collapse. Delete buttons are hover-reveal via `group/name` Tailwind groups. Options are shown as a vertical list with left-border tree indentation. Auto-selects an unused color when adding new options. Uses `resolveColour()` from `@kan/shared/constants` for theme-aware color display.
+
+#### Color Picker (PropertyGroupManager)
+
+- Previously used `@headlessui/react` `Popover`. Now replaced with inline expanding strip that appears above the option row.
+- Colors are reordered so the currently selected color appears first, remaining colors flow right
+- Animation: `color-expand` keyframe from scale 0.3 to 1, staggered 30ms delays, runs on strip open
+- Uses `useTheme()` to resolve light/dark mode colors via `resolveColour(code, isDark)`
+
+#### showOnCard Toggle
+
+- Star button (`HiStar`) on each group, placed before the Single/Multi toggle
+- Filled amber star = visible on cards (`showOnCard: true`)
+- Outline star = hidden from cards (`showOnCard: false`)  
+- Clicking toggles the `showOnCard` boolean via `api.propertyGroup.update` mutation
+- `PropertyGroup` interface in `PropertyGroupManager.tsx` includes `showOnCard: boolean`
+
+#### Filters (`views/board/components/Filters.tsx`): Updated to use `propertyGroups` instead of hardcoded `labels`/`lists`. Filter sections auto-generated from property groups. URL param: `?properties=<optionPublicId>`.
 - **GroupButton** (`views/board/components/GroupButton.tsx`): Updated to use `propertyGroups` instead of hardcoded group modes. URL param: `?groupBy=<groupPublicId>`.
 
 #### Board Card Properties
 
 - `Card` component (`views/board/components/Card.tsx`) accepts optional `properties` prop: `{ publicId: string; name: string; colourCode: string | null; groupId: number }[]`
-- When `properties` is present and non-empty, renders property badges (colored dots + name) instead of label badges
-- Falls back to labels when no properties are available (backward compatibility)
-- Board view passes `properties={card.properties}` from `boardData.lists[].cards[]`
+- **No longer accepts or renders `labels` prop** — removed in favor of properties-only display
+- When `properties` is present and non-empty, renders property badges (colored dots + name)
+- Board view passes `properties={card.properties}` from `boardData.lists[].cards[]`, pre-filtered by `showOnCard` status
 
 #### Card Detail Properties
 

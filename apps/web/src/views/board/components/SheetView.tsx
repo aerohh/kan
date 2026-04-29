@@ -411,7 +411,7 @@ export default function SheetView({
     canEditCard,
     onNavigate: handleTitleClick,
     onContextMenu,
-    propertyGroups,
+    propertyGroups: propertyGroups.filter((g: any) => g.showOnCard !== false),
     workspaceMembers,
     allLists,
     weekStartDay,

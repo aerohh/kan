@@ -229,8 +229,12 @@ export default function PublicBoardView() {
                           >
                             <Card
                               title={card.title}
-                              labels={card.labels}
-                              properties={card.properties}
+                              properties={card.properties.filter((p) => {
+                                const starredGroupIds = new Set(
+                                  data?.propertyGroups.filter((g: any) => g.showOnCard).map((g: any) => g.id) ?? []
+                                );
+                                return starredGroupIds.has(p.groupId);
+                              })}
                               checklists={card.checklists ?? []}
                               members={[]}
                               description={card.description}

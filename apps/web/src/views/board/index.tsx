@@ -818,6 +818,11 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                   : null;
                 const isGroupByMode = !!activeGroup;
 
+                // Build lookup of starred group IDs for filtering properties on cards
+                const starredGroupIds = new Set(
+                  boardData.propertyGroups.filter((g: any) => g.showOnCard).map((g: any) => g.id)
+                );
+
                 const filteredLists = propertyFilterIds.length > 0
                   ? boardData.lists.map((list) => ({
                       ...list,
@@ -1044,8 +1049,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                           >
                                             <Card
                                               title={card.title}
-                                              labels={card.labels}
-                                              properties={card.properties}
+                                              properties={card.properties.filter((p) => starredGroupIds.has(p.groupId))}
                                               members={card.members}
                                               checklists={card.checklists ?? []}
                                               description={

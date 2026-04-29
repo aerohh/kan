@@ -42,10 +42,12 @@ const propertyOptionSchema = z.object({
 });
 
 const propertyGroupSchema = z.object({
+  id: z.number(),
   publicId: z.string(),
   name: z.string(),
   type: z.string(),
   index: z.number(),
+  showOnCard: z.boolean(),
   options: z.array(z.object({
     publicId: z.string(),
     name: z.string(),

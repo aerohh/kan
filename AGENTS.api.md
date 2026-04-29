@@ -102,6 +102,7 @@ Use `assertUserInWorkspace` helper for workspace checks.
 ### Property Group & Option Routers
 
 - `propertyGroup` router (`packages/api/src/routers/property-group.ts`): `list`, `create`, `update`, `delete`, `reorder`
+- `update` accepts optional `showOnCard` boolean to toggle visibility on cards
 - `propertyOption` router (`packages/api/src/routers/property-option.ts`): `create`, `update`, `delete`
 - All endpoints follow standard auth pattern: resolve board → check workspace permission → repo call
 - Registered as `propertyGroup` and `propertyOption` in `root.ts`
@@ -117,6 +118,7 @@ Use `assertUserInWorkspace` helper for workspace checks.
 ### Property Zod Schemas
 
 - `propertyOptionSchema` and `propertyGroupSchema` are defined **locally** in both `schemas/board.ts` and `schemas/card.ts` (not shared from `common.ts`) because the shape differs slightly between contexts:
+- `propertyGroupSchema` includes `showOnCard: z.boolean()` field
   - Board card schemas: `propertyOptionSchema` has `groupId: z.number()` (needed for frontend grouping)
   - Property group schema: `type: z.string()` (not a literal union — matches DB's text column, avoids schema migration coupling)
 - `propertyGroupSchema` has nested `options` array with `index: z.number()` for ordering

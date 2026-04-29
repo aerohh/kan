@@ -3,6 +3,7 @@ import { useTheme } from "next-themes";
 import {
   HiChevronDown,
   HiPlus,
+  HiStar,
   HiTrash,
   HiXMark,
 } from "react-icons/hi2";
@@ -22,6 +23,7 @@ interface PropertyGroup {
   name: string;
   type: string;
   options: PropertyOption[];
+  showOnCard: boolean;
 }
 
 function reorderColours(
@@ -161,6 +163,23 @@ function GroupItem({
           }}
           className="flex-1 text-[13px] font-medium text-neutral-900 dark:text-dark-1000"
         />
+
+        <button
+          onClick={() => {
+            updateGroup.mutate({
+              groupPublicId: group.publicId,
+              showOnCard: !group.showOnCard,
+            });
+          }}
+          className={`shrink-0 rounded p-1 transition-colors ${
+            group.showOnCard
+              ? "text-amber-500 dark:text-amber-400"
+              : "text-light-700 dark:text-dark-700 hover:text-amber-500"
+          }`}
+          title={group.showOnCard ? "Show on cards" : "Hide from cards"}
+        >
+          <HiStar size={14} fill={group.showOnCard ? "currentColor" : "none"} />
+        </button>
 
         <button
           onClick={() => {

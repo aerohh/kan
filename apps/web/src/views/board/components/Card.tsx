@@ -20,7 +20,6 @@ import { getAvatarUrl } from "~/utils/helpers";
 
 const Card = ({
   title,
-  labels,
   properties,
   members,
   checklists,
@@ -33,7 +32,6 @@ const Card = ({
   listName,
 }: {
   title: string;
-  labels: { name: string; colourCode: string | null }[];
   properties?: { publicId: string; name: string; colourCode: string | null; groupId: number }[];
   members: {
     publicId: string;
@@ -137,8 +135,7 @@ const Card = ({
       className="flex flex-col overflow-hidden rounded-md border border-light-200 bg-light-50 px-3 py-2 text-sm text-neutral-900 dark:border-dark-200 dark:bg-dark-200 dark:text-dark-1000 dark:hover:bg-dark-300"
     >
       <span className="break-words text-[14px] font-semibold mb-2">{title}</span>
-      {labels.length ||
-      (properties && properties.length) ||
+      {(properties && properties.length) ||
       members.length ||
       checklists.length > 0 ||
       hasDescription ||
@@ -157,14 +154,7 @@ const Card = ({
                     variant="notion"
                   />
                 ))
-              : labels.map((label, index) => (
-                  <Badge
-                    key={`${label.name}-${index}`}
-                    value={label.name}
-                    colourCode={label.colourCode}
-                    variant="notion"
-                  />
-                ))}
+              : null}
           </div>
           {listName && (
             <span className="mt-2.5 inline-block text-[11px] font-bold text-neutral-500 dark:text-neutral-400 bg-neutral-200 dark:bg-neutral-600 rounded px-1.5 py-0.5 max-w-fit truncate">{listName}</span>

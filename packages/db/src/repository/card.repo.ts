@@ -526,10 +526,12 @@ export const getWithListAndMembersByPublicId = async (
               },
               propertyGroups: {
                 columns: {
+                  id: true,
                   publicId: true,
                   name: true,
                   type: true,
                   index: true,
+                  showOnCard: true,
                 },
                 where: isNull(propertyGroups.deletedAt),
                 orderBy: asc(propertyGroups.index),

@@ -31,6 +31,7 @@ interface PropertyGroup {
   publicId: string;
   name: string;
   type: string;
+  showOnCard: boolean;
   options: {
     publicId: string;
     name: string;

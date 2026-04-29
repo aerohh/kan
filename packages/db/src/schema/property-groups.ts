@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   bigint,
   bigserial,
+  boolean,
   integer,
   pgEnum,
   pgTable,
@@ -28,6 +29,7 @@ export const propertyGroups = pgTable("property_group", {
   name: varchar("name", { length: 255 }).notNull(),
   type: propertyGroupTypeEnum("type").notNull().default("single-select"),
   index: integer("index").notNull().default(0),
+  showOnCard: boolean("showOnCard").notNull().default(true),
   boardId: bigint("boardId", { mode: "number" })
     .notNull()
     .references(() => boards.id, { onDelete: "cascade" }),

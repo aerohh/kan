@@ -14,6 +14,7 @@ const groupSchema = z.object({
   name: z.string(),
   type: z.enum(["single-select", "multi-select"]),
   index: z.number(),
+  showOnCard: z.boolean(),
   options: z.array(
     z.object({
       publicId: z.string(),
@@ -67,6 +68,7 @@ export const propertyGroupRouter = createTRPCRouter({
         name: g.name,
         type: g.type,
         index: g.index,
+        showOnCard: g.showOnCard,
         options: g.options.map((o) => ({
           publicId: o.publicId,
           name: o.name,
@@ -159,6 +161,7 @@ export const propertyGroupRouter = createTRPCRouter({
         groupPublicId: z.string().min(12),
         name: z.string().min(1).max(255).optional(),
         type: z.enum(["single-select", "multi-select"]).optional(),
+        showOnCard: z.boolean().optional(),
       }),
     )
     .output(
@@ -194,6 +197,7 @@ export const propertyGroupRouter = createTRPCRouter({
         publicId: input.groupPublicId,
         name: input.name,
         type: input.type,
+        showOnCard: input.showOnCard,
       });
 
       if (!result)
