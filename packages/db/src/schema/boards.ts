@@ -16,6 +16,7 @@ import {
 import { imports } from "./imports";
 import { labels } from "./labels";
 import { lists } from "./lists";
+import { propertyGroups } from "./property-groups";
 import { users } from "./users";
 import { workspaces } from "./workspaces";
 
@@ -79,6 +80,7 @@ export const boardsRelations = relations(boards, ({ one, many }) => ({
   lists: many(lists),
   allLists: many(lists),
   labels: many(labels),
+  propertyGroups: many(propertyGroups),
   deletedBy: one(users, {
     fields: [boards.deletedBy],
     references: [users.id],

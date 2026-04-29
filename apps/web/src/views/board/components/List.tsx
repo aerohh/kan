@@ -16,6 +16,7 @@ import {
 } from "react-icons/hi2";
 
 import { authClient } from "@kan/auth/client";
+import { resolveColour } from "@kan/shared/constants";
 
 import Dropdown from "~/components/Dropdown";
 import { QuickAddCardInput } from "~/components/QuickAddCardInput";
@@ -138,11 +139,12 @@ export default function List({
     }
   };
 
+  const resolvedColour = resolveColour(list.colourCode, isDark);
   const bgStyle = isVirtual && list.colourCode
     ? {
         backgroundColor: isDark
-          ? `color-mix(in srgb, color-mix(in srgb, ${list.colourCode} 40%, white) 12%, transparent)`
-          : `${list.colourCode}20`,
+          ? `color-mix(in srgb, ${resolvedColour} 12%, transparent)`
+          : `${resolvedColour}20`,
         ...(isDark && { border: 'none' }),
       }
     : undefined;

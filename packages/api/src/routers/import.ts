@@ -306,7 +306,7 @@ export const importRouter = createTRPCRouter({
             const labelsInsert = formattedData.labels.map((label, index) => ({
               publicId: generateUID(),
               name: label.name,
-              colourCode: colours[index % colours.length]?.code ?? "#0d9488",
+              colourCode: colours[index % colours.length]?.code ?? "#4f46e5",
               createdBy: userId,
               boardId: newBoardId,
               importId: newImportId,

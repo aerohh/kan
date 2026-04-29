@@ -34,6 +34,26 @@ const boardCardMemberSchema = z.object({
     .nullable(),
 });
 
+const propertyOptionSchema = z.object({
+  publicId: z.string(),
+  name: z.string(),
+  colourCode: z.string().nullable(),
+  groupId: z.number(),
+});
+
+const propertyGroupSchema = z.object({
+  publicId: z.string(),
+  name: z.string(),
+  type: z.string(),
+  index: z.number(),
+  options: z.array(z.object({
+    publicId: z.string(),
+    name: z.string(),
+    colourCode: z.string().nullable(),
+    index: z.number(),
+  })),
+});
+
 const boardDetailCardSchema = z.object({
   publicId: z.string(),
   title: z.string(),
@@ -41,6 +61,7 @@ const boardDetailCardSchema = z.object({
   index: z.number(),
   dueDate: z.date().nullable(),
   labels: z.array(labelSchema),
+  properties: z.array(propertyOptionSchema),
   members: z.array(boardCardMemberSchema),
   attachments: z.array(z.object({ publicId: z.string() })),
   checklists: z.array(checklistResponseSchema),
@@ -61,6 +82,7 @@ export const boardDetailSchema = z.object({
     members: z.array(workspaceMemberSchema),
   }),
   labels: z.array(labelSchema),
+  propertyGroups: z.array(propertyGroupSchema),
   lists: z.array(
     z.object({
       publicId: z.string(),
@@ -85,6 +107,7 @@ const boardSlugCardSchema = z.object({
   index: z.number(),
   dueDate: z.date().nullable(),
   labels: z.array(labelSchema),
+  properties: z.array(propertyOptionSchema),
   attachments: z.array(z.object({ publicId: z.string() })),
   checklists: z.array(checklistResponseSchema),
   comments: z.array(z.object({ publicId: z.string() })),
@@ -103,6 +126,7 @@ export const boardBySlugSchema = z.object({
     slug: z.string(),
   }),
   labels: z.array(labelSchema),
+  propertyGroups: z.array(propertyGroupSchema),
   lists: z.array(
     z.object({
       publicId: z.string(),

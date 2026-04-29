@@ -4,15 +4,29 @@ import { HiMiniXMark, HiOutlineViewColumns } from "react-icons/hi2";
 
 import Button from "~/components/Button";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
+import LabelIcon from "~/components/LabelIcon";
 import { toolbarGlow, TOOLBAR_GLOW_PRESETS } from "./toolbarGlow";
+
+type PropertyGroup = {
+  publicId: string;
+  name: string;
+  type: string;
+  options: {
+    publicId: string;
+    name: string;
+    colourCode: string | null;
+  }[];
+};
 
 const GroupButton = ({
   isLoading,
+  propertyGroups,
 }: {
   isLoading: boolean;
+  propertyGroups: PropertyGroup[];
 }) => {
   const router = useRouter();
-  const currentGroup = (router.query.group as string) || "";
+  const currentGroup = (router.query.groupBy as string) || "";
 
   const handleSelect = async (
     _groupKey: string | null,
@@ -22,7 +36,7 @@ const GroupButton = ({
     try {
       await router.push({
         pathname: router.pathname,
-        query: { ...router.query, group: newGroup || undefined },
+        query: { ...router.query, groupBy: newGroup || undefined },
       });
     } catch (error) {
       console.error(error);
@@ -35,48 +49,23 @@ const GroupButton = ({
     try {
       await router.push({
         pathname: router.pathname,
-        query: { ...router.query, group: undefined },
+        query: { ...router.query, groupBy: undefined },
       });
     } catch (error) {
       console.error(error);
     }
   };
 
-  const items = [
-    { key: "tag", value: t`Tag`, selected: currentGroup === "tag" },
-    {
-      key: "priority",
-      value: t`Priority`,
-      selected: currentGroup === "priority",
-    },
-    {
-      key: "tags-list",
-      value: t`Tags List`,
-      selected: currentGroup === "tags-list",
-    },
-    {
-      key: "priority-list",
-      value: t`Priority List`,
-      selected: currentGroup === "priority-list",
-    },
-    {
-      key: "role-list",
-      value: t`Role List`,
-      selected: currentGroup === "role-list",
-    },
-    {
-      key: "members-list",
-      value: t`Members List`,
-      selected: currentGroup === "members-list",
-    },
-    {
-      key: "due-list",
-      value: t`Due List`,
-      selected: currentGroup === "due-list",
-    },
-  ];
+  const items = propertyGroups.map((group) => ({
+    key: group.publicId,
+    value: group.name,
+    selected: currentGroup === group.publicId,
+    leftIcon: group.options[0]?.colourCode ? (
+      <LabelIcon colourCode={group.options[0].colourCode} />
+    ) : undefined,
+  }));
 
-  const glow = toolbarGlow(!!currentGroup, TOOLBAR_GLOW_PRESETS.group);
+  const glow = toolbarGlow(!!currentGroup, TOOLBAR_GLOW_PRESETS["group"]!);
 
   return (
     <div className="group/toolbar relative">
@@ -90,7 +79,9 @@ const GroupButton = ({
           variant="ghost"
           iconOnly
           disabled={isLoading}
-          iconLeft={<HiOutlineViewColumns size={22} className={glow.iconClass} />}
+          iconLeft={
+            <HiOutlineViewColumns size={22} className={glow.iconClass} />
+          }
           className={glow.buttonClass}
         />
         {currentGroup && (

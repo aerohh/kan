@@ -13,8 +13,8 @@ import Avatar from "~/components/Avatar";
 import DocEditorForCard, { type DocEditorForCardHandle } from "~/views/docs/components/DocEditorForCard";
 import FeedbackModal from "~/components/FeedbackModal";
 import { LabelForm } from "~/components/LabelForm";
-import LabelIcon from "~/components/LabelIcon";
 import Modal from "~/components/modal";
+import { PropertySelector } from "~/components/PropertySelector";
 import { extractDocMentionIds } from "~/components/blocknote-specs";
 import { NewWorkspaceForm } from "~/components/NewWorkspaceForm";
 import { PageHead } from "~/components/PageHead";
@@ -36,7 +36,6 @@ import { DeleteCardConfirmation } from "./components/DeleteCardConfirmation";
 import { DeleteCommentConfirmation } from "./components/DeleteCommentConfirmation";
 import Dropdown from "./components/Dropdown";
 import { DueDateSelector } from "./components/DueDateSelector";
-import LabelSelector from "./components/LabelSelector";
 import ListSelector from "./components/ListSelector";
 import MemberSelector from "./components/MemberSelector";
 import NewCardPage from "./components/NewCardPage";
@@ -110,7 +109,7 @@ export function CardActivityPanel({ isTemplate, cardPublicId: cardPublicIdOverri
   );
 }
 
-export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverride, isSlideOver, onClose, mode, boardPublicId, listPublicId, queryParams, preSelectedLabelId, preSelectedMemberId, preSelectedDueDate, registerBeforeClose, onViewDoc }: {
+export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverride, isSlideOver, onClose, mode, boardPublicId, listPublicId, queryParams, preSelectedLabelId, preSelectedMemberId, preSelectedDueDate, preSelectedPropertyId, registerBeforeClose, onViewDoc }: {
   isTemplate?: boolean;
   cardPublicId?: string;
   isSlideOver?: boolean;
@@ -122,6 +121,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   preSelectedLabelId?: string;
   preSelectedMemberId?: string;
   preSelectedDueDate?: Date;
+  preSelectedPropertyId?: string;
   registerBeforeClose?: (handler: (() => Promise<void>) | null) => void;
   onViewDoc?: (docPublicId: string) => void;
 }) {
@@ -184,24 +184,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
   const board = card?.list.board;
   const workspaceMembers = board?.workspace.members;
   const boardId = board?.publicId;
-  const labels = board?.labels;
-  const selectedLabels = card?.labels;
   const selectedMembers = card?.members;
-
-  const formattedLabels =
-    labels?.map((label) => {
-      const isSelected = selectedLabels?.some(
-        (selectedLabel) => selectedLabel.publicId === label.publicId,
-      );
-
-      return {
-        key: label.publicId,
-        value: label.name,
-        selected: isSelected ?? false,
-        leftIcon: <LabelIcon colourCode={label.colourCode} />,
-        colourCode: label.colourCode,
-      };
-    }) ?? [];
 
   const formattedLists =
     board?.lists.map((list) => ({
@@ -552,6 +535,7 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
         preSelectedLabelId={preSelectedLabelId}
         preSelectedMemberId={preSelectedMemberId}
         preSelectedDueDate={preSelectedDueDate}
+        preSelectedPropertyId={preSelectedPropertyId}
       />
     );
   }
@@ -685,10 +669,10 @@ export default function CardPage({ isTemplate, cardPublicId: cardPublicIdOverrid
                       isLoading={!card}
                       disabled={!canEdit}
                     />
-                    <LabelSelector
+                    <PropertySelector
                       cardPublicId={cardId ?? ""}
-                      labels={formattedLabels}
-                      isLoading={!card}
+                      groups={board?.propertyGroups ?? []}
+                      cardPropertyIds={card.properties?.map((p) => p.publicId) ?? []}
                       disabled={!canEdit}
                     />
                     {!isTemplate && (

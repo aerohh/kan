@@ -1,4 +1,6 @@
 import { t } from "@lingui/core/macro";
+import { useTheme } from "next-themes";
+import { resolveColour } from "@kan/shared/constants";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
 import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
@@ -24,6 +26,8 @@ export default function LabelSelector({
   isLoading,
   disabled = false,
 }: LabelSelectorProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const utils = api.useUtils();
   const { openModal } = useModal();
   const { showPopup } = usePopup();
@@ -103,18 +107,21 @@ export default function LabelSelector({
         >
           {selectedLabels.length ? (
             <div className="flex h-auto flex-wrap items-center gap-1">
-              {selectedLabels.map((label) => (
-                <span
-                  key={label.key}
-                  className="inline-flex h-6 max-w-[120px] items-center truncate rounded-full border-2 px-2 text-[10px] font-medium leading-none text-neutral-600 dark:text-dark-1000"
-                  style={{
-                    backgroundColor: `${label.colourCode}25`,
-                    borderColor: `${label.colourCode}30`,
-                  }}
-                >
-                  {label.value}
-                </span>
-              ))}
+              {selectedLabels.map((label) => {
+                const resolved = resolveColour(label.colourCode, isDark);
+                return (
+                  <span
+                    key={label.key}
+                    className="inline-flex h-6 max-w-[120px] items-center truncate rounded-full border-2 px-2 text-[10px] font-medium leading-none text-neutral-600 dark:text-dark-1000"
+                    style={{
+                      backgroundColor: `${resolved}25`,
+                      borderColor: `${resolved}30`,
+                    }}
+                  >
+                    {label.value}
+                  </span>
+                );
+              })}
             </div>
           ) : (
             <span className={`inline-flex h-6 items-center cursor-pointer rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 hover:bg-light-400 dark:bg-dark-300 dark:text-dark-800 dark:hover:bg-dark-400 ${disabled ? "cursor-not-allowed opacity-60" : ""}`}>

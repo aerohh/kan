@@ -1,9 +1,10 @@
 export interface SheetCard {
   publicId: string;
   title: string;
-  description: string | null;
+  description: string | unknown[] | null;
   dueDate: Date | null;
   labels: { publicId: string; name: string; colourCode: string | null }[];
+  properties: { publicId: string; name: string; colourCode: string | null; groupId: number }[];
   members: {
     publicId: string;
     email: string;
@@ -21,6 +22,7 @@ export interface SheetCard {
     }[];
   }[];
   comments: { publicId: string }[];
+  docs: { publicId: string }[];
   listName: string;
   listPublicId: string;
 }
@@ -38,7 +40,18 @@ export interface SheetViewProps {
   isTemplate: boolean;
   onContextMenu: (e: React.MouseEvent, cardPublicId: string) => void;
   onOpenCard?: (cardPublicId: string) => void;
-  boardLabels: { publicId: string; name: string; colourCode: string | null }[];
+  propertyGroups: {
+    publicId: string;
+    name: string;
+    type: string;
+    index: number;
+    options: {
+      publicId: string;
+      name: string;
+      colourCode: string | null;
+      index: number;
+    }[];
+  }[];
   workspaceMembers: {
     publicId: string;
     email: string;

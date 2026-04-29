@@ -4,7 +4,6 @@ import { useRouter } from "next/router";
 import { env } from "next-runtime-env";
 import { t } from "@lingui/core/macro";
 import { keepPreviousData } from "@tanstack/react-query";
-import { addDays, endOfDay, startOfDay } from "date-fns";
 import { useEffect, useState } from "react";
 import { DragDropContext, Draggable } from "react-beautiful-dnd";
 import { useForm } from "react-hook-form";
@@ -24,6 +23,7 @@ import Modal from "~/components/modal";
 import { NewWorkspaceForm } from "~/components/NewWorkspaceForm";
 import { PageHead } from "~/components/PageHead";
 import PatternedBackground from "~/components/PatternedBackground";
+import { PropertyGroupManager } from "~/components/PropertyGroupManager";
 import { StrictModeDroppable as Droppable } from "~/components/StrictModeDroppable";
 import { Tooltip } from "~/components/Tooltip";
 import { EditYouTubeModal } from "~/components/YouTubeEmbed/EditYouTubeModal";
@@ -61,10 +61,6 @@ import SheetView from "./components/SheetView";
 import type { SheetGroup } from "./components/SheetView";
 import VisibilityButton from "./components/VisibilityButton";
 
-const PRIORITY_LABELS = ["High Priority", "Medium Priority", "Low Priority"];
-const ROLE_LABELS = ["Backend", "backend", "Frontend", "frontend", "Client", "client"];
-const LIST_GROUP_MODES = ["tags-list", "priority-list", "role-list", "members-list", "due-list"];
-const DUE_CATEGORIES = ["Overdue", "Due today", "Due tomorrow", "Due next week", "Due next month", "No dates"] as const;
 
 type CardData = {
   publicId: string;
@@ -73,6 +69,7 @@ type CardData = {
   index: number;
   dueDate: Date | null;
   labels: { publicId: string; name: string; colourCode: string | null }[];
+  properties: { publicId: string; name: string; colourCode: string | null; groupId: number }[];
   members: {
     publicId: string;
     email: string;
@@ -105,56 +102,43 @@ type VirtualList = {
   colourCode: string | null;
 };
 
-function getGroupSortKey(
-  card: CardData,
-  mode: "tag" | "priority",
-): string {
-  if (mode === "tag") {
-    if (card.labels.length === 0) return "\uFFFF";
-    const sortedNames = [...card.labels].map((l) => l.name).sort();
-    return sortedNames[0];
-  }
+type PropertyGroup = {
+  publicId: string;
+  name: string;
+  type: string;
+  index: number;
+  options: {
+    publicId: string;
+    name: string;
+    colourCode: string | null;
+    index: number;
+  }[];
+};
 
-  const priorityLabel = card.labels.find((l) =>
-    PRIORITY_LABELS.includes(l.name),
-  );
-  if (!priorityLabel) return "\uFFFF";
-  const priorityIndex = PRIORITY_LABELS.indexOf(priorityLabel.name);
-  return `${priorityIndex}_${priorityLabel.name}`;
-}
-
-function getGroupedCards(
-  cards: CardData[],
-  groupMode: string,
-): CardData[] {
-  if (!groupMode || (groupMode !== "tag" && groupMode !== "priority"))
-    return cards;
-  return [...cards].sort((a, b) => {
-    const keyA = getGroupSortKey(a, groupMode);
-    const keyB = getGroupSortKey(b, groupMode);
-    return keyA.localeCompare(keyB);
-  });
+function getPropertyGroupedLists(
+  allCards: CardData[],
+  group: PropertyGroup,
+): VirtualList[] {
+  return group.options.map((option, index) => ({
+    publicId: `virtual-prop-${option.publicId}`,
+    name: option.name,
+    index,
+    colourCode: option.colourCode,
+    cards: allCards.filter((card) =>
+      card.properties.some((p) => p.publicId === option.publicId),
+    ),
+  })).filter((list) => list.cards.length > 0);
 }
 
 function getSortKey(
   card: CardData,
-  mode: "alphabet" | "priority" | "due",
+  mode: "alphabet" | "due",
 ): string | number {
   if (mode === "alphabet") {
     return card.title.toLowerCase();
   }
-  if (mode === "priority") {
-    const priorityLabel = card.labels.find((l) =>
-      PRIORITY_LABELS.includes(l.name),
-    );
-    if (!priorityLabel) return "\uFFFF";
-    return PRIORITY_LABELS.indexOf(priorityLabel.name);
-  }
-  if (mode === "due") {
-    if (!card.dueDate) return "\uFFFF";
-    return new Date(card.dueDate).getTime();
-  }
-  return 0;
+  if (!card.dueDate) return "\uFFFF";
+  return new Date(card.dueDate).getTime();
 }
 
 function getSortedCards(
@@ -162,123 +146,16 @@ function getSortedCards(
   sortMode: string,
   sortDir: "asc" | "desc",
 ): CardData[] {
-  if (!sortMode || (sortMode !== "alphabet" && sortMode !== "priority" && sortMode !== "due"))
+  if (!sortMode || (sortMode !== "alphabet" && sortMode !== "due"))
     return cards;
   return [...cards].sort((a, b) => {
-    const keyA = getSortKey(a, sortMode as "alphabet" | "priority" | "due");
-    const keyB = getSortKey(b, sortMode as "alphabet" | "priority" | "due");
+    const keyA = getSortKey(a, sortMode as "alphabet" | "due");
+    const keyB = getSortKey(b, sortMode as "alphabet" | "due");
     const cmp = typeof keyA === "number" && typeof keyB === "number"
       ? keyA - keyB
       : String(keyA).localeCompare(String(keyB));
     return sortDir === "desc" ? -cmp : cmp;
   });
-}
-
-function getDueCategory(card: CardData): string {
-  if (!card.dueDate) return "No dates";
-  const today = startOfDay(new Date());
-  const dueDate = startOfDay(card.dueDate);
-  if (dueDate < today) return "Overdue";
-  if (dueDate.getTime() === today.getTime()) return "Due today";
-  const tomorrow = addDays(today, 1);
-  if (dueDate.getTime() === tomorrow.getTime()) return "Due tomorrow";
-  const nextWeekEnd = addDays(today, 8);
-  if (dueDate >= today && dueDate < nextWeekEnd) return "Due next week";
-  const nextMonthEnd = addDays(today, 31);
-  if (dueDate >= nextWeekEnd && dueDate < nextMonthEnd) return "Due next month";
-  return "No dates";
-}
-
-function getVirtualLists(
-  allCards: CardData[],
-  allLabels: { publicId: string; name: string; colourCode: string | null }[],
-  groupMode: string,
-  workspaceMembers?: {
-    publicId: string;
-    user: { name: string | null; email: string; image: string | null } | null;
-  }[],
-): VirtualList[] {
-  if (groupMode === "tags-list") {
-    const excludedNames = [...PRIORITY_LABELS, ...ROLE_LABELS];
-    const tagLabels = allLabels.filter(
-      (l) => !excludedNames.includes(l.name),
-    );
-
-    return tagLabels
-      .map((label, index) => ({
-        publicId: `virtual-${label.publicId}`,
-        name: label.name,
-        index,
-        colourCode: label.colourCode,
-        cards: allCards.filter((card) =>
-          card.labels.some((cl) => cl.publicId === label.publicId),
-        ),
-      }))
-      .filter((list) => list.cards.length > 0);
-  }
-
-  if (groupMode === "priority-list") {
-    return PRIORITY_LABELS.map((name, index) => {
-      const matchingLabel = allLabels.find((l) => l.name === name);
-      return {
-        publicId: `virtual-priority-${index}`,
-        name,
-        index,
-        colourCode: matchingLabel?.colourCode ?? null,
-        cards: allCards.filter((card) =>
-          card.labels.some((cl) => cl.name === name),
-        ),
-      };
-    }).filter((list) => list.cards.length > 0);
-  }
-
-  if (groupMode === "role-list") {
-    return ROLE_LABELS.map((name, index) => {
-      const matchingLabel = allLabels.find((l) => l.name === name);
-      return {
-        publicId: `virtual-role-${index}`,
-        name,
-        index,
-        colourCode: matchingLabel?.colourCode ?? null,
-        cards: allCards.filter((card) =>
-          card.labels.some((cl) => cl.name === name),
-        ),
-      };
-    }).filter((list) => list.cards.length > 0);
-  }
-
-  if (groupMode === "members-list" && workspaceMembers) {
-    return workspaceMembers
-      .map((member, index) => ({
-        publicId: `virtual-member-${member.publicId}`,
-        name:
-          member.user?.name || member.user?.email || `Member ${index}`,
-        index,
-        colourCode: null,
-        cards: allCards.filter((card) =>
-          card.members.some((cm) => cm.publicId === member.publicId),
-        ),
-      }))
-      .filter((list) => list.cards.length > 0);
-  }
-
-  if (groupMode === "due-list") {
-    const dueColours: Record<string, string> = {
-      "Overdue": "#ef4444",
-      "Due today": "#eab308",
-      "Due tomorrow": "#22c55e",
-      "Due next week": "#22c55e",
-    };
-    return DUE_CATEGORIES.map((name, index) => ({
-      publicId: `virtual-due-${index}`,
-      name,
-      index,
-      colourCode: dueColours[name] ?? null,
-      cards: allCards.filter((card) => getDueCategory(card) === name),
-    })).filter((list) => list.cards.length > 0);
-  }
-
-  return [];
 }
 
 type PublicListId = string;
@@ -289,7 +166,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
   const utils = api.useUtils();
   const { showPopup } = usePopup();
   const { workspace } = useWorkspace();
-  const { openModal, modalContentType, entityId, isOpen, setModalState } =
+  const { openModal, modalContentType, entityId, isOpen, setModalState, closeModal } =
     useModal();
   const [selectedPublicListId, setSelectedPublicListId] =
     useState<PublicListId>("");
@@ -298,7 +175,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
   type SlideOverState =
     | { mode: "closed" }
     | { mode: "view"; cardPublicId: string }
-    | { mode: "add"; listPublicId: string; preSelectedLabelId?: string; preSelectedMemberId?: string; preSelectedDueDate?: Date };
+    | { mode: "add"; listPublicId: string; preSelectedLabelId?: string; preSelectedMemberId?: string; preSelectedDueDate?: Date; preSelectedPropertyId?: string };
 
   const urlCardId = (router.query.card as string) || null;
   const [slideOverState, setSlideOverState] = useState<SlideOverState>(
@@ -392,9 +269,10 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
 
   const boardType: "regular" | "template" = isTemplate ? "template" : "regular";
 
-  const groupMode = (router.query.group as string) || "";
+  const groupBy = (router.query.groupBy as string) || "";
   const sortMode = (router.query.sort as string) || "";
   const sortDir = ((router.query.sortDir as string) || "asc") as "asc" | "desc";
+  const propertyFilterIds = formatToArray(router.query.properties);
 
   const queryParams = {
     boardPublicId: boardId ?? "",
@@ -563,44 +441,17 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
 
   const handleVirtualAddCard = (
     virtualListPublicId: string,
-    virtualListName: string,
   ) => {
     if (!boardData) return;
 
     const firstRealListId = boardData.lists[0]?.publicId ?? "";
 
-    const preSelection: {
-      labelPublicId?: string;
-      memberPublicId?: string;
-      dueDate?: Date;
-    } = {};
-
-    if (groupMode === "members-list") {
-      const memberPublicId = virtualListPublicId.replace(
-        "virtual-member-",
-        "",
-      );
-      preSelection.memberPublicId = memberPublicId;
-    } else if (groupMode === "due-list") {
-      const today = startOfDay(new Date());
-      if (virtualListName === "Due today") {
-        preSelection.dueDate = today;
-      } else if (virtualListName === "Due tomorrow") {
-        preSelection.dueDate = addDays(today, 1);
-      }
-    } else {
-      const labelPublicId = virtualListPublicId.replace("virtual-", "");
-      if (!labelPublicId.startsWith("virtual-")) {
-        preSelection.labelPublicId = labelPublicId;
-      }
-    }
+    const optionPublicId = virtualListPublicId.replace("virtual-prop-", "");
 
     setSlideOverState({
       mode: "add",
       listPublicId: firstRealListId,
-      preSelectedLabelId: preSelection.labelPublicId,
-      preSelectedMemberId: preSelection.memberPublicId,
-      preSelectedDueDate: preSelection.dueDate,
+      preSelectedPropertyId: optionPublicId,
     });
   };
 
@@ -821,6 +672,18 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
             boardPublicId={boardId ?? ""}
           />
         </Modal>
+        <Modal
+          modalSize="md"
+          isVisible={isOpen && modalContentType === "PROPERTY_GROUPS"}
+        >
+          {boardId && boardData && (
+            <PropertyGroupManager
+              boardPublicId={boardId}
+              groups={boardData.propertyGroups}
+              onClose={closeModal}
+            />
+          )}
+        </Modal>
       </>
     );
   };
@@ -890,17 +753,16 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                   <>
                     <SortButton isLoading={!boardData} />
                     <Filters
-                      labels={boardData.labels}
+                      propertyGroups={boardData.propertyGroups}
                       members={boardData.workspace.members.filter(
                         (member) => member.user !== null,
                       )}
-                      lists={boardData.allLists}
                       position="left"
                       isLoading={!boardData}
                     />
                   </>
                 )}
-                <GroupButton isLoading={!boardData} />
+                <GroupButton isLoading={!boardData} propertyGroups={boardData?.propertyGroups ?? []} />
                 <ViewSwitchButton isLoading={!boardData} />
               </>
             )}
@@ -951,33 +813,44 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
           ) : boardData ? (
             <>
               {(() => {
-                const isListGroupMode = LIST_GROUP_MODES.includes(groupMode);
+                const activeGroup = groupBy
+                  ? boardData.propertyGroups.find((g) => g.publicId === groupBy)
+                  : null;
+                const isGroupByMode = !!activeGroup;
+
+                const filteredLists = propertyFilterIds.length > 0
+                  ? boardData.lists.map((list) => ({
+                      ...list,
+                      cards: list.cards.filter((card) =>
+                        propertyFilterIds.some((filterId) =>
+                          card.properties.some((p) => p.publicId === filterId),
+                        ),
+                      ),
+                    }))
+                  : boardData.lists;
+
                 const cardListNameMap = new Map<string, string>();
-                if (isListGroupMode) {
-                  boardData.lists.forEach((list) => {
+                if (isGroupByMode) {
+                  filteredLists.forEach((list) => {
                     list.cards.forEach((card) => {
                       cardListNameMap.set(card.publicId, list.name);
                     });
                   });
                 }
-                const virtualLists = isListGroupMode
-                  ? getVirtualLists(
-                      boardData.lists.flatMap((l) => l.cards),
-                      boardData.labels,
-                      groupMode,
-                      boardData.workspace.members.filter(
-                        (member) => member.user !== null,
-                      ),
+                const virtualLists = isGroupByMode && activeGroup
+                  ? getPropertyGroupedLists(
+                      filteredLists.flatMap((l) => l.cards),
+                      activeGroup,
                     )
                   : null;
 
                 const displayLists: (
                   | { publicId: string; name: string; index: number; cards: CardData[]; colourCode?: string | null }
                   | null
-                )[] = virtualLists ?? boardData.lists;
+                )[] = virtualLists ?? filteredLists;
 
                 if (viewMode === "sheet") {
-                  let flatCards = boardData.lists.flatMap((list) =>
+                  let flatCards = filteredLists.flatMap((list) =>
                     list.cards.map((card) => ({
                       ...card,
                       listName: list.name,
@@ -987,7 +860,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
 
                   let sheetGroups: SheetGroup[] | undefined;
 
-                  if (isListGroupMode && virtualLists) {
+                  if (isGroupByMode && virtualLists) {
                     sheetGroups = virtualLists.map((vl) => ({
                       name: vl.name,
                       colourCode: vl.colourCode,
@@ -1005,9 +878,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                   } else {
                     flatCards = sortMode
                       ? (getSortedCards(flatCards, sortMode, sortDir) as typeof flatCards)
-                      : groupMode
-                        ? (getGroupedCards(flatCards, groupMode) as typeof flatCards)
-                        : flatCards;
+                      : flatCards;
                   }
 
                   return (
@@ -1017,7 +888,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                        boardPublicId={boardId ?? ""}
                        isTemplate={!!isTemplate}
                        onOpenCard={handleOpenCard}
-                       boardLabels={boardData.labels}
+                       propertyGroups={boardData.propertyGroups}
                        workspaceMembers={boardData.workspace.members.filter(
                          (member) => member.user !== null,
                        )}
@@ -1086,20 +957,15 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                           <div className="min-w-[2rem]" />
                           {displayLists.map((list, listIndex) => {
                             if (!list) return null;
-                            const groupedCards = isListGroupMode
+                            const sortedCards = sortMode
                               ? getSortedCards(list.cards, sortMode, sortDir)
-                              : getGroupedCards(list.cards, groupMode);
-                            const sortedCards = isListGroupMode
-                              ? groupedCards
-                              : sortMode
-                                ? getSortedCards(groupedCards, sortMode, sortDir)
-                                : groupedCards;
+                              : list.cards;
                             return (
                               <List
                                  index={listIndex}
                                  key={listIndex}
                                  list={list}
-                                 isVirtual={!!isListGroupMode}
+                                 isVirtual={!!isGroupByMode}
                                  onOpenNewCard={(publicListId) =>
                                    setSlideOverState({
                                      mode: "add",
@@ -1113,7 +979,6 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                  onVirtualAddCard={() =>
                                    handleVirtualAddCard(
                                      list.publicId,
-                                     list.name,
                                    )
                                  }
                                  cardCount={sortedCards.length}
@@ -1136,7 +1001,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                           key={card.publicId}
                                           draggableId={card.publicId}
                                           index={cardIndex}
-                                          isDragDisabled={!canEditCard || !!groupMode || !!sortMode}
+                                          isDragDisabled={!canEditCard || !!groupBy || !!sortMode}
                                         >
                                         {(provided) => (
                                           <div
@@ -1179,13 +1044,8 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                           >
                                             <Card
                                               title={card.title}
-                                              labels={
-                                                isListGroupMode
-                                                  ? card.labels.filter(
-                                                      (l) => l.name !== list.name,
-                                                    )
-                                                  : card.labels
-                                              }
+                                              labels={card.labels}
+                                              properties={card.properties}
                                               members={card.members}
                                               checklists={card.checklists ?? []}
                                               description={
@@ -1195,8 +1055,8 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                               attachments={card.attachments}
                                               docs={card.docs}
                                               dueDate={card.dueDate ?? null}
-                                              listColourCode={isListGroupMode ? list.colourCode : undefined}
-                                              listName={isListGroupMode ? cardListNameMap.get(card.publicId) : undefined}
+                                              listColourCode={isGroupByMode ? list.colourCode : undefined}
+                                              listName={isGroupByMode ? cardListNameMap.get(card.publicId) : undefined}
                                             />
                                           </div>
                                         )}
@@ -1242,6 +1102,7 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
           preSelectedLabelId={slideOverState.mode === "add" ? slideOverState.preSelectedLabelId : undefined}
           preSelectedMemberId={slideOverState.mode === "add" ? slideOverState.preSelectedMemberId : undefined}
           preSelectedDueDate={slideOverState.mode === "add" ? slideOverState.preSelectedDueDate : undefined}
+          preSelectedPropertyId={slideOverState.mode === "add" ? slideOverState.preSelectedPropertyId : undefined}
         />
       </div>
     </>

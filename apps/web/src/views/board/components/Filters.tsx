@@ -4,8 +4,6 @@ import {
   HiMiniXMark,
   HiOutlineClock,
   HiOutlineFunnel,
-  HiOutlineSquare3Stack3D,
-  HiOutlineTag,
   HiOutlineUserCircle,
 } from "react-icons/hi2";
 
@@ -18,6 +16,7 @@ import {
   formatToArray,
   getAvatarUrl,
 } from "~/utils/helpers";
+import { toolbarGlow, TOOLBAR_GLOW_PRESETS } from "./toolbarGlow";
 
 interface Member {
   publicId: string;
@@ -28,30 +27,26 @@ interface Member {
   } | null;
 }
 
-interface Label {
+interface PropertyGroup {
   publicId: string;
   name: string;
-  colourCode: string | null;
+  type: string;
+  options: {
+    publicId: string;
+    name: string;
+    colourCode: string | null;
+  }[];
 }
-
-interface List {
-  publicId: string;
-  name: string;
-}
-
-import { toolbarGlow, TOOLBAR_GLOW_PRESETS } from "./toolbarGlow";
 
 const Filters = ({
   position = "right",
-  labels,
   members,
-  lists,
+  propertyGroups,
   isLoading,
 }: {
   position?: "left" | "right";
-  labels: Label[];
   members: Member[];
-  lists: List[];
+  propertyGroups: PropertyGroup[];
   isLoading: boolean;
 }) => {
   const router = useRouter();
@@ -61,15 +56,14 @@ const Filters = ({
     e?.stopPropagation();
 
     try {
+      const query = { ...router.query };
+      delete query.members;
+      delete query.properties;
+      delete query.dueDate;
+
       await router.push({
         pathname: router.pathname,
-        query: {
-          ...router.query,
-          members: [],
-          labels: [],
-          lists: [],
-          dueDate: [],
-        },
+        query,
       });
     } catch (error) {
       console.error(error);
@@ -95,17 +89,22 @@ const Filters = ({
     ),
   }));
 
-  const formattedLabels = labels.map((label) => ({
-    key: label.publicId,
-    value: label.name,
-    selected: !!router.query.labels?.includes(label.publicId),
-    leftIcon: <LabelIcon colourCode={label.colourCode} />,
-  }));
-
-  const formattedLists = lists.map((list) => ({
-    key: list.publicId,
-    value: list.name,
-    selected: !!router.query.lists?.includes(list.publicId),
+  const propertyFilterGroups = propertyGroups.map((group) => ({
+    key: `prop_${group.publicId}`,
+    label: group.name,
+    icon: (
+      <LabelIcon
+        colourCode={group.options[0]?.colourCode ?? "#6366f1"}
+      />
+    ),
+    items: group.options.map((option) => ({
+      key: option.publicId,
+      value: option.name,
+      selected: !!router.query.properties?.includes(option.publicId),
+      leftIcon: option.colourCode ? (
+        <LabelIcon colourCode={option.colourCode} />
+      ) : undefined,
+    })),
   }));
 
   const dueDateItems = [
@@ -152,22 +151,7 @@ const Filters = ({
           },
         ]
       : []),
-    {
-      key: "labels",
-      label: t`Labels`,
-      icon: <HiOutlineTag size={16} />,
-      items: formattedLabels,
-    },
-    ...(formattedLists.length
-      ? [
-          {
-            key: "lists",
-            label: t`Lists`,
-            icon: <HiOutlineSquare3Stack3D size={16} />,
-            items: formattedLists,
-          },
-        ]
-      : []),
+    ...propertyFilterGroups,
     {
       key: "dueDate",
       label: t`Due date`,
@@ -181,33 +165,60 @@ const Filters = ({
     item: { key: string },
   ) => {
     if (groupKey === null) return;
-    const currentQuery = router.query[groupKey] ?? [];
-    const formattedCurrentQuery = Array.isArray(currentQuery)
-      ? currentQuery
-      : [currentQuery];
 
-    const updatedQuery = formattedCurrentQuery.includes(item.key)
-      ? formattedCurrentQuery.filter((key) => key !== item.key)
-      : [...formattedCurrentQuery, item.key];
+    if (groupKey === "members" || groupKey === "dueDate") {
+      const currentQuery = router.query[groupKey] ?? [];
+      const formattedCurrentQuery = Array.isArray(currentQuery)
+        ? currentQuery
+        : [currentQuery];
 
-    try {
-      await router.push({
-        pathname: router.pathname,
-        query: { ...router.query, [groupKey]: updatedQuery },
-      });
-    } catch (error) {
-      console.error(error);
+      const updatedQuery = formattedCurrentQuery.includes(item.key)
+        ? formattedCurrentQuery.filter((key) => key !== item.key)
+        : [...formattedCurrentQuery, item.key];
+
+      try {
+        await router.push({
+          pathname: router.pathname,
+          query: { ...router.query, [groupKey]: updatedQuery },
+        });
+      } catch (error) {
+        console.error(error);
+      }
+      return;
+    }
+
+    if (groupKey.startsWith("prop_")) {
+      const currentProperties = formatToArray(router.query.properties);
+      const updatedProperties = currentProperties.includes(item.key)
+        ? currentProperties.filter((key) => key !== item.key)
+        : [...currentProperties, item.key];
+
+      try {
+        await router.push({
+          pathname: router.pathname,
+          query: {
+            ...router.query,
+            properties: updatedProperties.length
+              ? updatedProperties
+              : undefined,
+          },
+        });
+      } catch (error) {
+        console.error(error);
+      }
     }
   };
 
   const numOfFilters = [
     ...formatToArray(router.query.members),
-    ...formatToArray(router.query.labels),
-    ...formatToArray(router.query.lists),
+    ...formatToArray(router.query.properties),
     ...formatToArray(router.query.dueDate),
   ].length;
 
-  const glow = toolbarGlow(numOfFilters > 0, TOOLBAR_GLOW_PRESETS.filter);
+  const glow = toolbarGlow(
+    numOfFilters > 0,
+    TOOLBAR_GLOW_PRESETS["filter"]!,
+  );
 
   return (
     <div className="group/toolbar relative">
@@ -222,7 +233,9 @@ const Filters = ({
           variant="ghost"
           iconOnly
           disabled={isLoading}
-          iconLeft={<HiOutlineFunnel size={22} className={glow.iconClass} />}
+          iconLeft={
+            <HiOutlineFunnel size={22} className={glow.iconClass} />
+          }
           className={glow.buttonClass}
         />
         {numOfFilters > 0 && (

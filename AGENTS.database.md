@@ -175,3 +175,70 @@ Current card-doc activity types:
 - `ALTER TABLE ... SET DATA TYPE` also needs error handling (`EXCEPTION WHEN cannot_coerce THEN null`)
 - Always verify the generated migration SQL only contains the intended changes — if previous migrations weren't applied, `drizzle-kit generate` may capture their changes too
 - Be cautious running `docker compose -f docker-compose.dev.yml` commands when the production `docker-compose.yml` is also in use — both share the project name "kan" and Docker may recreate production containers
+
+## Property Groups & Options (Dynamic Property System)
+
+### Overview
+
+The property system replaces the flat label system with a hierarchical Group → Option structure. This enables dynamic, user-defined properties on cards (similar to Notion's database properties).
+
+### Tables
+
+- **`property_group`** (`packages/db/src/schema/property-groups.ts`): Named categories with a type (`single-select` | `multi-select`). Board-scoped. Has `index` for ordering.
+- **`property_option`** (`packages/db/src/schema/property-options.ts`): Selectable values within a group. Has `name`, `colourCode`, `index`, `groupId` FK, and denormalized `boardId`.
+- **`_card_properties`** (`packages/db/src/schema/cards.ts`): Junction table (cardId, optionId) with cascade deletes.
+
+### Repositories
+
+- `packages/db/src/repository/property-group.repo.ts`: CRUD, reorder, getAllByBoardId (with nested options)
+- `packages/db/src/repository/property-option.repo.ts`: CRUD, soft delete (cascades to card links), card junction management (createCardPropertyRelation, hardDeleteCardPropertyRelation, syncCardProperties, getCardOptionIds)
+
+### Repo Gotchas
+
+- **`property-option.repo.ts` `create`**: Auto-computes next `index` within the group (`max(index) + 1`). Wrapped in a transaction because it optionally also creates a card-property junction row.
+- **`property-option.repo.ts` `softDelete`**: Wrapped in a transaction — soft-deletes the option and hard-deletes all card-property junction rows atomically.
+- **`property-option.repo.ts` `syncCardProperties`**: Wrapped in a transaction — inlines the `getCardOptionIds` query rather than calling the standalone function (avoids `tx as dbClient` type cast).
+- **`getByPublicId`** in `property-option.repo.ts`: Filters `isNull(deletedAt)` — prevents re-attaching soft-deleted options to cards.
+- **Transaction type incompatibility**: `db.transaction(async (tx) => { ... })` yields a `PgTransaction` type that is NOT assignable to `dbClient`. Repo functions that accept `dbClient` cannot receive `tx` directly. When a transaction is needed, keep it inside the repo function (not in the API layer).
+
+### Key Design Decisions
+
+- Board-global `index` on cards (not per-list) — card indices are sequential within the entire board, not per-list
+- No `defaultGroupId` on boards table — first group (lowest index) is the default column organizer (bidirectional FK between boards↔propertyGroups caused TypeScript circular type inference)
+- Single-select enforcement is application-level only (API removes previous option before adding new one)
+- Properties are returned alongside labels during transition period (both old and new data in API responses)
+
+### How Properties Are Returned in Repo Responses
+
+Properties follow the same flattening pattern as labels:
+
+- **Board repo** (`board.repo.ts`): Queries `_card_properties` with `with: { option: { columns: { publicId, name, colourCode, groupId } } }`, then flattens: `card.properties.map((p) => p.option)`. Result: `{ publicId, name, colourCode, groupId }[]` per card.
+- **Card repo** (`card.repo.ts`): Same pattern in `byPublicId()` — flattens `card.properties.map((p) => p.option)`.
+- **Board repo** also returns `propertyGroups` with nested `options` via Drizzle relations (separate from card-level properties):
+  ```
+  propertyGroups: { with: { options: { where: isNull(deletedAt), orderBy: asc(index) } }, where: isNull(deletedAt), orderBy: [asc(index)] }
+  ```
+- Both `byId` and `bySlug` board queries return `propertyGroups` at the board level.
+- Card detail query (`card.repo.ts byPublicId`) also returns `board.propertyGroups` with nested options.
+
+### Activity Types
+
+- `card.updated.property.added` — logged when a property option is attached to a card
+- `card.updated.property.removed` — logged when a property option is detached from a card
+
+### Migration: Lists → Status group, Labels → Tags group
+
+- Migration `20260428213000_MigrateListsAndLabelsToProperties.sql` converts existing data:
+  - Creates "Status" group (single-select) per board from lists
+  - Creates "Tags" group (multi-select) per board from labels
+  - Creates property options matching list/label names
+  - Links cards to their list's option and label options via `_card_properties`
+  - Renumbers card indices to be board-global (ordered by list index, then card index)
+
+### Drizzle Relations for Properties
+
+- `cardsRelations` in `cards.ts` includes `properties: many(cardsToProperties)`
+- `cardsToProperties` relations map to `option: one(propertyOptions)` for the join
+- `propertyGroupsRelations` in `property-groups.ts` includes `options: many(propertyOptions)`
+- `boardsRelations` in `boards.ts` includes `propertyGroups: many(propertyGroups)` (separate from card-level)
+- Circular import: `cards.ts` ↔ `property-options.ts` (same pattern as `cards.ts` ↔ `labels.ts`)

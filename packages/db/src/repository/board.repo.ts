@@ -19,7 +19,6 @@ import {
   cardActivities,
   cardAttachments,
   cards,
-  cardsToDocs,
   cardsToLabels,
   cardToWorkspaceMembers,
   checklistItems,
@@ -27,6 +26,8 @@ import {
   comments,
   labels,
   lists,
+  propertyGroups,
+  propertyOptions,
   userBoardFavorites,
   workspaceMembers,
 } from "@kan/db/schema";
@@ -72,6 +73,28 @@ export const getAllByWorkspaceId = async (
           publicId: true,
           name: true,
           colourCode: true,
+        },
+      },
+      propertyGroups: {
+        columns: {
+          publicId: true,
+          name: true,
+          type: true,
+          index: true,
+        },
+        where: isNull(propertyGroups.deletedAt),
+        orderBy: [asc(propertyGroups.index)],
+        with: {
+          options: {
+            columns: {
+              publicId: true,
+              name: true,
+              colourCode: true,
+              index: true,
+            },
+            where: isNull(propertyOptions.deletedAt),
+            orderBy: [asc(propertyOptions.index)],
+          },
         },
       },
     },
@@ -239,6 +262,28 @@ export const getByPublicId = async (
         },
         where: isNull(labels.deletedAt),
       },
+      propertyGroups: {
+        columns: {
+          publicId: true,
+          name: true,
+          type: true,
+          index: true,
+        },
+        where: isNull(propertyGroups.deletedAt),
+        orderBy: [asc(propertyGroups.index)],
+        with: {
+          options: {
+            columns: {
+              publicId: true,
+              name: true,
+              colourCode: true,
+              index: true,
+            },
+            where: isNull(propertyOptions.deletedAt),
+            orderBy: [asc(propertyOptions.index)],
+          },
+        },
+      },
       lists: {
         columns: {
           publicId: true,
@@ -264,6 +309,18 @@ export const getByPublicId = async (
                       publicId: true,
                       name: true,
                       colourCode: true,
+                    },
+                  },
+                },
+              },
+              properties: {
+                with: {
+                  option: {
+                    columns: {
+                      publicId: true,
+                      name: true,
+                      colourCode: true,
+                      groupId: true,
                     },
                   },
                 },
@@ -376,6 +433,7 @@ export const getByPublicId = async (
       cards: list.cards.map((card) => ({
         ...card,
         labels: card.labels.map((label) => label.label),
+        properties: card.properties.map((p) => p.option),
         members: card.members
           .map((member) => member.member)
           .filter((member) => member.deletedAt === null),
@@ -443,6 +501,28 @@ export const getBySlug = async (
         },
         where: isNull(labels.deletedAt),
       },
+      propertyGroups: {
+        columns: {
+          publicId: true,
+          name: true,
+          type: true,
+          index: true,
+        },
+        where: isNull(propertyGroups.deletedAt),
+        orderBy: [asc(propertyGroups.index)],
+        with: {
+          options: {
+            columns: {
+              publicId: true,
+              name: true,
+              colourCode: true,
+              index: true,
+            },
+            where: isNull(propertyOptions.deletedAt),
+            orderBy: [asc(propertyOptions.index)],
+          },
+        },
+      },
       lists: {
         columns: {
           publicId: true,
@@ -468,6 +548,18 @@ export const getBySlug = async (
                       publicId: true,
                       name: true,
                       colourCode: true,
+                    },
+                  },
+                },
+              },
+              properties: {
+                with: {
+                  option: {
+                    columns: {
+                      publicId: true,
+                      name: true,
+                      colourCode: true,
+                      groupId: true,
                     },
                   },
                 },
@@ -559,6 +651,7 @@ export const getBySlug = async (
       cards: list.cards.map((card) => ({
         ...card,
         labels: card.labels.map((label) => label.label),
+        properties: card.properties.map((p) => p.option),
         docs: card.docs.map((d) => d.doc),
       })),
     })),

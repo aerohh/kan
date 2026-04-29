@@ -1,4 +1,7 @@
+import { useTheme } from "next-themes";
 import type { ReactNode } from "react";
+
+import { resolveColour } from "@kan/shared/constants";
 
 const base =
   "inline-flex w-fit items-center justify-center rounded-full border-2 px-3 pb-2.5 pt-2 text-[10px] font-medium leading-none text-neutral-600 dark:text-dark-1000";
@@ -17,6 +20,9 @@ const Badge = ({
   colourCode?: string | null;
   variant?: "default" | "compact" | "notion";
 }) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+  const resolved = resolveColour(colourCode, isDark);
   const compact = variant === "compact" ? "scale-[0.85] origin-left" : "";
 
   if (variant === "notion" && colourCode) {
@@ -24,8 +30,8 @@ const Badge = ({
       <span
         className={notionBase}
         style={{
-          backgroundColor: `${colourCode}25`,
-          color: colourCode,
+          backgroundColor: `${resolved}25`,
+          color: resolved,
         }}
       >
         {value}
@@ -38,8 +44,8 @@ const Badge = ({
       <span
         className={`${base} ${compact}`}
         style={{
-          backgroundColor: `${colourCode}25`,
-          borderColor: `${colourCode}30`,
+          backgroundColor: `${resolved}25`,
+          borderColor: `${resolved}30`,
         }}
       >
         {value}

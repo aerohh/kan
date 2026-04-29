@@ -53,6 +53,8 @@ export default function PublicBoardView() {
     | "no-due-date"
   )[];
 
+  const propertyFilterIds = formatToArray(router.query.properties);
+
   const { data, isLoading } = api.board.bySlug.useQuery(
     {
       boardSlug: boardSlug ?? "",
@@ -153,9 +155,8 @@ export default function PublicBoardView() {
                   {t`View only`}
                 </div>
                 <Filters
-                  labels={data.labels ?? []}
+                  propertyGroups={data.propertyGroups ?? []}
                   members={[]}
-                  lists={data.allLists ?? []}
                   isLoading={isLoading}
                 />
               </div>
@@ -189,7 +190,15 @@ export default function PublicBoardView() {
             ) : (
               <div className="flex">
                 <div className="min-w-[2rem]" />
-                {data?.lists.map((list) => (
+                {data?.lists.map((list) => {
+                  const filteredCards = propertyFilterIds.length > 0
+                    ? list.cards.filter((card) =>
+                        propertyFilterIds.some((filterId) =>
+                          card.properties?.some((p) => p.publicId === filterId),
+                        ),
+                      )
+                    : list.cards;
+                  return (
                   <div
                     key={list.publicId}
                     className="dark-text-dark-1000 mr-5 h-fit min-w-[18rem] max-w-[18rem] rounded-md border border-light-400 bg-light-300 py-2 pl-2 pr-1 text-neutral-900 dark:border-dark-300 dark:bg-dark-100"
@@ -200,7 +209,7 @@ export default function PublicBoardView() {
                       </span>
                     </div>
                     <div className="scrollbar-track-rounded-[4px] scrollbar-thumb-rounded-[4px] scrollbar-w-[8px] z-10 h-full max-h-[calc(100vh-265px)] min-h-[2rem] overflow-y-auto pr-1 scrollbar dark:scrollbar-track-dark-100 dark:scrollbar-thumb-dark-600">
-                      {list.cards.map((card) => {
+                      {filteredCards.map((card) => {
                         return (
                           <Link
                             key={card.publicId}
@@ -221,6 +230,7 @@ export default function PublicBoardView() {
                             <Card
                               title={card.title}
                               labels={card.labels}
+                              properties={card.properties}
                               checklists={card.checklists ?? []}
                               members={[]}
                               description={card.description}
@@ -233,7 +243,8 @@ export default function PublicBoardView() {
                       })}
                     </div>
                   </div>
-                ))}
+                );
+                })}
                 <div className="min-w-[0.75rem]" />
               </div>
             )}

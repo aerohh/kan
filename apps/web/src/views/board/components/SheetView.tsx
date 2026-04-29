@@ -2,14 +2,15 @@ import { useRouter } from "next/router";
 import { useTheme } from "next-themes";
 import { t } from "@lingui/core/macro";
 import type { RouterInputs } from "@kan/api";
+import { resolveColour } from "@kan/shared/constants";
 import { useCallback, useMemo, useRef, useState, Fragment } from "react";
 import { HiOutlinePlusSmall } from "react-icons/hi2";
 
 import Avatar from "~/components/Avatar";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
 import LabelIcon from "~/components/LabelIcon";
+import { PropertySelector } from "~/components/PropertySelector";
 import { QuickAddCardInput } from "~/components/QuickAddCardInput";
-import LabelSelector from "~/views/card/components/LabelSelector";
 import { usePopup } from "~/providers/popup";
 import { useQuickAddCard } from "~/hooks/useQuickAddCard";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
@@ -34,10 +35,9 @@ function getGroupBorderStyle(
   colourCode: string,
   isDark: boolean,
 ): React.CSSProperties {
+  const resolved = resolveColour(colourCode, isDark);
   return {
-    borderColor: isDark
-      ? `color-mix(in srgb, ${colourCode} 25%, transparent)`
-      : `${colourCode}35`,
+    borderColor: `${resolved}35`,
   };
 }
 
@@ -46,7 +46,7 @@ function CardRow({
   canEditCard,
   onNavigate,
   onContextMenu,
-  boardLabels,
+  propertyGroups,
   workspaceMembers,
   allLists,
   weekStartDay,
@@ -55,12 +55,13 @@ function CardRow({
   handleUpdateDueDate,
   groupColourCode,
   rowIndex,
+  onPropertyMutationSettled,
 }: {
   card: SheetCard;
   canEditCard: boolean;
   onNavigate: (id: string) => void;
   onContextMenu: (e: React.MouseEvent, id: string) => void;
-  boardLabels: SheetViewProps["boardLabels"];
+  propertyGroups: SheetViewProps["propertyGroups"];
   workspaceMembers: SheetViewProps["workspaceMembers"];
   allLists: SheetViewProps["allLists"];
   weekStartDay: number;
@@ -69,15 +70,18 @@ function CardRow({
   handleUpdateDueDate: (id: string, date: Date | null) => void;
   groupColourCode?: string | null;
   rowIndex: number;
+  onPropertyMutationSettled?: () => void;
 }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
+  const resolvedGroupColour = resolveColour(groupColourCode, isDark);
+
   const bgStyle = groupColourCode
     ? {
         backgroundColor: isDark
-          ? `color-mix(in srgb, color-mix(in srgb, ${groupColourCode} 40%, white) 12%, transparent)`
-          : `${groupColourCode}20`,
+          ? `color-mix(in srgb, ${resolvedGroupColour} 12%, transparent)`
+          : `${resolvedGroupColour}20`,
       }
     : undefined;
 
@@ -151,22 +155,12 @@ function CardRow({
         style={cellBorderStyle}
         onClick={(e) => e.stopPropagation()}
       >
-        <LabelSelector
+        <PropertySelector
           cardPublicId={card.publicId}
-          labels={boardLabels.map((label) => {
-            const isSelected = card.labels.some(
-              (l) => l.publicId === label.publicId,
-            );
-            return {
-              key: label.publicId,
-              value: label.name,
-              selected: isSelected,
-              leftIcon: <LabelIcon colourCode={label.colourCode} />,
-              colourCode: label.colourCode,
-            };
-          })}
-          isLoading={false}
+          groups={propertyGroups}
+          cardPropertyIds={card.properties?.map((p) => p.publicId) ?? []}
           disabled={!canEditCard}
+          onMutationSettled={onPropertyMutationSettled}
         />
       </td>
 
@@ -257,10 +251,9 @@ function GroupSectionHeader({
   group: SheetGroup;
   isDark: boolean;
 }) {
+  const resolvedColour = resolveColour(group.colourCode, isDark);
   const borderStyle = group.colourCode
-    ? { borderColor: isDark
-        ? `color-mix(in srgb, ${group.colourCode} 25%, transparent)`
-        : `${group.colourCode}35` }
+    ? { borderColor: `${resolvedColour}35` }
     : undefined;
 
   return (
@@ -273,7 +266,7 @@ function GroupSectionHeader({
         {group.colourCode && (
           <span
             className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: group.colourCode }}
+            style={{ backgroundColor: resolvedColour }}
           />
         )}
         <span className="text-[12px] font-semibold text-light-1000 dark:text-dark-1000">
@@ -294,7 +287,7 @@ export default function SheetView({
   isTemplate: _isTemplate,
   onContextMenu,
   onOpenCard,
-  boardLabels,
+  propertyGroups,
   workspaceMembers,
   allLists,
   canEditCard,
@@ -418,13 +411,14 @@ export default function SheetView({
     canEditCard,
     onNavigate: handleTitleClick,
     onContextMenu,
-    boardLabels,
+    propertyGroups,
     workspaceMembers,
     allLists,
     weekStartDay,
     updateCard: updateCard.mutate,
     addOrRemoveMember: addOrRemoveMember.mutate,
     handleUpdateDueDate,
+    onPropertyMutationSettled: invalidateBoard,
   };
 
   return (

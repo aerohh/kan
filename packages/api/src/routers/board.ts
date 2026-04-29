@@ -440,7 +440,7 @@ export const boardRouter = createTRPCRouter({
           name: label,
           boardId: result.id,
           createdBy: userId,
-          colourCode: colours[index % colours.length]?.code ?? "#0d9488",
+          colourCode: colours[index % colours.length]?.code ?? "#4f46e5",
         }));
 
         await labelRepo.bulkCreate(ctx.db, labelInputs);

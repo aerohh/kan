@@ -1,4 +1,5 @@
 import { Listbox, Transition } from "@headlessui/react";
+import { useTheme } from "next-themes";
 import { t } from "@lingui/core/macro";
 import { Fragment, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -18,10 +19,7 @@ interface LabelFormInput {
   isCreateAnotherEnabled?: boolean;
 }
 
-interface Colour {
-  name: string;
-  code: string;
-}
+type Colour = (typeof colours)[number];
 
 export function LabelForm({
   boardPublicId,
@@ -33,6 +31,8 @@ export function LabelForm({
   isEdit?: boolean;
 }) {
   const { closeModal, entityId, openModal, setModalState } = useModal();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   const label = api.label.byPublicId.useQuery(
     {
@@ -144,7 +144,7 @@ export function LabelForm({
         <Controller
           name="colour"
           control={control}
-          render={({ field }) => (
+            render={({ field }) => (
             <Listbox {...field}>
               {({ open }) => (
                 <>
@@ -152,7 +152,7 @@ export function LabelForm({
                     <Listbox.Button className="block w-full rounded-md border-0 bg-white/5 px-4 py-1.5 shadow-sm ring-1 ring-inset ring-light-600 focus:ring-2 focus:ring-inset focus:ring-light-600 dark:bg-dark-300 dark:text-dark-1000 dark:ring-dark-700 dark:focus:ring-dark-700 sm:text-sm sm:leading-6">
                       <span className="flex items-center">
                         <span
-                          style={{ backgroundColor: field.value.code }}
+                          style={{ backgroundColor: isDark ? field.value.darkCode : field.value.lightCode }}
                           className={`inline-block h-2 w-2 flex-shrink-0 rounded-full`}
                         />
                         <span className="ml-3 block truncate">
@@ -185,7 +185,7 @@ export function LabelForm({
                               <>
                                 <div className="flex items-center rounded-[5px] p-2 hover:bg-light-200 dark:hover:bg-dark-400">
                                   <span
-                                    style={{ backgroundColor: colour.code }}
+                                    style={{ backgroundColor: isDark ? colour.darkCode : colour.lightCode }}
                                     className="ml-2 inline-block h-2 w-2 flex-shrink-0 rounded-full"
                                     aria-hidden="true"
                                   />

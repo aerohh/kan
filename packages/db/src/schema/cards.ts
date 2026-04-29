@@ -19,6 +19,7 @@ import { docs } from "./docs";
 import { imports } from "./imports";
 import { labels } from "./labels";
 import { lists } from "./lists";
+import { propertyOptions } from "./property-options";
 import { users } from "./users";
 import { workspaceMembers } from "./workspaces";
 
@@ -51,6 +52,8 @@ export const activityTypes = [
   "card.updated.dueDate.added",
   "card.updated.dueDate.updated",
   "card.updated.dueDate.removed",
+  "card.updated.property.added",
+  "card.updated.property.removed",
   "card.archived",
 ] as const;
 
@@ -97,6 +100,7 @@ export const cardsRelations = relations(cards, ({ one, many }) => ({
     relationName: "cardsDeletedByUser",
   }),
   labels: many(cardsToLabels),
+  properties: many(cardsToProperties),
   members: many(cardToWorkspaceMembers),
   import: one(imports, {
     fields: [cards.importId],
@@ -357,3 +361,32 @@ export const cardsToDocsRelations = relations(cardsToDocs, ({ one }) => ({
     relationName: "cardsToDocsDoc",
   }),
 }));
+
+export const cardsToProperties = pgTable(
+  "_card_properties",
+  {
+    cardId: bigint("cardId", { mode: "number" })
+      .notNull()
+      .references(() => cards.id, { onDelete: "cascade" }),
+    optionId: bigint("optionId", { mode: "number" })
+      .notNull()
+      .references(() => propertyOptions.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.cardId, t.optionId] })],
+).enableRLS();
+
+export const cardsToPropertiesRelations = relations(
+  cardsToProperties,
+  ({ one }) => ({
+    card: one(cards, {
+      fields: [cardsToProperties.cardId],
+      references: [cards.id],
+      relationName: "cardsToPropertiesCard",
+    }),
+    option: one(propertyOptions, {
+      fields: [cardsToProperties.optionId],
+      references: [propertyOptions.id],
+      relationName: "cardsToPropertiesOption",
+    }),
+  }),
+);

@@ -253,6 +253,13 @@
       "when": 1777070690340,
       "tag": "20260424224450_AddDocLabelsJunction",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1777411346165,
+      "tag": "20260428212226_AddPropertyGroupsAndOptions",
+      "breakpoints": true
     }
   ]
 }

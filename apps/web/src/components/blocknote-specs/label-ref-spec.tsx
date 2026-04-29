@@ -1,7 +1,19 @@
 import { defaultInlineContentSpecs } from "@blocknote/core";
 import { createReactInlineContentSpec } from "@blocknote/react";
 
-const FALLBACK_COLOUR = "#6366f1";
+import { colours } from "@kan/shared/constants";
+
+const FALLBACK_COLOUR = "#4f46e5";
+
+function resolveColourForSpec(code: string | undefined): string {
+  if (!code) return FALLBACK_COLOUR;
+  const isDark = document.documentElement.classList.contains("dark");
+  const match = colours.find(
+    (c) => c.code === code || c.lightCode === code || c.darkCode === code,
+  );
+  if (match) return isDark ? match.darkCode : match.lightCode;
+  return code;
+}
 
 const labelRefSpec = createReactInlineContentSpec(
   {
@@ -15,7 +27,7 @@ const labelRefSpec = createReactInlineContentSpec(
   },
   {
     render: (props) => {
-      const colour = props.inlineContent.props.colourCode || FALLBACK_COLOUR;
+      const colour = resolveColourForSpec(props.inlineContent.props.colourCode);
       return (
         <span
           data-label-ref-id={props.inlineContent.props.id}

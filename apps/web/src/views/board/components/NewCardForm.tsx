@@ -10,7 +10,9 @@ import {
 } from "react-icons/hi2";
 
 import type { NewCardInput } from "@kan/api/types";
+import { resolveColour } from "@kan/shared/constants";
 import { generateUID } from "@kan/shared/utils";
+import { useTheme } from "next-themes";
 
 import type { WorkspaceMember } from "~/components/Editor";
 import Avatar from "~/components/Avatar";
@@ -61,6 +63,8 @@ export function NewCardForm({
 }: NewCardFormProps) {
   const { showPopup } = usePopup();
   const { workspace } = useWorkspace();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const { closeModal, openModal, modalStates, clearModalState } = useModal();
 
   const utils = api.useUtils();
@@ -445,7 +449,7 @@ export function NewCardForm({
                         return (
                           <>
                             <svg
-                              fill={label?.colourCode ?? "#3730a3"}
+                              fill={resolveColour(label?.colourCode, isDark)}
                               className="h-2 w-2"
                               viewBox="0 0 6 6"
                               aria-hidden="true"

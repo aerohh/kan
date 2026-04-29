@@ -41,6 +41,26 @@ const cardMemberSchema = z.object({
     .nullable(),
 });
 
+const propertyOptionSchema = z.object({
+  publicId: z.string(),
+  name: z.string(),
+  colourCode: z.string().nullable(),
+  groupId: z.number(),
+});
+
+const propertyGroupSchema = z.object({
+  publicId: z.string(),
+  name: z.string(),
+  type: z.string(),
+  index: z.number(),
+  options: z.array(z.object({
+    publicId: z.string(),
+    name: z.string(),
+    colourCode: z.string().nullable(),
+    index: z.number(),
+  })),
+});
+
 export const cardDetailSchema = z.object({
   publicId: z.string(),
   title: z.string(),
@@ -48,6 +68,7 @@ export const cardDetailSchema = z.object({
   dueDate: z.date().nullable(),
   createdBy: z.string().nullable(),
   labels: z.array(labelSchema),
+  properties: z.array(propertyOptionSchema),
   attachments: z.array(
     z.object({
       publicId: z.string(),
@@ -66,6 +87,7 @@ export const cardDetailSchema = z.object({
       publicId: z.string(),
       name: z.string(),
       labels: z.array(labelSchema),
+      propertyGroups: z.array(propertyGroupSchema),
       lists: z.array(
         z.object({
           publicId: z.string(),

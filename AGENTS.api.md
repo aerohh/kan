@@ -99,6 +99,30 @@ Use `assertUserInWorkspace` helper for workspace checks.
   - `cardDetailSchema.docs`: `{ publicId, title }[]`
   - board card schemas (`byId`/`bySlug`) include `docs: { publicId }[]`
 
+### Property Group & Option Routers
+
+- `propertyGroup` router (`packages/api/src/routers/property-group.ts`): `list`, `create`, `update`, `delete`, `reorder`
+- `propertyOption` router (`packages/api/src/routers/property-option.ts`): `create`, `update`, `delete`
+- All endpoints follow standard auth pattern: resolve board → check workspace permission → repo call
+- Registered as `propertyGroup` and `propertyOption` in `root.ts`
+
+### Card Property Toggle API
+
+- `card.addOrRemoveProperty` in `packages/api/src/routers/card.ts` is a toggle endpoint
+- Input: `{ cardPublicId, optionPublicId }`, output: `{ added: boolean }`
+- For single-select groups: removes previous option from same group before adding new one. Logs `card.updated.property.removed` activity for the displaced option (with `toTitle` = old option name).
+- Activity types: `card.updated.property.added` / `card.updated.property.removed` with `toTitle` = option name
+- `getByPublicId` filters by `isNull(deletedAt)` — soft-deleted options cannot be re-attached
+
+### Property Zod Schemas
+
+- `propertyOptionSchema` and `propertyGroupSchema` are defined **locally** in both `schemas/board.ts` and `schemas/card.ts` (not shared from `common.ts`) because the shape differs slightly between contexts:
+  - Board card schemas: `propertyOptionSchema` has `groupId: z.number()` (needed for frontend grouping)
+  - Property group schema: `type: z.string()` (not a literal union — matches DB's text column, avoids schema migration coupling)
+- `propertyGroupSchema` has nested `options` array with `index: z.number()` for ordering
+- `boardDetailSchema` and `boardBySlugSchema` both include `propertyGroups: z.array(propertyGroupSchema)` at board level
+- Card sub-schemas (`boardDetailCardSchema`, `boardSlugCardSchema`, `cardDetailSchema`) include `properties: z.array(propertyOptionSchema)` at card level
+
 ## Security
 
 - Always check workspace membership before operations

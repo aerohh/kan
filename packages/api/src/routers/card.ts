@@ -1,6 +1,8 @@
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { propertyGroups as propertyGroupsTable } from "@kan/db/schema";
 import * as cardRepo from "@kan/db/repository/card.repo";
 import * as cardActivityRepo from "@kan/db/repository/cardActivity.repo";
 import * as cardCommentRepo from "@kan/db/repository/cardComment.repo";
@@ -8,6 +10,7 @@ import * as checklistRepo from "@kan/db/repository/checklist.repo";
 import * as docRepo from "@kan/db/repository/doc.repo";
 import * as labelRepo from "@kan/db/repository/label.repo";
 import * as listRepo from "@kan/db/repository/list.repo";
+import * as propertyOptionRepo from "@kan/db/repository/property-option.repo";
 import * as workspaceRepo from "@kan/db/repository/workspace.repo";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
@@ -515,6 +518,125 @@ export const cardRouter = createTRPCRouter({
       });
 
       return { newLabel: true };
+    }),
+  addOrRemoveProperty: protectedProcedure
+    .meta({
+      openapi: {
+        summary: "Add or remove a property from a card",
+        method: "PUT",
+        path: "/cards/{cardPublicId}/properties/{optionPublicId}",
+        description:
+          "Adds or removes a property option from a card. For single-select groups, replaces the existing value.",
+        tags: ["Cards"],
+        protect: true,
+      },
+    })
+    .input(
+      z.object({
+        cardPublicId: z.string().min(12),
+        optionPublicId: z.string().min(12),
+      }),
+    )
+    .output(z.object({ added: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user?.id;
+
+      if (!userId)
+        throw new TRPCError({
+          message: `User not authenticated`,
+          code: "UNAUTHORIZED",
+        });
+
+      const card = await cardRepo.getWorkspaceAndCardIdByCardPublicId(
+        ctx.db,
+        input.cardPublicId,
+      );
+
+      if (!card)
+        throw new TRPCError({
+          message: `Card with public ID ${input.cardPublicId} not found`,
+          code: "NOT_FOUND",
+        });
+
+      await assertPermission(ctx.db, userId, card.workspaceId, "card:edit");
+
+      const option = await propertyOptionRepo.getByPublicId(
+        ctx.db,
+        input.optionPublicId,
+      );
+
+      if (!option)
+        throw new TRPCError({
+          message: `Property option with public ID ${input.optionPublicId} not found`,
+          code: "NOT_FOUND",
+        });
+
+      const existing = await propertyOptionRepo.getCardPropertyRelation(
+        ctx.db,
+        { cardId: card.id, optionId: option.id },
+      );
+
+      if (existing) {
+        await propertyOptionRepo.hardDeleteCardPropertyRelation(ctx.db, {
+          cardId: card.id,
+          optionId: option.id,
+        });
+
+        await cardActivityRepo.create(ctx.db, {
+          type: "card.updated.property.removed" as const,
+          cardId: card.id,
+          toTitle: option.name,
+          createdBy: userId,
+        });
+
+        return { added: false };
+      }
+
+      const groupData = await ctx.db.query.propertyGroups.findFirst({
+        columns: { id: true, type: true },
+        where: eq(propertyGroupsTable.id, option.groupId),
+      });
+
+      if (groupData?.type === "single-select") {
+        const currentOptionIds = await propertyOptionRepo.getCardOptionIds(
+          ctx.db,
+          card.id,
+        );
+        const sameGroupOptions = await propertyOptionRepo.getAllByGroupId(
+          ctx.db,
+          groupData.id,
+        );
+        for (const currentId of currentOptionIds) {
+          const replacedOption = sameGroupOptions.find((o) => o.id === currentId);
+          if (replacedOption) {
+            await propertyOptionRepo.hardDeleteCardPropertyRelation(ctx.db, {
+              cardId: card.id,
+              optionId: currentId,
+            });
+
+            await cardActivityRepo.create(ctx.db, {
+              type: "card.updated.property.removed" as const,
+              cardId: card.id,
+              toTitle: replacedOption.name,
+              createdBy: userId,
+            });
+          }
+        }
+      }
+
+      await propertyOptionRepo.createCardPropertyRelation(ctx.db, {
+        cardId: card.id,
+        optionId: option.id,
+      });
+
+      await cardActivityRepo.create(ctx.db, {
+        type: "card.updated.property.added" as const,
+        cardId: card.id,
+        toTitle: option.name,
+        createdBy: userId,
+      });
+
+      return { added: true };
     }),
   addOrRemoveMember: protectedProcedure
     .meta({

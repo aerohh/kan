@@ -1,6 +1,5 @@
 export * from "./auth";
 export * from "./boards";
-export * from "./auth";
 export * from "./docs";
 export * from "./cards";
 export * from "./checklists";
@@ -8,6 +7,8 @@ export * from "./feedback";
 export * from "./imports";
 export * from "./labels";
 export * from "./lists";
+export * from "./property-groups";
+export * from "./property-options";
 export * from "./users";
 export * from "./integrations";
 export * from "./workspaces";

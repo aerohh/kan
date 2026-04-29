@@ -14,12 +14,14 @@ import Avatar from "~/components/Avatar";
 import Badge from "~/components/Badge";
 import CircularProgress from "~/components/CircularProgress";
 
+import { resolveColour } from "@kan/shared/constants";
 import { useLocalisation } from "~/hooks/useLocalisation";
 import { getAvatarUrl } from "~/utils/helpers";
 
 const Card = ({
   title,
   labels,
+  properties,
   members,
   checklists,
   description,
@@ -32,6 +34,7 @@ const Card = ({
 }: {
   title: string;
   labels: { name: string; colourCode: string | null }[];
+  properties?: { publicId: string; name: string; colourCode: string | null; groupId: number }[];
   members: {
     publicId: string;
     email: string;
@@ -109,17 +112,19 @@ const Card = ({
   const hasAttachments = attachments && attachments.length > 0;
   const hasDueDate = !!dueDate;
 
+  const resolvedListColour = resolveColour(listColourCode, isDark);
+
   const cardDarkStyle =
     isDark && listColourCode
       ? {
-          backgroundColor: `color-mix(in srgb, color-mix(in srgb, ${listColourCode} 35%, white) 10%, transparent)`,
+          backgroundColor: `color-mix(in srgb, ${resolvedListColour} 10%, transparent)`,
           border: 'none',
         }
       : undefined;
 
   const cardDarkHoverStyle =
     isDark && listColourCode
-      ? { backgroundColor: `color-mix(in srgb, color-mix(in srgb, ${listColourCode} 40%, white) 15%, transparent)` }
+      ? { backgroundColor: `color-mix(in srgb, ${resolvedListColour} 15%, transparent)` }
       : undefined;
 
   const [isHovered, setIsHovered] = useState(false);
@@ -133,6 +138,7 @@ const Card = ({
     >
       <span className="break-words text-[14px] font-semibold mb-2">{title}</span>
       {labels.length ||
+      (properties && properties.length) ||
       members.length ||
       checklists.length > 0 ||
       hasDescription ||
@@ -142,14 +148,23 @@ const Card = ({
       hasAttachments ? (
         <div className="mt-2 flex flex-col justify-end">
           <div className="flex flex-wrap gap-1 max-h-[44px] overflow-hidden">
-            {labels.map((label, index) => (
-              <Badge
-                key={`${label.name}-${index}`}
-                value={label.name}
-                colourCode={label.colourCode}
-                variant="notion"
-              />
-            ))}
+            {properties && properties.length > 0
+              ? properties.map((prop, index) => (
+                  <Badge
+                    key={`prop-${prop.publicId}-${index}`}
+                    value={prop.name}
+                    colourCode={prop.colourCode}
+                    variant="notion"
+                  />
+                ))
+              : labels.map((label, index) => (
+                  <Badge
+                    key={`${label.name}-${index}`}
+                    value={label.name}
+                    colourCode={label.colourCode}
+                    variant="notion"
+                  />
+                ))}
           </div>
           {listName && (
             <span className="mt-2.5 inline-block text-[11px] font-bold text-neutral-500 dark:text-neutral-400 bg-neutral-200 dark:bg-neutral-600 rounded px-1.5 py-0.5 max-w-fit truncate">{listName}</span>

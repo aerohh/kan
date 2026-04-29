@@ -22,6 +22,8 @@ import {
   checklists,
   labels,
   lists,
+  propertyGroups,
+  propertyOptions,
   workspaceMembers,
 } from "@kan/db/schema";
 import { generateUID } from "@kan/shared/utils";
@@ -440,6 +442,18 @@ export const getWithListAndMembersByPublicId = async (
           },
         },
       },
+      properties: {
+        with: {
+          option: {
+            columns: {
+              publicId: true,
+              name: true,
+              colourCode: true,
+              groupId: true,
+            },
+          },
+        },
+      },
       attachments: {
         columns: {
           publicId: true,
@@ -509,6 +523,28 @@ export const getWithListAndMembersByPublicId = async (
                 },
                 where: isNull(lists.deletedAt),
                 orderBy: asc(lists.index),
+              },
+              propertyGroups: {
+                columns: {
+                  publicId: true,
+                  name: true,
+                  type: true,
+                  index: true,
+                },
+                where: isNull(propertyGroups.deletedAt),
+                orderBy: asc(propertyGroups.index),
+                with: {
+                  options: {
+                    columns: {
+                      publicId: true,
+                      name: true,
+                      colourCode: true,
+                      index: true,
+                    },
+                    where: isNull(propertyOptions.deletedAt),
+                    orderBy: asc(propertyOptions.index),
+                  },
+                },
               },
               workspace: {
                 columns: {
@@ -639,6 +675,7 @@ export const getWithListAndMembersByPublicId = async (
   const formattedResult = {
     ...card,
     labels: card.labels.map((label) => label.label),
+    properties: card.properties.map((p) => p.option),
     members: card.members.map((member) => member.member),
     docs: card.docs.map((d) => d.doc),
     activities: card.activities.filter(

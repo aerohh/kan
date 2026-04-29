@@ -66,7 +66,7 @@ The board toolbar is in `apps/web/src/views/board/index.tsx` (~line 840). Toolba
 
 ### URL Query Param Pattern for UI State
 
-Filter, grouping, and view state is stored in URL query params (`?members=...&labels=...&group=tag&sort=alphabet&view=sheet`). This uses `next/router`'s `router.query` and `router.push()` to read/write state. Benefits: state survives page refreshes and is shareable via URL.
+Filter, grouping, and view state is stored in URL query params (`?members=...&properties=...&groupBy=<groupPublicId>&sort=alphabet&view=sheet`). This uses `next/router`'s `router.query` and `router.push()` to read/write state. Benefits: state survives page refreshes and is shareable via URL.
 
 ### Board View Modes
 
@@ -78,7 +78,7 @@ The board supports two view modes, toggled via `ViewSwitchButton` in the toolbar
 The `viewMode` variable (`(router.query.view as string) || "kanban"`) controls which renders. Key differences:
 - Kanban uses `useDragToScroll` (horizontal) and `useScrollRestore`; sheet disables both
 - Sheet flattens all cards from all lists into a single array with `listName`/`listPublicId` added to each card
-- Sheet reuses `getSortedCards()` and `getGroupedCards()` for sorting/grouping on the flat array (requires type assertion since functions expect `CardData[]`)
+- Sheet reuses `getSortedCards()` for sorting on the flat array (requires type assertion since functions expect `CardData[]`)
 
 #### Sheet View Viewport-Constrained Table
 
@@ -95,12 +95,17 @@ This two-layer approach (`flex-1` outer + `max-h-full` inner) ensures the border
 #### Sheet View Inline Editing
 
 Sheet cells use inline editors instead of navigating to card detail:
-- **Labels, Members, List**: `CheckboxDropdown` wraps cell content as trigger. Calls `api.card.addOrRemoveLabel`, `api.card.addOrRemoveMember`, `api.card.update` respectively
+- **Properties**: `PropertySelector` with `CheckboxDropdown` per group. Calls `api.card.addOrRemoveProperty`
+- **Members, List**: `CheckboxDropdown` wraps cell content as trigger. Calls `api.card.addOrRemoveMember`, `api.card.update` respectively
 - **Due Date**: `DateSelector` in an absolute-positioned popover with a `fixed` overlay for click-outside dismissal
 - **Title**: Click navigates to card detail (only cell that navigates)
 - **Progress**: Read-only (derived from checklists)
 
-Mutations are defined directly in `SheetView` using tRPC hooks. After mutations settle, `utils.board.byId.invalidate()` refetches board data.
+`SheetView` receives `propertyGroups` prop (from `boardData.propertyGroups`) and passes it to `PropertySelector` for each card row. Mutations are defined directly in `SheetView` using tRPC hooks. After mutations settle, `utils.board.byId.invalidate()` refetches board data.
+
+#### Sheet View Grouped Mode
+
+When `?groupBy=<groupPublicId>` is active, SheetView receives `groups: SheetGroup[]` prop instead of relying on flat card sorting. Each group has `name`, `colourCode`, and `cards`. The board view constructs these from virtual lists via `getPropertyGroupedLists()`. Cards within each group retain their original list context via `cardListNameMap`.
 
 #### CheckboxDropdown Centering Gotcha
 
@@ -114,7 +119,7 @@ Mutations are defined directly in `SheetView` using tRPC hooks. After mutations 
 
 The card detail page (`apps/web/src/views/card/index.tsx`) composes up to three panels:
 
-- **Left panel** (`CardPage` default export): Title → inline selectors (List, Labels, Members, Due date) → Editor → Attachments
+- **Left panel** (`CardPage` default export): Title → inline selectors (List, Properties, Members, Due date) → Editor → Attachments
 - **Middle panel** (`CardChecklistPanel`): Checklists — shown/hidden via toggle button with `HiCheckBadge` icon
 - **Right panel** (`CardActivityPanel` named export): Activity log → Comments
 
@@ -167,16 +172,25 @@ The `List` component now receives a `queryParams` prop (`RouterInputs["board"]["
 
 ### Client-Side Card Reordering
 
-When implementing visual-only card reordering (e.g., grouping), use `getGroupedCards()` to sort cards by label before rendering. **Important**: card drag-and-drop must be disabled (`isDragDisabled={true}`) when the visual order differs from the DB `index` order, because the optimistic update logic relies on matching array position to DB index.
+When implementing visual-only card reordering (e.g., grouping), sort cards via `getSortedCards()`. **Important**: card drag-and-drop must be disabled (`isDragDisabled={true}`) when the visual order differs from the DB `index` order, because the optimistic update logic relies on matching array position to DB index.
 
-### Virtual Lists (List-Replacing Group Modes)
+### Virtual Lists (Property-Based Grouping)
 
-The Group button supports two types of modes:
-- **Sort modes** (`tag`, `priority`): Reorder cards within existing lists via `getGroupedCards()`
-- **List modes** (`tags-list`, `priority-list`, `role-list`): Replace real lists with virtual lists via `getVirtualLists()`. Virtual lists are generated from board labels and contain only cards matching each label. The `List` component accepts `isVirtual` prop to disable editing, adding cards, deleting, and dragging. Label categories:
-  - Priority labels: hardcoded as "High Priority", "Medium Priority", "Low Priority"
-  - Role labels: hardcoded as "Backend", "Frontend", "Client"
-  - Tag labels: all board labels excluding priority and role labels
+The Group button supports grouping by any property group. URL param: `?groupBy=<groupPublicId>`.
+
+- When active, `getPropertyGroupedLists()` replaces real lists with virtual lists — one per option in the selected group
+- Each virtual list contains only cards that have that option in their `properties`
+- Virtual lists have `publicId: "virtual-prop-${option.publicId}"` and the option's `colourCode`
+- The `List` component accepts `isVirtual` prop to disable editing, adding cards, deleting, and dragging
+- Cards in virtual lists still carry `listName`/`listPublicId` from their original real list (tracked via `cardListNameMap`)
+- `handleVirtualAddCard` opens the add-card slide-over with `preSelectedPropertyId` set. The property is attached to the new card in `NewCardPage`'s `onSuccess` via `utils.client.card.addOrRemoveProperty.mutate`.
+
+#### Property Filtering (Client-Side)
+
+Property filtering is **client-side only** (not passed as API query params). The `Filters` component writes `?properties=<optionPublicId>` to the URL, and the board view reads `router.query.properties` to filter cards locally:
+- In `board/index.tsx`: `filteredLists` filters each list's cards by `propertyFilterIds`
+- In `public/board/index.tsx`: `filteredCards` filters cards in each list
+- This differs from member/label/list filtering which is server-side via API query params
 
 #### Virtual List Color Tinting
 
@@ -273,3 +287,49 @@ Card descriptions now autosave with a debounced flush pattern:
 - **New doc** (`pages/docs/new.tsx`): Creates doc lazily on first edit. After creation, URL is replaced to `/docs/{publicId}` via `router.replace` (shallow).
 - **Existing doc** (`pages/docs/[docId].tsx`): Loads via `api.doc.byId`, renders `DocEditor` wrapper which dynamically imports `DocEditorInner`.
 - `DocEditorInner` handles lazy doc creation: first content change triggers `doc.create` mutation, subsequent edits use debounced `doc.update`. Save is flushed on unmount.
+
+### Property Groups & Options UI
+
+- **PropertySelector** (`components/PropertySelector.tsx`): Universal component for toggling property options on a card. Accepts `groups` (PropertyGroup[]) and `cardPropertyIds` (string[] of selected option publicIds). Uses `CheckboxDropdown` per group. Invalidates both `card.byId` and `board.byId` on mutation settle (needed because it's used in both card detail and SheetView contexts). Accepts optional `onMutationSettled` callback for additional invalidation.
+- **PropertyGroupManager** (`components/PropertyGroupManager.tsx`): Notion-style board-level panel for CRUD on groups and their options. Uses `InlineEdit` for click-to-rename on group/option names, `Popover` color picker on color dots, click-to-toggle type badge (Single/Multi), and `Transition` for expand/collapse. Delete buttons are hover-reveal via `group/name` Tailwind groups. Options are shown as a vertical list with left-border tree indentation. No `react-hook-form` dependency — uses `useState` for inline forms. Auto-selects an unused color when adding new options.
+- **Filters** (`views/board/components/Filters.tsx`): Updated to use `propertyGroups` instead of hardcoded `labels`/`lists`. Filter sections auto-generated from property groups. URL param: `?properties=<optionPublicId>`.
+- **GroupButton** (`views/board/components/GroupButton.tsx`): Updated to use `propertyGroups` instead of hardcoded group modes. URL param: `?groupBy=<groupPublicId>`.
+
+#### Board Card Properties
+
+- `Card` component (`views/board/components/Card.tsx`) accepts optional `properties` prop: `{ publicId: string; name: string; colourCode: string | null; groupId: number }[]`
+- When `properties` is present and non-empty, renders property badges (colored dots + name) instead of label badges
+- Falls back to labels when no properties are available (backward compatibility)
+- Board view passes `properties={card.properties}` from `boardData.lists[].cards[]`
+
+#### Card Detail Properties
+
+- `CardPage` (`views/card/index.tsx`) renders `<PropertySelector>` with `groups={board?.propertyGroups ?? []}` and `cardPropertyIds={card.properties?.map((p) => p.publicId) ?? []}`
+- `PropertySelector` calls `api.card.addOrRemoveProperty` for each toggle
+- Card detail also still has `LabelSelector` (used for legacy labels during transition)
+
+#### Sheet View Properties
+
+- `SheetView` receives `propertyGroups` prop and renders `PropertySelector` per card row
+- `SheetCard` type includes `properties: { publicId, name, colourCode, groupId }[]`
+- `SheetViewProps` type includes `propertyGroups: { publicId, name, type, index, options: [...] }[]`
+
+#### PropertyGroupManager Access
+
+- Opened from `BoardDropdown` via "Properties" menu item (`HiOutlineSwatch` icon)
+- Modal type: `PROPERTY_GROUPS`, rendered inline in `renderModalContent()` in board view
+- Manages full CRUD: create/edit/delete groups and options with colour picker
+
+#### Type Conventions for Property Components
+
+- `PropertyGroup.type` uses `string` (not literal union) in frontend types to match `z.string()` in Zod schemas
+- `PropertySelector`, `PropertyGroupManager`, `GroupButton`, `Filters` all define local `PropertyGroup` interface with `type: string`
+- `PropertySelector` accepts `groupId` as optional on option items to handle both board-level option definitions and card-level property instances
+
+### Virtual List Card Creation (`preSelectedPropertyId`)
+
+When adding a card from a virtual list (grouped by property), the property option must be pre-selected so the card appears in the correct group:
+
+1. `handleVirtualAddCard` extracts `optionPublicId` from the virtual list ID and sets `SlideOverState.preSelectedPropertyId`
+2. `SlideOverState` → `CardSlideOver` → `CardPage` → `NewCardPage` — prop threaded through the entire chain
+3. `NewCardPage` attaches the property in `onSuccess` via `utils.client.card.addOrRemoveProperty.mutate`

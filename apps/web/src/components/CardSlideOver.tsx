@@ -21,6 +21,7 @@ interface CardSlideOverProps {
   preSelectedLabelId?: string;
   preSelectedMemberId?: string;
   preSelectedDueDate?: Date;
+  preSelectedPropertyId?: string;
   registerBeforeClose?: (handler: BeforeCloseHandler) => void;
 }
 
@@ -38,6 +39,7 @@ function CardSlideOverContent({
   preSelectedLabelId,
   preSelectedMemberId,
   preSelectedDueDate,
+  preSelectedPropertyId,
   registerBeforeClose,
 }: CardSlideOverProps) {
   const isAddMode = mode === "add";
@@ -62,6 +64,7 @@ function CardSlideOverContent({
                 preSelectedLabelId={preSelectedLabelId}
                 preSelectedMemberId={preSelectedMemberId}
                 preSelectedDueDate={preSelectedDueDate}
+                preSelectedPropertyId={preSelectedPropertyId}
                 onViewDoc={openDocPanel}
               />
             </div>
