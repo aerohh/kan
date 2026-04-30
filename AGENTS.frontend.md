@@ -61,7 +61,7 @@ The board toolbar is in `apps/web/src/views/board/index.tsx` (~line 840). Toolba
 | Filters | `views/board/components/Filters.tsx` |
 | GroupButton | `views/board/components/GroupButton.tsx` |
 | ViewSwitchButton | `views/board/components/ViewSwitchButton.tsx` |
-| "New list" Button | inline |
+| "New card" Button | inline |
 | BoardDropdown | `views/board/components/BoardDropdown.tsx` |
 
 ### URL Query Param Pattern for UI State
@@ -148,7 +148,15 @@ Layout is wired in two places:
 - **View mode** (default): Shows 3-panel layout: `<CardPage>` + `<CardChecklistPanel>` + `<CardActivityPanel>` side-by-side in a flex row
 - **Add mode** (`mode="add"`): Shows only `<NewCardPage>` (no activity/checklist panels). Used for creating new cards from the board view
 
-When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/components/NewCardPage.tsx`) — a self-contained component with its own form state, board data fetching, card creation mutation, and label modals. `NewCardPage` has its own built-in draft checklist panel (`DraftChecklistPanel`) for managing checklists before the card exists. Both `CardChecklistPanel` and `DraftChecklistPanel` use the shared `ChecklistPanelShell` for consistent outer styling.
+When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/components/NewCardPage.tsx`) — a self-contained component with its own form state, board data fetching, and card creation mutation. `NewCardPage` has its own built-in draft checklist panel (`DraftChecklistPanel`) for managing checklists before the card exists. Both `CardChecklistPanel` and `DraftChecklistPanel` use the shared `ChecklistPanelShell` for consistent outer styling.
+
+#### NewCardPage Property Selectors
+
+`NewCardPage` uses property group selectors (same UI as `PropertySelector`) instead of the old List and Labels selectors:
+- Property selections are tracked in `propertyOptionIds` form state (not via API mutations, since the card doesn't exist yet)
+- Single-select groups replace the previous selection when a new option is picked (application-level enforcement, same as `PropertySelector`)
+- After card creation, all selected property options are attached sequentially via `utils.client.card.addOrRemoveProperty.mutate` in `onSuccess`
+- The List selector and Labels selector have been removed — cards go into the lazy-created "General" list, and properties replace labels
 
 ### Attached Docs UI
 
@@ -162,9 +170,9 @@ When in add mode, `CardPage` delegates entirely to `NewCardPage` (`views/card/co
 
 There are two ways to create cards from the board:
 
-1. **Quick Add** (default): Clicking the "+" button in a list toggles an inline `QuickAddCardInput` (`components/QuickAddCardInput.tsx`) at the top of the list. Enter submits, Escape cancels. The `useQuickAddCard` hook (`hooks/useQuickAddCard.ts`) handles the mutation with optimistic updates (inserts placeholder card at `position: "start"`). After submit, the input resets and stays open for rapid entry. Clicking the rotated "+" icon again closes it. Not available for virtual lists.
+1. **Quick Add** (default): Clicking the "+" button in a list toggles an inline `QuickAddCardInput` (`components/QuickAddCardInput.tsx`) at the top of the list. Enter submits, Escape cancels. The `useQuickAddCard` hook (`hooks/useQuickAddCard.ts`) handles the mutation with optimistic updates (inserts placeholder card at `position: "start"`). After submit, the input resets and stays open for rapid entry. Clicking the rotated "+" icon again closes it. Works for both real lists and virtual (grouped) lists — for virtual lists, lazily creates a "General" list if needed and attaches the property option via `propertyOptionId` param.
 
-2. **Full form** (slide-over): Still available via `onOpenNewCard` callback prop on `List`, which opens the add-mode `CardSlideOver` with `<NewCardPage>`. Used for cards needing labels, members, checklists, or description before creation.
+2. **Full form** (slide-over): Still available via `onOpenNewCard` callback prop on `List`, which opens the add-mode `CardSlideOver` with `<NewCardPage>`. Used for cards needing properties, members, checklists, or description before creation.
 
 In **Sheet View**, quick add is available via a "New card" button in the table footer or header. It inserts a row at the top of the table. Cards are created in the first list (`allLists[0]`). The `SheetView` component receives `canCreateCard` prop to conditionally render the UI.
 
@@ -179,11 +187,23 @@ When implementing visual-only card reordering (e.g., grouping), sort cards via `
 The Group button supports grouping by any property group. URL param: `?groupBy=<groupPublicId>`.
 
 - When active, `getPropertyGroupedLists()` replaces real lists with virtual lists — one per option in the selected group
+- Empty groups are included (not filtered out), so status columns like Todo/In Progress/Done always show
 - Each virtual list contains only cards that have that option in their `properties`
 - Virtual lists have `publicId: "virtual-prop-${option.publicId}"` and the option's `colourCode`
 - The `List` component accepts `isVirtual` prop to disable editing, adding cards, deleting, and dragging
 - Cards in virtual lists still carry `listName`/`listPublicId` from their original real list (tracked via `cardListNameMap`)
-- `handleVirtualAddCard` opens the add-card slide-over with `preSelectedPropertyId` set. The property is attached to the new card in `NewCardPage`'s `onSuccess` via `utils.client.card.addOrRemoveProperty.mutate`.
+
+#### Auto-Group on Empty Boards
+
+- When a board loads with no lists and no `groupBy` URL param, the board view auto-selects the "Status" property group via `router.push({ query: { groupBy: statusGroup.publicId } })`
+- This makes new boards immediately show the Todo/In Progress/Done virtual columns instead of an empty state
+
+#### Lazy List Creation (`ensureListAndAddCard`)
+
+- New boards have no lists — cards still require a list in the DB, so lists are created lazily
+- `ensureListAndAddCard()` (in `board/index.tsx`) checks if any real list exists. If not, creates a "General" list via `utils.client.list.create.mutate`, invalidates the board query, then opens the CardSlideOver in add mode
+- Used by the toolbar "New card" button and empty state button
+- For quick add in virtual lists, the `List` component handles lazy list creation inline in `handleQuickAddSubmit` before calling `quickCreateCard`
 
 #### Property Filtering (Client-Side)
 
@@ -339,10 +359,11 @@ Card descriptions now autosave with a debounced flush pattern:
 - `PropertySelector`, `PropertyGroupManager`, `GroupButton`, `Filters` all define local `PropertyGroup` interface with `type: string`
 - `PropertySelector` accepts `groupId` as optional on option items to handle both board-level option definitions and card-level property instances
 
-### Virtual List Card Creation (`preSelectedPropertyId`)
+### Virtual List Card Creation (`virtualListOptionId`)
 
-When adding a card from a virtual list (grouped by property), the property option must be pre-selected so the card appears in the correct group:
+When adding a card from a virtual list (grouped by property), the property option must be attached so the card appears in the correct group:
 
-1. `handleVirtualAddCard` extracts `optionPublicId` from the virtual list ID and sets `SlideOverState.preSelectedPropertyId`
-2. `SlideOverState` → `CardSlideOver` → `CardPage` → `NewCardPage` — prop threaded through the entire chain
-3. `NewCardPage` attaches the property in `onSuccess` via `utils.client.card.addOrRemoveProperty.mutate`
+1. The board view passes `virtualListOptionId` prop to `List` (extracted from the virtual list's `publicId` by stripping `"virtual-prop-"` prefix)
+2. `List` uses the quick add input for virtual lists too (same UI as real lists)
+3. `handleQuickAddSubmit` lazily creates a "General" list if needed, then calls `quickCreateCard(title, realListId, virtualListOptionId)`
+4. `useQuickAddCard` stores the `propertyOptionId` in a ref and attaches it in `onSuccess` via `card.addOrRemoveProperty`

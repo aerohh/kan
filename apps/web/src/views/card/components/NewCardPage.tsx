@@ -1,27 +1,22 @@
 import { t } from "@lingui/core/macro";
 import type { RouterInputs } from "@kan/api";
 import { generateUID } from "@kan/shared/utils";
-import { resolveColour } from "@kan/shared/constants";
-import { useTheme } from "next-themes";
 
 import type { WorkspaceMember } from "~/components/Editor";
 import Avatar from "~/components/Avatar";
+import Badge from "~/components/Badge";
 import Button from "~/components/Button";
 import CheckboxDropdown from "~/components/CheckboxDropdown";
 import DateSelector from "~/components/DateSelector";
 import DocEditorForCard, { type DocEditorForCardHandle } from "~/views/docs/components/DocEditorForCard";
 import { type MentionMember } from "~/components/blocknote-specs";
-import { LabelForm } from "~/components/LabelForm";
 import LabelIcon from "~/components/LabelIcon";
-import Modal from "~/components/modal";
 import Toggle from "~/components/Toggle";
 import { useCardPanels } from "~/providers/card-panels";
-import { useModal } from "~/providers/modal";
 import { usePopup } from "~/providers/popup";
 import { useWorkspace } from "~/providers/workspace";
 import { api } from "~/utils/api";
 import { formatMemberDisplayName, getAvatarUrl } from "~/utils/helpers";
-import { DeleteLabelConfirmation } from "../../../components/DeleteLabelConfirmation";
 import {
   HiCheckBadge,
   HiXMark,
@@ -36,8 +31,8 @@ type NewCardFormValues = {
   title: string;
   description: string;
   listPublicId: string;
-  labelPublicIds: string[];
   memberPublicIds: string[];
+  propertyOptionIds: string[];
   dueDate: Date | null;
   isCreateAnotherEnabled: boolean;
 };
@@ -66,17 +61,7 @@ export default function NewCardPage({
   preSelectedPropertyId,
 }: NewCardPageProps) {
   const editorRef = useRef<DocEditorForCardHandle>(null);
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
   const utils = api.useUtils();
-  const {
-    modalContentType,
-    entityId,
-    clearModalState,
-    isOpen,
-    modalStates,
-    openModal,
-  } = useModal();
   const { showPopup } = usePopup();
   const { workspace } = useWorkspace();
 
@@ -96,8 +81,8 @@ export default function NewCardPage({
       title: "",
       description: "",
       listPublicId: defaultListPublicId ?? "",
-      labelPublicIds: preSelectedLabelId ? [preSelectedLabelId] : [],
       memberPublicIds: preSelectedMemberId ? [preSelectedMemberId] : [],
+      propertyOptionIds: preSelectedPropertyId ? [preSelectedPropertyId] : [],
       isCreateAnotherEnabled: false,
       dueDate: preSelectedDueDate ?? null,
     },
@@ -105,11 +90,11 @@ export default function NewCardPage({
 
   const title = watch("title");
   const description = watch("description");
-  const labelPublicIds = watch("labelPublicIds") || [];
   const memberPublicIds = watch("memberPublicIds") || [];
   const isCreateAnother = watch("isCreateAnotherEnabled");
   const dueDate = watch("dueDate");
   const listPublicId = watch("listPublicId");
+  const propertyOptionIds = watch("propertyOptionIds") || [];
   const [isDateSelectorOpen, setIsDateSelectorOpen] = useState(false);
   const { checklistPanelOpen, toggleChecklistPanel, draftChecklists, setDraftChecklists } = useCardPanels();
 
@@ -131,9 +116,8 @@ export default function NewCardPage({
               listId: 2,
               description: "",
               dueDate: args.dueDate ?? null,
-              labels: oldBoard.labels.filter((label) =>
-                args.labelPublicIds.includes(label.publicId),
-              ),
+              labels: [],
+              properties: [],
               members:
                 oldBoard.workspace.members
                   .filter((member) =>
@@ -147,7 +131,6 @@ export default function NewCardPage({
               checklists: [],
               attachments: [],
               docs: [],
-              _filteredLabels: labelPublicIds.map((id) => ({ publicId: id })),
               _filteredMembers: memberPublicIds.map((id) => ({ publicId: id })),
               index: 0,
             };
@@ -175,12 +158,14 @@ export default function NewCardPage({
       });
     },
     onSuccess: async (data) => {
-      if (preSelectedPropertyId && data.publicId) {
+      if (propertyOptionIds.length > 0 && data.publicId) {
         try {
-          await utils.client.card.addOrRemoveProperty.mutate({
-            cardPublicId: data.publicId,
-            optionPublicId: preSelectedPropertyId,
-          });
+          for (const optionPublicId of propertyOptionIds) {
+            await utils.client.card.addOrRemoveProperty.mutate({
+              cardPublicId: data.publicId,
+              optionPublicId,
+            });
+          }
         } catch {
           // Property attachment failed silently — user can set it manually
         }
@@ -215,8 +200,8 @@ export default function NewCardPage({
           title: "",
           description: "",
           listPublicId,
-          labelPublicIds: [] as string[],
           memberPublicIds: [] as string[],
+          propertyOptionIds: [] as string[],
           isCreateAnotherEnabled: true,
           dueDate: null as Date | null,
         };
@@ -230,49 +215,9 @@ export default function NewCardPage({
   });
 
   useEffect(() => {
-    const newLabelId = modalStates.NEW_LABEL_CREATED;
-    if (newLabelId !== undefined && !labelPublicIds.includes(newLabelId)) {
-      setValue("labelPublicIds", [...labelPublicIds, newLabelId]);
-    }
-  }, [modalStates, labelPublicIds]);
-
-  useEffect(() => {
-    if (!addBoardData?.labels) return;
-    const availableLabelIds = addBoardData.labels.map((label) => label.publicId);
-    const newLabelId = modalStates.NEW_LABEL_CREATED;
-
-    if (newLabelId && availableLabelIds.includes(newLabelId)) {
-      clearModalState("NEW_LABEL_CREATED");
-    }
-
-    const validLabelIds = labelPublicIds.filter(
-      (id) => availableLabelIds.includes(id) || id === newLabelId,
-    );
-
-    if (validLabelIds.length !== labelPublicIds.length) {
-      setValue("labelPublicIds", validLabelIds);
-    }
-  }, [addBoardData?.labels, labelPublicIds, modalStates.NEW_LABEL_CREATED]);
-
-  useEffect(() => {
     const titleElement = document.getElementById("title") as HTMLTextAreaElement;
     if (titleElement) titleElement.focus();
   }, []);
-
-  const formattedLabels =
-    addBoardData?.labels.map((label) => ({
-      key: label.publicId,
-      value: label.name,
-      leftIcon: <LabelIcon colourCode={label.colourCode} />,
-      selected: labelPublicIds.includes(label.publicId),
-    })) ?? [];
-
-  const formattedLists =
-    addBoardData?.lists.map((list) => ({
-      key: list.publicId,
-      value: list.name,
-      selected: list.publicId === listPublicId,
-    })) ?? [];
 
   const formattedMembers =
     addBoardData?.workspace.members.map((member) => ({
@@ -324,15 +269,11 @@ export default function NewCardPage({
       title: data.title,
       description: data.description,
       listPublicId: data.listPublicId,
-      labelPublicIds: data.labelPublicIds,
+      labelPublicIds: [],
       memberPublicIds: data.memberPublicIds,
       position: "start",
       dueDate: data.dueDate ?? null,
     });
-  };
-
-  const handleSelectList = (pubId: string): void => {
-    setValue("listPublicId", pubId);
   };
 
   const handleSelectMembers = (pubId: string): void => {
@@ -346,23 +287,26 @@ export default function NewCardPage({
     }
   };
 
-  const handleSelectLabels = (pubId: string): void => {
-    const idx = labelPublicIds.indexOf(pubId);
-    if (idx === -1) {
-      setValue("labelPublicIds", [...labelPublicIds, pubId]);
+  const handleToggleProperty = (optionPublicId: string, group: { type: string; options: { publicId: string }[] }): void => {
+    const isSelected = propertyOptionIds.includes(optionPublicId);
+    if (group.type === "single-select") {
+      const sameGroup = group.options.map((o) => o.publicId);
+      const withoutGroup = propertyOptionIds.filter((id) => !sameGroup.includes(id));
+      if (isSelected) {
+        setValue("propertyOptionIds", withoutGroup);
+      } else {
+        setValue("propertyOptionIds", [...withoutGroup, optionPublicId]);
+      }
     } else {
-      const newIds = [...labelPublicIds];
-      newIds.splice(idx, 1);
-      setValue("labelPublicIds", newIds);
+      if (isSelected) {
+        setValue("propertyOptionIds", propertyOptionIds.filter((id) => id !== optionPublicId));
+      } else {
+        setValue("propertyOptionIds", [...propertyOptionIds, optionPublicId]);
+      }
     }
   };
 
-  const selectedList = formattedLists.find((item) => item.selected);
-  const boardId = boardPublicIdProp ?? addBoardData?.publicId;
-  const refetchBoard = async () => {
-    if (queryParams) await utils.board.byId.invalidate(queryParams);
-  };
-
+  const propertyGroups = addBoardData?.propertyGroups ?? [];
   const handleContentClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const target = e.target as HTMLElement;
@@ -422,54 +366,50 @@ export default function NewCardPage({
               </div>
 
               <div className="mb-0 flex flex-wrap items-center gap-2">
-                <div className="w-fit">
-                  <CheckboxDropdown
-                    items={formattedLists}
-                    handleSelect={(_groupKey, item) => handleSelectList(item.key)}
-                  >
-                    <span className="inline-flex h-6 cursor-pointer items-center rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 hover:bg-light-400 dark:bg-dark-300 dark:text-dark-800 dark:hover:bg-dark-400">
-                      {selectedList?.value ?? t`List`}
+                {propertyGroups.length > 0 && propertyGroups.map((group: any) => {
+                  const selectedIds = propertyOptionIds.filter((id: string) =>
+                    group.options.some((o: any) => o.publicId === id),
+                  );
+                  const items = group.options.map((option: any) => ({
+                    key: option.publicId,
+                    value: option.name,
+                    selected: selectedIds.includes(option.publicId),
+                    leftIcon: option.colourCode ? (
+                      <LabelIcon colourCode={option.colourCode} />
+                    ) : undefined,
+                  }));
+                  const trigger = selectedIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {selectedIds.map((id: string) => {
+                        const option = group.options.find((o: any) => o.publicId === id);
+                        if (!option) return null;
+                        return (
+                          <Badge
+                            key={option.publicId}
+                            value={option.name}
+                            colourCode={option.colourCode}
+                            variant="notion"
+                          />
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-light-800 dark:text-dark-800">
+                      {group.name}
                     </span>
-                  </CheckboxDropdown>
-                </div>
-                <div className="w-fit">
-                  <CheckboxDropdown
-                    items={formattedLabels}
-                    handleSelect={(_groupKey, item) => handleSelectLabels(item.key)}
-                    handleEdit={(labelPubId) =>
-                      openModal("EDIT_LABEL", labelPubId)
-                    }
-                    handleCreate={() => openModal("NEW_LABEL")}
-                    createNewItemLabel={t`Create new label`}
-                  >
-                    {labelPublicIds.length > 0 ? (
-                      <div className="flex h-auto flex-wrap items-center gap-1">
-                        {labelPublicIds.map((labelPubId) => {
-                           const label = addBoardData?.labels.find(
-                             (l) => l.publicId === labelPubId,
-                           );
-                           const resolved = resolveColour(label?.colourCode, isDark);
-                           return (
-                             <span
-                               key={labelPubId}
-                               className="inline-flex h-6 max-w-[120px] items-center truncate rounded-full border-2 px-2 text-[10px] font-medium leading-none text-neutral-600 dark:text-dark-1000"
-                               style={{
-                                 backgroundColor: `${resolved}25`,
-                                 borderColor: `${resolved}30`,
-                               }}
-                             >
-                               {label?.name}
-                             </span>
-                           );
-                         })}
-                      </div>
-                    ) : (
-                      <span className="inline-flex h-6 cursor-pointer items-center rounded bg-light-300 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600 hover:bg-light-400 dark:bg-dark-300 dark:text-dark-800 dark:hover:bg-dark-400">
-                        {t`Labels`}
-                      </span>
-                    )}
-                  </CheckboxDropdown>
-                </div>
+                  );
+                  return (
+                    <div key={group.publicId}>
+                      <CheckboxDropdown
+                        items={items}
+                        handleSelect={(_, item) => handleToggleProperty(item.key, group)}
+                        className="relative inline-flex items-center text-left"
+                      >
+                        {trigger}
+                      </CheckboxDropdown>
+                    </div>
+                  );
+                })}
                 {!isTemplate && (
                   <div className="w-fit">
                     <CheckboxDropdown
@@ -593,33 +533,6 @@ export default function NewCardPage({
           </div>
         </div>
 
-      <Modal
-        modalSize="sm"
-        isVisible={isOpen && modalContentType === "NEW_LABEL"}
-      >
-        <LabelForm boardPublicId={boardId ?? ""} refetch={refetchBoard} />
-      </Modal>
-
-      <Modal
-        modalSize="sm"
-        isVisible={isOpen && modalContentType === "EDIT_LABEL"}
-      >
-        <LabelForm
-          boardPublicId={boardId ?? ""}
-          refetch={refetchBoard}
-          isEdit
-        />
-      </Modal>
-
-      <Modal
-        modalSize="sm"
-        isVisible={isOpen && modalContentType === "DELETE_LABEL"}
-      >
-        <DeleteLabelConfirmation
-          refetch={refetchBoard}
-          labelPublicId={entityId}
-        />
-      </Modal>
     </>
   );
 }

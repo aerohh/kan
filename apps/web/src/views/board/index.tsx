@@ -127,7 +127,7 @@ function getPropertyGroupedLists(
     cards: allCards.filter((card) =>
       card.properties.some((p) => p.publicId === option.publicId),
     ),
-  })).filter((list) => list.cards.length > 0);
+  }));
 }
 
 function getSortKey(
@@ -317,6 +317,20 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     }
   }, [boardId]);
 
+  useEffect(() => {
+    if (!boardData || !boardData.propertyGroups.length) return;
+    if (groupBy) return;
+    if (boardData.lists.length > 0) return;
+    const statusGroup = boardData.propertyGroups.find(
+      (g: any) => g.name === "Status",
+    );
+    if (!statusGroup) return;
+    void router.push({
+      pathname: router.pathname,
+      query: { ...router.query, groupBy: statusGroup.publicId },
+    });
+  }, [boardData, groupBy]);
+
   const isLoading = isInitialLoading || isQueryLoading;
 
   useScrollRestore(
@@ -439,19 +453,26 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
     setSelectedPublicListId(publicBoardId);
   };
 
-  const handleVirtualAddCard = (
-    virtualListPublicId: string,
+  const ensureListAndAddCard = async (
+    preSelectedPropertyId?: string,
   ) => {
-    if (!boardData) return;
+    if (!boardData || !boardId || !canCreateCard) return;
 
-    const firstRealListId = boardData.lists[0]?.publicId ?? "";
+    let listPublicId = boardData.lists[0]?.publicId ?? "";
 
-    const optionPublicId = virtualListPublicId.replace("virtual-prop-", "");
+    if (!listPublicId) {
+      const result = await utils.client.list.create.mutate({
+        name: "General",
+        boardPublicId: boardId,
+      });
+      listPublicId = result.publicId;
+      await utils.board.byId.invalidate(queryParams);
+    }
 
     setSlideOverState({
       mode: "add",
-      listPublicId: firstRealListId,
-      preSelectedPropertyId: optionPublicId,
+      listPublicId,
+      preSelectedPropertyId,
     });
   };
 
@@ -768,9 +789,9 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
             )}
             <Tooltip
               content={
-                !canCreateList
+                !canCreateCard
                   ? t`You don't have permission`
-                  : createListShortcutTooltipContent
+                  : undefined
               }
             >
               <Button
@@ -781,11 +802,11 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                   />
                 }
                 onClick={() => {
-                  if (boardId && canCreateList) openNewListForm(boardId);
+                  if (boardId && canCreateCard) void ensureListAndAddCard();
                 }}
-                disabled={!boardData || !canCreateList}
+                disabled={!boardData || !canCreateCard}
               >
-                {t`New list`}
+                {t`New card`}
               </Button>
             </Tooltip>
             <BoardDropdown
@@ -920,26 +941,26 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                       <div className="flex flex-col items-center">
                         <HiOutlineSquare3Stack3D className="h-10 w-10 text-light-800 dark:text-dark-800" />
                         <p className="mb-2 mt-4 text-[14px] font-bold text-light-1000 dark:text-dark-950">
-                          {t`No lists`}
+                          {t`No cards`}
                         </p>
                         <p className="text-[14px] text-light-900 dark:text-dark-900">
-                          {canCreateList
-                            ? t`Get started by creating a new list`
-                            : t`No lists have been created yet`}
+                          {canCreateCard
+                            ? t`Get started by creating a new card`
+                            : t`No cards have been created yet`}
                         </p>
                       </div>
                       <Tooltip
                         content={
-                          !canCreateList ? t`You don't have permission` : undefined
+                          !canCreateCard ? t`You don't have permission` : undefined
                         }
                       >
                         <Button
                           onClick={() => {
-                            if (boardId && canCreateList) openNewListForm(boardId);
+                            if (boardId && canCreateCard) void ensureListAndAddCard();
                           }}
-                          disabled={!canCreateList}
+                          disabled={!canCreateCard}
                         >
-                          {t`Create new list`}
+                          {t`New card`}
                         </Button>
                       </Tooltip>
                     </div>
@@ -981,11 +1002,11 @@ export default function BoardPage({ isTemplate }: { isTemplate?: boolean }) {
                                    setSelectedPublicListId(publicListId);
                                    openModal("DELETE_LIST");
                                  }}
-                                 onVirtualAddCard={() =>
-                                   handleVirtualAddCard(
-                                     list.publicId,
-                                   )
-                                 }
+                                  virtualListOptionId={
+                                    isGroupByMode
+                                      ? list.publicId.replace("virtual-prop-", "")
+                                      : undefined
+                                  }
                                  cardCount={sortedCards.length}
                                  sortMode={sortMode}
                                  sortDir={sortDir}

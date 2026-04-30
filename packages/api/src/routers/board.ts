@@ -6,6 +6,8 @@ import * as cardRepo from "@kan/db/repository/card.repo";
 import * as activityRepo from "@kan/db/repository/cardActivity.repo";
 import * as labelRepo from "@kan/db/repository/label.repo";
 import * as listRepo from "@kan/db/repository/list.repo";
+import * as propertyGroupRepo from "@kan/db/repository/property-group.repo";
+import * as propertyOptionRepo from "@kan/db/repository/property-option.repo";
 import * as workspaceRepo from "@kan/db/repository/workspace.repo";
 import { colours } from "@kan/shared/constants";
 import {
@@ -444,6 +446,30 @@ export const boardRouter = createTRPCRouter({
         }));
 
         await labelRepo.bulkCreate(ctx.db, labelInputs);
+      }
+
+      const statusGroup = await propertyGroupRepo.create(ctx.db, {
+        name: "Status",
+        type: "single-select",
+        boardId: result.id,
+        createdBy: userId,
+      });
+
+      if (statusGroup) {
+        const defaultStatusOptions = [
+          { name: "Todo", colourCode: "#3f3f46" },
+          { name: "In Progress", colourCode: "#d97706" },
+          { name: "Done", colourCode: "#4d7c5c" },
+        ];
+        for (const opt of defaultStatusOptions) {
+          await propertyOptionRepo.create(ctx.db, {
+            name: opt.name,
+            colourCode: opt.colourCode,
+            groupId: statusGroup.id,
+            boardId: result.id,
+            createdBy: userId,
+          });
+        }
       }
 
       return result;

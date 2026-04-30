@@ -99,6 +99,13 @@ Use `assertUserInWorkspace` helper for workspace checks.
   - `cardDetailSchema.docs`: `{ publicId, title }[]`
   - board card schemas (`byId`/`bySlug`) include `docs: { publicId }[]`
 
+### Default Property Group on Board Creation
+
+- When a new board is created via `board.create` (standard path, not snapshot/clone or import), a default "Status" property group (single-select) is automatically created with three options: "Todo" (Charcoal `#3f3f46`), "In Progress" (Amber `#d97706`), "Done" (Sage `#4d7c5c`)
+- This happens in `packages/api/src/routers/board.ts` after lists and labels are set up, using `propertyGroupRepo.create` + `propertyOptionRepo.create` in a loop
+- No default lists are created — boards start with no lists. Lists are created lazily on the frontend when the first card is added (via `ensureListAndAddCard` in `board/index.tsx`)
+- The snapshot/clone path (`createFromSnapshot`) and import paths do NOT create default groups — they copy structure from the source
+
 ### Property Group & Option Routers
 
 - `propertyGroup` router (`packages/api/src/routers/property-group.ts`): `list`, `create`, `update`, `delete`, `reorder`

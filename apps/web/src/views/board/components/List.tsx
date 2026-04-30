@@ -34,7 +34,7 @@ interface ListProps {
   onOpenNewCard: (publicListId: PublicListId) => void;
   onDeleteList: (publicListId: PublicListId) => void;
   isVirtual?: boolean;
-  onVirtualAddCard?: () => void;
+  virtualListOptionId?: string;
   cardCount?: number;
   sortMode?: string;
   sortDir?: "asc" | "desc";
@@ -62,7 +62,7 @@ export default function List({
   onOpenNewCard,
   onDeleteList,
   isVirtual = false,
-  onVirtualAddCard,
+  virtualListOptionId,
   cardCount,
   sortMode,
   sortDir = "asc",
@@ -76,6 +76,7 @@ export default function List({
   const canEdit = !isVirtual && (canEditList || isCreator);
   const canDrag = !isVirtual && (canEditList || isCreator);
   const isDark = resolvedTheme === "dark";
+  const utils = api.useUtils();
 
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddTitle, setQuickAddTitle] = useState("");
@@ -84,13 +85,30 @@ export default function List({
   const { createCard: quickCreateCard, isPending: isQuickAddPending } =
     useQuickAddCard(queryParams ?? { boardPublicId: "" });
 
-  const handleQuickAddSubmit = useCallback(() => {
+  const handleQuickAddSubmit = useCallback(async () => {
     const trimmed = quickAddTitle.trim();
     if (!trimmed || !queryParams) return;
-    quickCreateCard(trimmed, list.publicId);
+
+    if (isVirtual && virtualListOptionId) {
+      const boardData = utils.board.byId.getData(queryParams);
+      let realListId = boardData?.lists[0]?.publicId ?? "";
+
+      if (!realListId) {
+        const result = await utils.client.list.create.mutate({
+          name: "General",
+          boardPublicId: queryParams.boardPublicId,
+        });
+        realListId = result.publicId;
+      }
+
+      quickCreateCard(trimmed, realListId, virtualListOptionId);
+    } else {
+      quickCreateCard(trimmed, list.publicId);
+    }
+
     setQuickAddTitle("");
     setFocusCount((c) => c + 1);
-  }, [quickAddTitle, queryParams, quickCreateCard, list.publicId]);
+  }, [quickAddTitle, queryParams, quickCreateCard, list.publicId, isVirtual, virtualListOptionId, utils]);
 
   const handleQuickAddCancel = useCallback(() => {
     setShowQuickAdd(false);
@@ -243,9 +261,7 @@ export default function List({
                 <button
                   className="mx-1 inline-flex h-fit items-center rounded-md p-1 px-1 text-sm font-semibold text-dark-50 hover:bg-light-400 disabled:opacity-60 disabled:cursor-not-allowed dark:hover:bg-dark-200"
                   onClick={() => {
-                    if (isVirtual && onVirtualAddCard) {
-                      onVirtualAddCard();
-                    } else if (showQuickAdd) {
+                    if (showQuickAdd) {
                       handleQuickAddCancel();
                     } else {
                       setShowQuickAdd(true);
@@ -266,7 +282,7 @@ export default function List({
               </span>
             )}
           </div>
-          {!isVirtual && canCreateCard && queryParams && showQuickAdd && (
+          {canCreateCard && queryParams && showQuickAdd && (
             <div className="mx-1 mb-2">
               <div className="flex flex-col overflow-hidden rounded-md border border-light-200 bg-light-50 px-3 py-2 dark:border-dark-200 dark:bg-dark-200">
                 <QuickAddCardInput

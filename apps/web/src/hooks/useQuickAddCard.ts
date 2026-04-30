@@ -1,6 +1,7 @@
 import type { RouterInputs } from "@kan/api";
 import { t } from "@lingui/core/macro";
 import { generateUID } from "@kan/shared/utils";
+import { useRef } from "react";
 
 import { usePopup } from "~/providers/popup";
 import { api } from "~/utils/api";
@@ -10,6 +11,7 @@ type BoardQueryParams = RouterInputs["board"]["byId"];
 export function useQuickAddCard(queryParams: BoardQueryParams) {
   const utils = api.useUtils();
   const { showPopup } = usePopup();
+  const propertyOptionIdRef = useRef<string | undefined>(undefined);
 
   const createCard = api.card.create.useMutation({
     onMutate: async (args) => {
@@ -29,12 +31,12 @@ export function useQuickAddCard(queryParams: BoardQueryParams) {
               description: "",
               dueDate: null,
               labels: [],
+              properties: [],
               members: [],
               comments: [],
               checklists: [],
               attachments: [],
               docs: [],
-              _filteredLabels: [],
               _filteredMembers: [],
               index: 0,
             };
@@ -61,13 +63,26 @@ export function useQuickAddCard(queryParams: BoardQueryParams) {
         icon: "error",
       });
     },
+    onSuccess: async (data) => {
+      const optionId = propertyOptionIdRef.current;
+      if (optionId && data.publicId) {
+        propertyOptionIdRef.current = undefined;
+        try {
+          await utils.client.card.addOrRemoveProperty.mutate({
+            cardPublicId: data.publicId,
+            optionPublicId: optionId,
+          });
+        } catch {}
+      }
+    },
     onSettled: async () => {
       await utils.board.byId.invalidate(queryParams);
     },
   });
 
   return {
-    createCard: (title: string, listPublicId: string) =>
+    createCard: (title: string, listPublicId: string, propertyOptionId?: string) => {
+      propertyOptionIdRef.current = propertyOptionId;
       createCard.mutate({
         title,
         description: "",
@@ -75,7 +90,8 @@ export function useQuickAddCard(queryParams: BoardQueryParams) {
         labelPublicIds: [],
         memberPublicIds: [],
         position: "start",
-      }),
+      });
+    },
     isPending: createCard.isPending,
   };
 }
